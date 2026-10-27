@@ -24,6 +24,11 @@ body {
   background: center / cover no-repeat #000;
   text-shadow: 0 2px 24px rgba(0, 0, 0, .5);
 }
+/* A new background comes in over the old one, which it gradually covers (see mettiSfondo). */
+#fondu {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0;
+  background: center / cover no-repeat;
+}
 /* The veil: dark from the top left for the time, from the bottom for the tiles.
    Its opacity is the strength set in the settings. */
 #veil {
@@ -148,6 +153,7 @@ body.pannello .freccia { visibility: hidden; }
 </style>
 </head>
 <body>
+<div id="fondu"></div>
 <div id="veil"></div>
 <header><div id="ora"></div><div id="meteo"></div></header>
 <nav></nav>
@@ -155,8 +161,9 @@ body.pannello .freccia { visibility: hidden; }
 <div id="hint"></div>
 <div id="aperte" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
 <script src="logos.js"></script>
+<script src="fondi.js"></script>
 <script>
-var APP_VERSION = '1.0.9';
+var APP_VERSION = '1.0.9-perso.1';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -169,7 +176,17 @@ var APP_DIR = decodeURIComponent(location.pathname.replace(/\/[^\/]*$/, ''));
 
 var TEXT = { settings: 'Settings', phone: 'or on your phone: ', empty: 'Choose your tiles in Settings',
   open1: '1 open app', openN: ' open apps', openTitle: 'Open apps', closeAll: 'Close all', openNote: 'OK closes an app · Back returns to the Home',
-  none: 'No open apps', openNoteEmpty: 'Back returns to the Home' };
+  none: 'No open apps', openNoteEmpty: 'Back returns to the Home',
+  oneBg: 'Only one background for this time of the day', fixedBg: 'The background is fixed: choose another way in the settings',
+  fewBg: 'Tick at least two backgrounds in the settings' };
+// The Home's new lines in French when the TV's menus are (the rest is English, as it was).
+if (/^fr/i.test(navigator.language || '')) {
+  TEXT.oneBg = 'Un seul fond pour ce moment de la journée';
+  TEXT.fixedBg = 'Le fond est fixe : change de mode dans les réglages';
+  TEXT.fewBg = 'Coche au moins deux fonds dans les réglages';
+}
+// The colour keys of the remote, as the TV's browser sends them.
+var TOUCHES = { red: 403, green: 404, yellow: 405, blue: 406 };
 
 var nav = document.querySelector('nav');
 var ora = document.getElementById('ora');
@@ -244,6 +261,7 @@ function seleziona(i, colPuntatore) {
 
 function lancia(i) {
   if (voci[i].aperte) return apriPannello();
+  if (voci[i].id === 'lk.nextbg') return fondoSuccessivo();
   if (voci[i].gear) return apri(BROWSER, { target: server() + '/' });
   try { localStorage.setItem('ultimaId', voci[i].id); localStorage.setItem('ultima', String(i)); } catch (e) {}
   var a = apertura(voci[i], BROWSER);
@@ -301,18 +319,115 @@ var CARDS = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><
  * another: at power on an uploaded picture came in over the app's own one.
  */
 var sfondoMesso = '', sfondoChiesto = '';
+var fondu = document.getElementById('fondu'), dissolvenza = null, inArrivo = '';
 function sfondo(url) {
   if (url === sfondoMesso || url === sfondoChiesto) return;
   sfondoChiesto = url;
   var img = new Image();
   img.onload = function () {
     if (sfondoChiesto !== url) return;
+    var prima = sfondoMesso;
     sfondoMesso = url;
     sfondoChiesto = '';
-    document.body.style.backgroundImage = 'url(' + url + ')';
+    mettiSfondo(url, prima);
   };
   img.onerror = function () { if (sfondoChiesto === url) sfondoChiesto = ''; };
   img.src = url;
+}
+
+/*
+ * The picture, loaded, goes on the body: the first one at once, each after it over the old
+ * one, which it gradually covers in under two seconds. The body takes it when that is done.
+ */
+function mettiSfondo(url, prima) {
+  var corpo = document.body.style, f = fondu.style;
+  // Another change while one is under way: the one coming in is already on the body.
+  if (dissolvenza) { clearTimeout(dissolvenza); dissolvenza = null; corpo.backgroundImage = 'url(' + inArrivo + ')'; }
+  f.webkitTransition = f.transition = 'none';
+  f.opacity = 0;
+  if (!prima) { corpo.backgroundImage = 'url(' + url + ')'; return; }
+  f.backgroundImage = 'url(' + url + ')';
+  inArrivo = url;
+  void fondu.offsetWidth; // the start is drawn before the change
+  f.webkitTransition = f.transition = 'opacity 1.6s ease';
+  f.opacity = 1;
+  dissolvenza = setTimeout(function () {
+    dissolvenza = null;
+    corpo.backgroundImage = 'url(' + url + ')';
+    f.webkitTransition = f.transition = 'none';
+    f.opacity = 0;
+  }, 1700);
+}
+
+/*
+ * The background by the time of day: the pictures ticked for the slot the TV's clock is in,
+ * one of them drawn for each slot of each day (fondi.js), and moved on by "next background".
+ * Nothing ticked for the slot: the one on the screen stays; with none yet, the one chosen
+ * for the fixed background. The steps taken keep until the slot changes.
+ */
+function passoFondo(chiave, nuovo) {
+  var p = null;
+  try { p = JSON.parse(localStorage.getItem('fondoPasso')); } catch (e) {}
+  if (nuovo !== undefined) {
+    p = { key: chiave, step: nuovo };
+    try { localStorage.setItem('fondoPasso', JSON.stringify(p)); } catch (e) {}
+  }
+  return p && p.key === chiave ? p.step : 0;
+}
+
+function urlFondo(id) {
+  return /^my-/.test(id) ? server() + '/mine/' + id + '.jpg?s=' + (cfg.started || 0) : 'backgrounds/' + id + '.jpg';
+}
+
+// The check of the slot, which the Home makes every minute, at power on and on coming back.
+function fondoDellOra() {
+  if (cfg.backgroundMode !== 'time') return;
+  var adesso = new Date(), ora = fondoDelMomento(cfg, adesso, 0);
+  if (ora.id) ora = fondoDelMomento(cfg, adesso, passoFondo(ora.chiave));
+  if (ora.id) return sfondo(urlFondo(ora.id));
+  if (!sfondoMesso && !sfondoChiesto) sfondo(urlFissa()); // nothing to keep yet
+}
+
+// The fixed choice, or the random one the server drew.
+function urlFissa() {
+  var bg = /^[a-z0-9-]+$/.test(cfg.backgroundNow || '') ? cfg.backgroundNow :
+    cfg.background && cfg.background.custom ? 'custom' : /^[a-z0-9-]+$/.test(cfg.preset || '') ? cfg.preset : 'godrevy';
+  // A picture uploaded, picked at random, comes from the server under its own id.
+  return bg === 'custom' ? server() + '/background.jpg?rev=' + cfg.background.rev + '&s=' + (cfg.started || 0) :
+    urlFondo(bg);
+}
+
+// A line at the foot of the Home for a few seconds.
+var avvisoTimer = null;
+function avviso(testo) {
+  hint.textContent = testo;
+  hint.className = 'on';
+  clearTimeout(avvisoTimer);
+  avvisoTimer = setTimeout(function () { seleziona(sel, true); }, 3000);
+}
+
+/*
+ * "Next background", from its tile or its colour key: by the time of day, the next of the
+ * pictures for this slot; at random, the next of those ticked, which the server keeps until
+ * the TV goes off; with a fixed background there is nothing to go through.
+ */
+function fondoSuccessivo() {
+  if (cfg.backgroundMode === 'time') {
+    var ora = fondoDelMomento(cfg, new Date(), 0);
+    if (ora.pool.length < 2) return avviso(TEXT.oneBg);
+    passoFondo(ora.chiave, passoFondo(ora.chiave) + 1);
+    return fondoDellOra();
+  }
+  if (cfg.backgroundMode !== 'random') return avviso(TEXT.fixedBg);
+  var x = new XMLHttpRequest();
+  x.open('POST', server() + '/api/background/next');
+  x.setRequestHeader('Content-Type', 'application/json');
+  x.timeout = 5000;
+  x.onload = function () {
+    if (x.status === 409) return avviso(TEXT.fewBg);
+    leggi(); // the new one comes with the config
+  };
+  x.send('{}');
 }
 
 function disegna() {
@@ -356,13 +471,10 @@ function disegna() {
   // An uploaded picture comes from the server; the app's own backgrounds are beside this page.
   // With the server's start in the address: a picture that failed while it was down is asked again.
   // With a random background, the one the server picked for this time the TV is on.
-  var bg = /^[a-z0-9-]+$/.test(cfg.backgroundNow || '') ? cfg.backgroundNow :
-    cfg.background && cfg.background.custom ? 'custom' : /^[a-z0-9-]+$/.test(cfg.preset || '') ? cfg.preset : 'godrevy';
-  // A picture uploaded, picked at random, comes from the server under its own id.
-  var url = bg === 'custom' ? server() + '/background.jpg?rev=' + cfg.background.rev + '&s=' + (cfg.started || 0) :
-    /^my-/.test(bg) ? server() + '/mine/' + bg + '.jpg?s=' + (cfg.started || 0) : 'backgrounds/' + bg + '.jpg';
+  var url = urlFissa();
   // The random one kept from last time is not shown before the server's answer, for a moment at most.
-  if (cfg.randomBackground && !letto) setTimeout(function () { if (!letto) sfondo(url); }, 800);
+  if (cfg.backgroundMode === 'time') fondoDellOra();
+  else if (cfg.randomBackground && !letto) setTimeout(function () { if (!letto) sfondo(url); }, 800);
   else sfondo(url);
   seleziona(iniziale());
   aggiorna();
@@ -373,7 +485,8 @@ document.addEventListener('keydown', function (e) {
   if (e.keyCode >= 37 && e.keyCode <= 40 || e.keyCode === 1537) conPuntatore(false);
   if (e.keyCode === 1536) conPuntatore(true);
   if (!pannello.hidden) return tastoPannello(e);
-  if (e.keyCode === 37) seleziona(sel - 1);
+  if (cfg.nextBgKey && TOUCHES[cfg.nextBgKey] === e.keyCode) fondoSuccessivo();
+  else if (e.keyCode === 37) seleziona(sel - 1);
   else if (e.keyCode === 39) seleziona(sel + 1);
   else if (e.keyCode === 13) lancia(sel);
   else if (e.keyCode === 40) apri(LG_HOME); // Down: LG's Home
@@ -673,7 +786,7 @@ function trovaPorta(cb) {
 
 document.addEventListener('visibilitychange', function () {
   if (document.hidden) { pannello.hidden = true; document.body.classList.remove('pannello'); }
-  else { aggiorna(); leggi(); chiediAperte(); }
+  else { aggiorna(); fondoDellOra(); leggi(); chiediAperte(); }
 });
 
 // Home key with the app already open: with handlesRelaunch it comes to the front only if it asks.
@@ -689,6 +802,7 @@ document.addEventListener('webOSRelaunch', function () {
     document.body.classList.remove('pannello');
     seleziona(iniziale());
     aggiorna();
+    fondoDellOra();
     chiediAperte();
   }
   if (!cfg.randomBackground) { mostra(); return leggi(); }
@@ -702,6 +816,8 @@ disegna();
 controlla(5);
 chiediAperte();
 setInterval(aggiorna, 5000);
+// By the time of day, the slot is looked at again every minute.
+setInterval(function () { if (!document.hidden) fondoDellOra(); }, 60000);
 // Changes made on a phone show within seconds; nothing is asked while hidden.
 var mancate = 0;
 setInterval(function () {

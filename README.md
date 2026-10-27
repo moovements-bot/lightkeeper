@@ -6,6 +6,8 @@ It shows the time, the weather for one city and a short row of your apps and inp
 
 ![Lightkeeper on the TV](docs/screenshots/home-icons.jpg)
 
+> **Personal version `1.0.9-perso.1`** (branch `perso`): adds a background by the time of day and a *Next background* tile and key, and turns the project's updates off. See [docs/PERSO.md](docs/PERSO.md).
+
 **Quick start**, on a rooted LG TV with the Homebrew Channel and GlassHouse:
 
 1. In the Homebrew Channel, open the gear, choose *Add repository* and enter `https://github.com/chiotas/lightkeeper/releases/latest/download/apps.json`.

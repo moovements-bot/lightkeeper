@@ -27,7 +27,7 @@ var vm = require('vm');
 var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 
-var VERSION = '1.0.9';
+var VERSION = '1.0.9-perso.1';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -103,6 +103,18 @@ var USUAL_APPS = ['netflix', 'amazon', 'youtube.leanback.v4', 'com.disney.disney
 var CLOCK_STYLES = ['thin', 'classic', 'bold', 'mono', 'rounded', 'digital'];
 var CLOCK_SIZES = ['small', 'medium', 'large'];
 
+// The background by the time of day, in fondi.js beside the app: the slots, and the check of
+// their start hours, as the Home and the settings page use them.
+var FONDI = (function () {
+  var ctx = {};
+  try { vm.runInNewContext(fs.readFileSync(path.join(APP_DIR, 'fondi.js'), 'utf8'), ctx); }
+  catch (e) { console.log('fondi.js: ' + e.message); }
+  return ctx;
+})();
+var NEXT_BG_KEYS = ['none', 'red', 'green', 'yellow', 'blue'];
+// A tile that is not an app: it changes the background, from the Home, and opens nothing.
+var NEXT_BG_TILE = 'lk.nextbg';
+
 var DEFAULTS = {
   clock: '24',
   clockStyle: 'thin',
@@ -118,8 +130,18 @@ var DEFAULTS = {
   preset: 'godrevy',
   background: { custom: false, rev: 0 },
   mine: [],
+  // How the background is chosen: 'fixed', 'random' (each time the TV turns on) or 'time'
+  // (by the time of day). randomBackground stays true only with 'random': the two are
+  // changed together, and a config from before backgroundMode is read from it.
+  backgroundMode: 'fixed',
   randomBackground: false,
   backgroundPool: null,
+  // By the time of day: where each slot starts, and for each picture the slots it goes with.
+  // Each entry is an object so that a later version can add seasons to it.
+  timeSlots: copy(FONDI.FASCE_INIZI),
+  bgTags: {},
+  // A colour key of the remote that moves on to the next background while the Home is in front.
+  nextBgKey: 'none',
   veil: 80,
   key: 'home',
   openAtPowerOn: true,
@@ -191,6 +213,8 @@ function loadConfig() {
   try {
     var saved = JSON.parse(fs.readFileSync(CONFIG, 'utf8'));
     Object.keys(DEFAULTS).forEach(function (k) { if (has(saved, k)) c[k] = saved[k]; });
+    // Saved before backgroundMode: the random switch was the only choice.
+    if (!has(saved, 'backgroundMode')) c.backgroundMode = c.randomBackground ? 'random' : 'fixed';
   } catch (e) {}
   if (typeof validate({ port: c.port }, []) === 'string') c.port = DEFAULT_PORT; // edited by hand
   return c;
@@ -214,6 +238,8 @@ function publicConfig() {
   c.saverPausedUntil = saverUntil > Date.now() ? saverUntil : 0;
   c.started = STARTED;
   c.backgroundNow = sessionBackground();
+  // Every picture there is, in the order the Home and the page draw from, for the time of day.
+  c.backgroundIds = PRESETS.concat(mineIds());
   return c;
 }
 
@@ -302,6 +328,22 @@ function sessionBackground() {
   bgSession = { mark: mark, now: pickBackground(pool, bgSession.now) };
   try { writeAtomic(BG_SESSION, JSON.stringify(bgSession) + '\n'); } catch (e) {}
   log('background for this time the TV is on: ' + bgSession.now);
+  return bgSession.now;
+}
+
+/*
+ * "Next background", from the Home, with the random background: the picture after this
+ * time's one in the list ticked, kept like the random one until the TV goes off and on
+ * again. Null when not random, or with fewer than two to go through. (By the time of day
+ * the Home moves on by itself, from the config: nothing is kept here.)
+ */
+function nextBackground() {
+  if (!config.randomBackground) return null;
+  var pool = bgPool(), now = sessionBackground();
+  if (pool.length < 2 || !now) return null;
+  bgSession.now = pool[(pool.indexOf(now) + 1) % pool.length];
+  try { writeAtomic(BG_SESSION, JSON.stringify(bgSession) + '\n'); } catch (e) {}
+  log('next background: ' + bgSession.now);
   return bgSession.now;
 }
 
@@ -395,6 +437,28 @@ function validate(body, keyNames) {
       }))) return 'backgroundPool';
       out[k] = v;
     }
+    else if (k === 'backgroundMode') { if (['fixed', 'random', 'time'].indexOf(v) === -1) return 'backgroundMode'; out[k] = v; }
+    // The start hour of each of the seven slots of the day, all given.
+    else if (k === 'timeSlots') {
+      if (!FONDI.iniziValidi(v)) return 'timeSlots';
+      out[k] = {};
+      FONDI.FASCE.forEach(function (f) { out[k][f] = v[f]; });
+    }
+    // For each picture, the slots it goes with: the app's own and those uploaded, nothing else,
+    // and in each entry the list of slots alone, for now.
+    else if (k === 'bgTags') {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return 'bgTags';
+      var known = PRESETS.concat(mineIds()), tags = {}, names = Object.keys(v);
+      for (var n = 0; n < names.length; n++) {
+        var e = v[names[n]];
+        if (known.indexOf(names[n]) === -1 || !e || typeof e !== 'object' || Object.keys(e).join() !== 'slots' ||
+          !Array.isArray(e.slots) || e.slots.length > FONDI.FASCE.length ||
+          e.slots.some(function (f, j) { return FONDI.FASCE.indexOf(f) === -1 || e.slots.indexOf(f) !== j; })) return 'bgTags';
+        tags[names[n]] = { slots: e.slots.slice() };
+      }
+      out[k] = tags;
+    }
+    else if (k === 'nextBgKey') { if (NEXT_BG_KEYS.indexOf(v) === -1) return 'nextBgKey'; out[k] = v; }
     else if (k === 'key') {
       if (v !== 'none' && v !== 'home' && keyNames.indexOf(v) === -1) return 'key';
       out[k] = v;
@@ -430,7 +494,18 @@ function validate(body, keyNames) {
       return k;
     }
   }
+  // The mode decides: the random switch follows it.
+  if (has(out, 'backgroundMode')) out.randomBackground = out.backgroundMode === 'random';
   return out;
+}
+
+// A change that sets only randomBackground (the settings page of 1.0.9 did) moves the mode with it.
+function withMode(change) {
+  if (has(change, 'randomBackground') && !has(change, 'backgroundMode')) {
+    if (change.randomBackground) change.backgroundMode = 'random';
+    else if (config.backgroundMode === 'random') change.backgroundMode = 'fixed';
+  }
+  return change;
 }
 
 /* ---------- PIN ---------- */
@@ -641,6 +716,10 @@ var UPDATE_DIR = process.env.LIGHTKEEPER_UPDATE_DIR || '/tmp';
 var CURL = process.env.LIGHTKEEPER_CURL || '/usr/bin/curl';
 var UPDATER = process.env.LIGHTKEEPER_UPDATER || path.join(HERE, 'update.sh');
 var MAX_IPK = 50 * 1024 * 1024;
+// Off in this personal version (1.0.9-perso.N): the project's own update would put its
+// version over this one. The server neither looks for one nor installs one, and the
+// settings page hides its button. Only the tests turn it on, to keep the machinery checked.
+var UPDATES = process.env.LIGHTKEEPER_UPDATES === 'on';
 
 // True when version b is newer than a: 1.0.10 after 1.0.9.
 function newer(a, b) {
@@ -953,6 +1032,7 @@ function handle(req, res) {
     });
   }
   if (m === 'GET' && p === '/logos.js') return sendFile(res, path.join(APP_DIR, 'logos.js'), 'no-cache');
+  if (m === 'GET' && p === '/fondi.js') return sendFile(res, path.join(APP_DIR, 'fondi.js'), 'no-cache');
   if (m === 'GET' && /^\/logos\/[a-z0-9]+\.png$/.test(p)) return sendFile(res, path.join(APP_DIR, p.slice(1)), 'max-age=86400');
   if (m === 'GET' && /^\/jost(-[235]00)?\.woff2$/.test(p)) return sendFile(res, path.join(APP_DIR, p.slice(1)), 'max-age=86400');
   if (m === 'GET' && /^\/clock\/(classic|mono|rounded|digital)\.woff2$/.test(p)) return sendFile(res, path.join(APP_DIR, p.slice(1)), 'max-age=86400');
@@ -1027,6 +1107,27 @@ function handle(req, res) {
     }
     return send(res, 405, { ok: false, error: 'not allowed' }, cors);
   }
+  // The next background, for the random one: from the Home only, as the open apps are; it
+  // moves along a list the settings made, and runs nothing it is sent.
+  if (p === '/api/background/next') {
+    if (!fromHome(req)) {
+      log('next background refused: ' + req.socket.remoteAddress + ', origin ' + req.headers.origin);
+      return send(res, 403, { ok: false, error: 'the Home only' });
+    }
+    var nbCors = req.headers.origin ? { 'Access-Control-Allow-Origin': req.headers.origin, 'Vary': 'Origin' } : {};
+    if (m === 'OPTIONS') {
+      nbCors['Access-Control-Allow-Methods'] = 'POST';
+      nbCors['Access-Control-Allow-Headers'] = 'Content-Type';
+      nbCors['Access-Control-Max-Age'] = '600';
+      return send(res, 204, '', nbCors);
+    }
+    if (m !== 'POST') return send(res, 405, { ok: false, error: 'not allowed' }, nbCors);
+    if (String(req.headers['content-type'] || '').split(';')[0].toLowerCase() !== 'application/json') return send(res, 415, { ok: false, error: 'bad request' }, nbCors);
+    return readBody(req, MAX_JSON, function () {
+      var next = nextBackground();
+      send(res, next ? 200 : 409, { ok: !!next, now: next }, nbCors);
+    });
+  }
   if (p.indexOf('/api/') !== 0) return send(res, 404, { ok: false, error: 'not found' });
   if (!pinOk(req)) {
     return send(res, 401, { ok: false, error: Date.now() < pinLockedUntil ? 'locked' : 'pin' });
@@ -1052,7 +1153,7 @@ function handle(req, res) {
         // A picture uploaded is chosen as such; one the app carries leaves the pictures in the list.
         var mine = has(change, 'preset') && MINE_ID.test(change.preset) ? change.preset : null;
         if (mine) delete change.preset;
-        Object.keys(change).forEach(function (k) { config[k] = change[k]; });
+        Object.keys(withMode(change)).forEach(function (k) { config[k] = change[k]; });
         if (mine) config.background = { custom: true, id: mine, rev: (config.background.rev || 0) + 1 };
         else if (has(change, 'preset') && config.background.custom) config.background = { custom: false, rev: (config.background.rev || 0) + 1 };
         try { saveConfig(); } catch (e) { return send(res, 500, { ok: false, error: e.message }); }
@@ -1114,6 +1215,7 @@ function handle(req, res) {
       [false, true].forEach(function (t) { try { fs.unlinkSync(minePath(gone, t)); } catch (e) {} });
       config.mine = mineIds();
       if (config.backgroundPool) config.backgroundPool = config.backgroundPool.filter(function (b) { return b !== gone; });
+      if (config.bgTags) delete config.bgTags[gone];
     }
     if (config.background.custom && (!gone || config.background.id === gone)) config.background = { custom: false, rev: (config.background.rev || 0) + 1 };
     saveConfig();
@@ -1137,6 +1239,10 @@ function handle(req, res) {
       saveConfig();
       send(res, 200, { ok: true, config: publicConfig() });
     });
+  }
+  if (p === '/api/update' && !UPDATES) {
+    if (m === 'GET') return send(res, 200, { ok: true, disabled: true, current: VERSION });
+    return send(res, 403, { ok: false, error: 'updates are off in this personal version' });
   }
   if (m === 'GET' && p === '/api/update') {
     return checkUpdate(false, function () { send(res, 200, updateReply()); });
@@ -1258,7 +1364,7 @@ function start() {
 }
 
 module.exports = { DEVICES: DEVICES, DEFAULTS: DEFAULTS, CATALOG: CATALOG, webUrl: webUrl, newer: newer, readManifest: readManifest, verifyIpk: verifyIpk, validate: validate, jpegSize: jpegSize, isLocal: isLocal, hostOk: hostOk,
-  applyKey: applyKey, iconFile: iconFile, pickBackground: pickBackground, appChoices: appChoices, openApps: openApps, fromHome: fromHome, keysOnTv: keysOnTv,
+  applyKey: applyKey, VERSION: VERSION, FONDI: FONDI, iconFile: iconFile, pickBackground: pickBackground, appChoices: appChoices, openApps: openApps, fromHome: fromHome, keysOnTv: keysOnTv,
   pinHash: pinHash, same: same };
 
 if (require.main === module) {

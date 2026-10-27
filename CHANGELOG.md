@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.9-perso.1 (27 October 2026)
+
+A personal version of 1.0.9, branch `perso`. See [docs/PERSO.md](docs/PERSO.md).
+
+- **A background by the time of day.** *Choice of background* in the settings: *Fixed*, *Random at power on* (as before) or *By time of day*. Seven slots, each from its start hour to the next one's (dawn 6, morning 8, noon 11, afternoon 15, sunset 18, dusk 20, night 22, the night running on to 6), the hours changeable in the settings. Each picture is ticked for one or more slots; with several for a slot, one is drawn for each slot of each day. The Home looks at the slot every minute, at power on and on coming back, and changes the picture with a soft fade; a slot with no picture ticked keeps the one on the screen. The pictures and slots are in the config as `bgTags` (`{ "<picture id>": { "slots": [...] } }`) and `timeSlots`; each entry is an object so that seasons can be added later without breaking what is saved. The slot calculation is in `app/fondi.js`, shared by the Home, the page and the server.
+- **Next background, from the Home.** A tile *Next background* (add it under Tiles, a picture-frame icon) and a colour key of the remote (*Remote key for the next background*, off until chosen). By the time of day it goes to the next picture ticked for the slot; with the random background, to the next of those ticked, kept until the TV goes off. The choice lasts until the slot changes. With a fixed background the Home says there is nothing to go through.
+- **A soft fade** whenever the Home's picture changes after the first.
+- **Updates are off.** The Updates section says so and has no button; the server neither looks for the project's release nor installs it (`LIGHTKEEPER_UPDATES=on` turns the machinery back on, for the checks), as an official update would put the official version over this one.
+- The new lines of the settings page are in French on a French phone.
+
 ## 1.0.9 (26 October 2026)
 
 - **The Magic Remote's pointer slides the row.** A pointer on a tile only selects it, so a row wider than the screen could be browsed with the arrow keys alone. While the pointer shows, an arrow at each end where there is more slides the row by most of a screen: click it, or rest the pointer on it. The wheel slides it too. The arrow keys work as before. Built on LG's documented pointer events and tried on a computer, not yet with a real Magic Remote.

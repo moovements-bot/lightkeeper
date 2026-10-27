@@ -123,7 +123,9 @@ var ICONE = {
   hdmi: 'M380-80q-25 0-42.5-17.5T320-140v-60L206-426q-3-6-4.5-13t-1.5-14v-167q0-18 11.5-33.5T240-676v-144q0-23 18.5-41.5T300-880h360q23 0 41.5 18.5T720-820v144q17 7 28.5 22.5T760-620v167q0 7-1.5 14t-4.5 13L640-200v60q0 25-17.5 42.5T580-80H380Zm-80-600h98v-65q0-7 5-12t12-5q7 0 12 5t5 12v65h96v-65q0-7 5-12t12-5q7 0 12 5t5 12v65h98v-140H300v140Z'
 };
 var ICONE_APP = { 'com.webos.app.browser': 'browser', 'com.webos.app.igallery': 'gallery', 'com.webos.app.discovery': 'apps',
-  'com.webos.app.mediadiscovery': 'media', 'com.webos.app.homeconnect': 'home', 'com.webos.app.sportsteamsettings': 'sport' };
+  'com.webos.app.mediadiscovery': 'media', 'com.webos.app.homeconnect': 'home', 'com.webos.app.sportsteamsettings': 'sport',
+  // Lightkeeper's own tile, the next background (perso): a picture frame.
+  'lk.nextbg': 'gallery' };
 
 // What can be plugged into an HDMI input, and the picture for each.
 var APPARECCHI = [

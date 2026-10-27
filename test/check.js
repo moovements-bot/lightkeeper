@@ -287,14 +287,115 @@ assert.equal(s.validate({ tiles: [{ id: 'netflix', title: 'Netflix', device: 'ps
 assert.equal(s.validate({ tiles: [{ id: 'com.webos.app.hdmi1', title: 'X', device: 'toaster' }] }, keys), 'tiles');
 assert.equal(s.validate({ preset: '../../etc/passwd' }, keys), 'preset');
 
-// The device an HDMI label names (logos.js runs in the page; here only its pure part).
+/*
+ * The background by the time of day (the personal version): fondi.js, which the Home, the page
+ * and the server share, and the settings that go with it.
+ */
 var vm = require('vm'), logos = {};
+var fondi = {};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'fondi.js'), 'utf8'), fondi);
+var json2 = function (v) { return JSON.parse(JSON.stringify(v)); }; // out of the vm's realm
+assert.deepEqual(json2(fondi.FASCE), ['dawn', 'morning', 'noon', 'afternoon', 'sunset', 'dusk', 'night']);
+assert.deepEqual(json2(fondi.FASCE_INIZI), { dawn: 6, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22 });
+assert.deepEqual(json2(s.DEFAULTS.timeSlots), json2(fondi.FASCE_INIZI)); // the server starts from the same hours
+// The slot of each hour with the usual start hours: dawn 6-8, morning 8-11, noon 11-15, afternoon 15-18, sunset 18-20, dusk 20-22, night 22-6.
+var DAY = ['night', 'night', 'night', 'night', 'night', 'night', 'dawn', 'dawn', 'morning', 'morning', 'morning', 'noon', 'noon', 'noon', 'noon',
+  'afternoon', 'afternoon', 'afternoon', 'sunset', 'sunset', 'dusk', 'dusk', 'night', 'night'];
+DAY.forEach(function (f, h) { assert.equal(fondi.fasciaDi(h, fondi.FASCE_INIZI), f, h + ' h'); });
+// Other start hours move the slots; start hours that make no sense fall back to the usual ones.
+var later = { dawn: 7, morning: 9, noon: 12, afternoon: 16, sunset: 19, dusk: 21, night: 23 };
+assert.equal(fondi.fasciaDi(6, later), 'night'); assert.equal(fondi.fasciaDi(7, later), 'dawn'); assert.equal(fondi.fasciaDi(22, later), 'dusk'); assert.equal(fondi.fasciaDi(23, later), 'night');
+assert.equal(fondi.fasciaDi(9, undefined), 'morning'); assert.equal(fondi.fasciaDi(9, { dawn: 9 }), 'morning');
+assert.ok(fondi.iniziValidi(later) && fondi.iniziValidi({ dawn: 0, morning: 1, noon: 2, afternoon: 3, sunset: 4, dusk: 5, night: 23 }));
+[null, [], {}, { dawn: 6 }, { dawn: 6, morning: 6, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22 }, // not each after the last
+  { dawn: 6, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 24 }, { dawn: -1, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22 },
+  { dawn: 6.5, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22 }, { dawn: '6', morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22 },
+  { dawn: 6, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22, extra: 23 }
+].forEach(function (b) { assert.ok(!fondi.iniziValidi(b), JSON.stringify(b)); });
+// A slot of a day has one name: a night is one across midnight, and the next morning is another day's.
+var at = function (d, h, m) { return new Date(2026, 9, d, h, m || 0); };
+assert.equal(fondi.chiaveFascia(at(27, 23), fondi.FASCE_INIZI), fondi.chiaveFascia(at(28, 1), fondi.FASCE_INIZI));
+assert.equal(fondi.chiaveFascia(at(27, 22), fondi.FASCE_INIZI), fondi.chiaveFascia(at(28, 5, 59), fondi.FASCE_INIZI));
+assert.notEqual(fondi.chiaveFascia(at(27, 5, 59), fondi.FASCE_INIZI), fondi.chiaveFascia(at(27, 22), fondi.FASCE_INIZI)); // the night before, and this one
+assert.notEqual(fondi.chiaveFascia(at(27, 12), fondi.FASCE_INIZI), fondi.chiaveFascia(at(28, 12), fondi.FASCE_INIZI)); // noon, another day
+assert.equal(fondi.chiaveFascia(at(27, 11), fondi.FASCE_INIZI), fondi.chiaveFascia(at(27, 14, 59), fondi.FASCE_INIZI));
+assert.ok(/^noon@\d+$/.test(fondi.chiaveFascia(at(27, 12), fondi.FASCE_INIZI)));
+// The days follow the wall clock across the changes of hour (the last Sunday of March and of October, Paris or not).
+var walk = new Date(2026, 2, 28, 12), keys12 = {};
+for (var dd = 0; dd < 400; dd++) { keys12[fondi.chiaveFascia(new Date(walk.getFullYear(), walk.getMonth(), walk.getDate() + dd, 12), fondi.FASCE_INIZI)] = true; }
+assert.equal(Object.keys(keys12).length, 400, 'one noon for each day');
+// The pictures of a slot: those ticked for it, in the order given; none ticked, none.
+var ids = ['a', 'b', 'c', 'd'], tags = { a: { slots: ['noon', 'afternoon'] }, b: { slots: ['night'] }, c: { slots: ['noon'] }, zz: { slots: ['noon'] } };
+assert.deepEqual(json2(fondi.fondiDellaFascia('noon', ids, tags)), ['a', 'c']);
+assert.deepEqual(json2(fondi.fondiDellaFascia('afternoon', ids, tags)), ['a']);
+assert.deepEqual(json2(fondi.fondiDellaFascia('dawn', ids, tags)), []);
+assert.deepEqual(json2(fondi.fondiDellaFascia('noon', ids, null)), []); assert.deepEqual(json2(fondi.fondiDellaFascia('noon', undefined, tags)), []);
+// The pick: always one of the pool, the same all along a slot, and spread out over the days (neither always the
+// first, nor in turn); the steps of "next background" go round the pool.
+[2, 3, 4].forEach(function (n) {
+  var pool = ['p0', 'p1', 'p2', 'p3'].slice(0, n), seen = {}, same = 0, prev = null;
+  for (var day = 0; day < 365; day++) {
+    var pick = fondi.sceltaFascia('noon@' + (20000 + day), pool, 0);
+    assert.ok(pool.indexOf(pick) !== -1); seen[pick] = (seen[pick] || 0) + 1;
+    assert.equal(fondi.sceltaFascia('noon@' + (20000 + day), pool, 0), pick);
+    if (pick === prev) same++;
+    prev = pick;
+  }
+  assert.equal(Object.keys(seen).length, n, 'every picture comes up');
+  pool.forEach(function (p) { assert.ok(seen[p] > 365 / n * 0.6, n + ' ' + p + ' ' + seen[p]); });
+  assert.ok(same > 365 / n * 0.3 && same < 365 / n * 1.5, 'repeats ' + n + ': ' + same); // about one day in n, as a draw would, or a little fewer
+  var first = fondi.sceltaFascia('night@1', pool, 0), turn = [];
+  for (var st = 0; st < n; st++) turn.push(fondi.sceltaFascia('night@1', pool, st));
+  assert.equal(turn[0], first); assert.deepEqual(turn.slice().sort(), pool.slice().sort(), 'the steps go round');
+  assert.equal(fondi.sceltaFascia('night@1', pool, n), first);
+});
+assert.equal(fondi.sceltaFascia('noon@1', [], 0), null); assert.equal(fondi.sceltaFascia('noon@1', ['only'], 5), 'only');
+// All of it from a config as the server gives it.
+var cfgTime = { timeSlots: fondi.FASCE_INIZI, backgroundIds: ['a', 'b', 'c', 'd'], bgTags: tags };
+var m1 = fondi.fondoDelMomento(cfgTime, at(27, 12), 0), m2 = fondi.fondoDelMomento(cfgTime, at(27, 12), 1);
+assert.equal(m1.fascia, 'noon'); assert.deepEqual(json2(m1.pool), ['a', 'c']); assert.notEqual(m1.id, m2.id); assert.ok(['a', 'c'].indexOf(m1.id) !== -1);
+assert.equal(fondi.fondoDelMomento(cfgTime, at(27, 12, 30), 0).id, m1.id, 'the same all along the slot');
+assert.equal(fondi.fondoDelMomento(cfgTime, at(27, 23), 0).id, 'b'); assert.equal(fondi.fondoDelMomento(cfgTime, at(28, 3), 0).id, 'b');
+var empty = fondi.fondoDelMomento(cfgTime, at(27, 7), 0);
+assert.equal(empty.fascia, 'dawn'); assert.equal(empty.id, null); assert.deepEqual(json2(empty.pool), []); // a slot with none: the Home keeps what it shows
+assert.equal(fondi.fondoDelMomento({}, at(27, 12), 0).id, null); // a config from before
+// fondi.js is loaded by the Home as logos.js is, into the same scope: no name in two of them.
+assert.deepEqual(Object.keys(globals('index.html')).concat(Object.keys(globals('logos.js'))).filter(function (n) { return globals('fondi.js')[n]; }), [], 'names declared in fondi.js and elsewhere');
+
+// The settings: the way the background is chosen, the slots' hours, the slots of each picture, the key.
+assert.equal(s.DEFAULTS.backgroundMode, 'fixed'); assert.deepEqual(s.DEFAULTS.bgTags, {}); assert.equal(s.DEFAULTS.nextBgKey, 'none');
+assert.deepEqual(s.validate({ backgroundMode: 'time' }, keys), { backgroundMode: 'time', randomBackground: false });
+assert.deepEqual(s.validate({ backgroundMode: 'random' }, keys), { backgroundMode: 'random', randomBackground: true });
+assert.deepEqual(s.validate({ backgroundMode: 'fixed', randomBackground: true }, keys), { backgroundMode: 'fixed', randomBackground: false }); // the mode decides
+['weekly', '', null, true, 'Time'].forEach(function (v) { assert.equal(s.validate({ backgroundMode: v }, keys), 'backgroundMode', String(v)); });
+assert.deepEqual(s.validate({ timeSlots: later }, keys), { timeSlots: later });
+assert.deepEqual(s.validate({ timeSlots: { night: 23, dusk: 21, sunset: 19, afternoon: 16, noon: 12, morning: 9, dawn: 7 } }, keys).timeSlots, later); // whatever the order written in
+[{ dawn: 6 }, null, 'six', [], { dawn: 9, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22 },
+  { dawn: 6, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22, extra: 1 }].forEach(function (v) { assert.equal(s.validate({ timeSlots: v }, keys), 'timeSlots', JSON.stringify(v)); });
+assert.deepEqual(s.validate({ bgTags: { night: { slots: ['night', 'dusk'] }, dawn: { slots: [] } } }, keys), { bgTags: { night: { slots: ['night', 'dusk'] }, dawn: { slots: [] } } });
+assert.deepEqual(s.validate({ bgTags: {} }, keys), { bgTags: {} });
+[null, [], 'night', { nope: { slots: ['night'] } }, { night: ['night'] }, { night: null }, { night: { slots: 'night' } }, { night: { slots: ['midnight'] } },
+  { night: { slots: ['night', 'night'] } }, { night: {} }, { night: { slots: ['night'], seasons: ['winter'] } }, // no seasons yet
+  { night: { slots: ['night'], extra: 1 } }, { night: { slots: ['dawn', 'morning', 'noon', 'afternoon', 'sunset', 'dusk', 'night', 'dawn'] } }
+].forEach(function (v) { assert.equal(s.validate({ bgTags: v }, keys), 'bgTags', JSON.stringify(v)); });
+['none', 'red', 'green', 'yellow', 'blue'].forEach(function (v) { assert.deepEqual(s.validate({ nextBgKey: v }, keys), { nextBgKey: v }); });
+['orange', '', null, 403, 'Red'].forEach(function (v) { assert.equal(s.validate({ nextBgKey: v }, keys), 'nextBgKey', String(v)); });
+// The tile that changes the background: an id of its own, with no device and no address, like any tile otherwise.
+assert.deepEqual(s.validate({ tiles: [{ id: 'lk.nextbg', title: 'Fond suivant', logo: 'gallery' }] }, keys), { tiles: [{ id: 'lk.nextbg', title: 'Fond suivant', logo: 'gallery' }] });
+assert.equal(s.validate({ tiles: [{ id: 'lk.nextbg', title: 'x', device: 'ps5' }] }, keys), 'tiles');
+assert.equal(s.validate({ tiles: [{ id: 'lk.nextbg', title: 'x', url: 'https://a.it' }] }, keys), 'tiles');
+// The personal version, said in the three places it is written.
+assert.equal(s.VERSION, '1.0.9-perso.1');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.1');
+
+// The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
 [['PS5 Console giochi', 'ps5'], ['PlayStation 4', 'ps4'], ['Xbox Series X', 'xboxseries'], ['XBOX ONE', 'xbox'],
  ['Nintendo Switch 2', 'switch2'], ['Nintendo Switch', 'switch'], ['Steam Deck', 'steamdeck'], ['Apple TV 4K', 'appletv'], ['Shield TV', 'shield'],
  ['Chromecast', 'chromecast'], ['Google TV', 'googletv'], ['Fire TV Stick', 'firetv'], ['Game console', 'console'], ['HDMI 2', 'hdmi'], ['', 'hdmi']
 ].forEach(function (c) { assert.equal(logos.indovinaApparecchio(c[0]), c[1], c[0]); });
 assert.equal(logos.logoDi({ id: 'netflix', title: 'Netflix' }, 'logo'), 'netflix');
+assert.equal(logos.logoDi({ id: 'lk.nextbg', title: 'Fond suivant' }, 'logo'), 'gallery'); // the next-background tile, its icon unless another is chosen
 assert.equal(logos.logoDi({ id: 'netflix', title: 'Netflix' }, 'icon'), ''); // the TV's own icon
 assert.equal(logos.logoDi({ id: 'amazon', title: 'Prime Video' }, 'logo'), 'primevideo');
 assert.equal(logos.logoDi({ id: 'it.rai.raiplay', title: 'RaiPlay' }, 'logo'), 'raiplay');
@@ -593,6 +694,79 @@ function httpChecks() {
         });
       });
     }); },
+    // The background by the time of day: the settings are kept, checked and cleaned up with the pictures.
+    function (next) { req('GET', '/api/config', {}, function (st, j) {
+      assert.equal(j.backgroundMode, 'fixed', 'in step with the random switch'); assert.equal(j.randomBackground, false);
+      assert.deepEqual(j.timeSlots, json2(fondi.FASCE_INIZI)); assert.deepEqual(j.bgTags, {}); assert.equal(j.nextBgKey, 'none');
+      assert.deepEqual(j.backgroundIds, BACKGROUNDS.concat(mine3.slice(0, 2))); next(); }); },
+    function (next) { req('POST', '/api/config', json({ backgroundMode: 'time' }), function (st, j) {
+      assert.equal(st, 200); assert.equal(j.config.backgroundMode, 'time'); assert.equal(j.config.randomBackground, false); assert.equal(j.config.backgroundNow, null);
+      req('POST', '/api/config', json({ backgroundMode: 'weekly' }), function (st2, j2) { assert.equal(st2, 400); assert.equal(j2.error, 'invalid: backgroundMode'); next(); }); }); },
+    function (next) { req('POST', '/api/config', json({ timeSlots: { dawn: 5, morning: 9, noon: 12, afternoon: 16, sunset: 19, dusk: 21, night: 23 }, nextBgKey: 'yellow',
+      bgTags: (function () { var o = {}; o[mine3[0]] = { slots: ['noon', 'afternoon'] }; o[mine3[1]] = { slots: ['night'] }; o.dawn = { slots: ['dawn'] }; return o; })() }), function (st, j) {
+      assert.equal(st, 200); assert.equal(j.config.timeSlots.dawn, 5); assert.equal(j.config.nextBgKey, 'yellow'); assert.deepEqual(j.config.bgTags[mine3[0]], { slots: ['noon', 'afternoon'] });
+      var saved = JSON.parse(fs.readFileSync(path.join(env.LIGHTKEEPER_DATA, 'config.json'), 'utf8'));
+      assert.equal(saved.backgroundMode, 'time'); assert.deepEqual(saved.bgTags.dawn, { slots: ['dawn'] }); next(); }); },
+    function (next) { req('POST', '/api/config', json({ timeSlots: { dawn: 9, morning: 8, noon: 11, afternoon: 15, sunset: 18, dusk: 20, night: 22 } }), function (st, j) { assert.equal(st, 400); assert.equal(j.error, 'invalid: timeSlots'); next(); }); },
+    function (next) { req('POST', '/api/config', json({ bgTags: { 'my-00000000': { slots: ['noon'] } } }), function (st, j) { assert.equal(st, 400); assert.equal(j.error, 'invalid: bgTags'); next(); }); },
+    function (next) { var o = {}; o[mine3[0]] = { slots: ['noon'], seasons: ['winter'] }; req('POST', '/api/config', json({ bgTags: o }), function (st) { assert.equal(st, 400); next(); }); },
+    // A picture taken away loses its slots, and the others keep theirs.
+    function (next) { req('DELETE', '/api/background?id=' + mine3[0], {}, function (st, j) {
+      assert.equal(st, 200); assert.equal(j.config.bgTags[mine3[0]], undefined); assert.deepEqual(j.config.bgTags[mine3[1]], { slots: ['night'] });
+      assert.deepEqual(j.config.backgroundIds, BACKGROUNDS.concat([mine3[1]])); next(); }); },
+    // Next background, with the random one: from the Home only, along the list ticked, kept like the random one.
+    function (next) {
+      fs.writeFileSync(env.LIGHTKEEPER_SESSION, 'nb\n');
+      var home = json({}); home.headers.Origin = 'null';
+      req('POST', '/api/background/next', home, function (st0, j0) {
+        assert.equal(st0, 409); assert.equal(j0.ok, false); // by the time of day the Home moves on by itself: nothing for the server to do
+        req('POST', '/api/config', json({ backgroundMode: 'random', backgroundPool: ['night', 'dawn', mine3[1]] }), function (st, j) {
+          assert.equal(j.config.randomBackground, true);
+          var a = j.config.backgroundNow, order = ['night', 'dawn', mine3[1]].sort(function (x, y) { return BACKGROUNDS.concat([mine3[1]]).indexOf(x) - BACKGROUNDS.concat([mine3[1]]).indexOf(y); });
+          req('POST', '/api/background/next', home, function (st1, j1) {
+            assert.equal(st1, 200); assert.equal(j1.now, order[(order.indexOf(a) + 1) % 3]);
+            req('GET', '/api/config', {}, function (st2, j2) {
+              assert.equal(j2.backgroundNow, j1.now, 'kept while the TV stays on');
+              req('POST', '/api/background/next', home, function (st3, j3) {
+                assert.equal(j3.now, order[(order.indexOf(a) + 2) % 3]);
+                var evil = json({}); evil.headers.Origin = 'http://evil.example';
+                req('POST', '/api/background/next', evil, function (st4) {
+                  assert.equal(st4, 403);
+                  req('POST', '/api/background/next', { headers: { 'Content-Type': 'text/plain', Origin: 'null' }, body: '{}' }, function (st5) {
+                    assert.equal(st5, 415);
+                    req('OPTIONS', '/api/background/next', { headers: { Origin: 'null' } }, function (st6, j6, h6) {
+                      assert.equal(st6, 204); assert.equal(h6['access-control-allow-methods'], 'POST');
+                      req('POST', '/api/config', json({ backgroundPool: ['night'] }), function () {
+                        req('POST', '/api/background/next', home, function (st7) {
+                          assert.equal(st7, 409, 'one picture ticked: nothing to go to');
+                          // The random switch alone, as the page of 1.0.9 sent it, moves the mode with it.
+                          req('POST', '/api/config', json({ randomBackground: false, backgroundPool: null }), function (st8, j8) {
+                            assert.equal(j8.config.backgroundMode, 'fixed');
+                            req('POST', '/api/config', json({ backgroundMode: 'time' }), function () {
+                              req('POST', '/api/config', json({ randomBackground: false }), function (st9, j9) {
+                                assert.equal(j9.config.backgroundMode, 'time', 'a switch that is off leaves the time of day alone');
+                                req('POST', '/api/config', json({ randomBackground: true }), function (st10, j10) {
+                                  assert.equal(j10.config.backgroundMode, 'random');
+                                  req('POST', '/api/config', json({ backgroundMode: 'fixed', nextBgKey: 'none' }), function () { next(); });
+                                });
+                              });
+                            });
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    },
+    // The project's own updates are off in this version: nothing looked for, nothing installed.
+    function (next) { req('GET', '/api/update', {}, function (st, j) {
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.1'); assert.equal(j.latest, undefined);
+      req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {
       fs.writeFileSync(RUNNING, 'netflix\n');
@@ -735,6 +909,7 @@ function updateChecks(done) {
   var uenv = {};
   Object.keys(process.env).forEach(function (k) { uenv[k] = process.env[k]; });
   uenv.LIGHTKEEPER_PORT = '18390';
+  uenv.LIGHTKEEPER_UPDATES = 'on'; // off in this personal version: only this check runs the update machinery
   uenv.LIGHTKEEPER_DATA = data;
   uenv.LIGHTKEEPER_PORT_FILE = path.join(tmp, 'port-3');
   uenv.LIGHTKEEPER_UPDATE_DIR = work;

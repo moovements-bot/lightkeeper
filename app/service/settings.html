@@ -165,6 +165,8 @@ select option, select optgroup { background: var(--raised); color: var(--ink); }
 .seg input:focus + span { outline: 2px solid var(--ink); outline-offset: 2px; }
 .seg input:focus:not(:focus-visible) + span { outline: none; }
 
+/* Three long choices: on a phone, one under the other. */
+.seg.wide { -webkit-flex-wrap: wrap; flex-wrap: wrap; }
 .switch { -webkit-appearance: none; appearance: none; position: relative; width: 56px; height: 32px; border-radius: 16px;
   background: rgba(244, 241, 236, .2); cursor: pointer; transition: background-color .2s; -webkit-flex-shrink: 0; flex-shrink: 0; }
 .switch::before { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%;
@@ -233,6 +235,25 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   content: "\2713"; position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%;
   background: var(--ink); color: var(--ground); font-size: 15px; line-height: 26px; text-align: center;
 }
+/* By the time of day: the start of each slot, then the slots each picture goes with. */
+.sub-h { margin-top: 26px; font-size: 18px; font-weight: 400; }
+.slots, .tagged { list-style: none; margin-top: 12px; border-top: 1px solid var(--line); }
+.slots li { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.slots li label { -webkit-flex: 1; flex: 1; min-width: 0; margin-right: 14px; }
+.slots .sub { display: block; font-size: 14px; color: var(--muted); }
+.slots select { width: 110px; }
+.tagged li { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.tagged .head { display: flex; align-items: center; }
+.tagged img { display: block; width: 96px; height: 54px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.tagged .nm { font-size: 15px; color: var(--muted); }
+.chips { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 10px; }
+.chips label { position: relative; cursor: pointer; margin: 0 6px 6px 0; }
+.chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chips span { display: block; height: 38px; line-height: 36px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 19px; font-size: 15px; white-space: nowrap; transition: background-color .18s, color .18s; }
+.chips label:hover span { background: var(--wash); }
+.chips input:checked + span { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.chips input:focus + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+.chips input:focus:not(:focus-visible) + span { outline: none; }
 .credit { margin-top: 12px; font-size: 15px; color: var(--muted); }
 .credit a { color: var(--ink); }
 .file { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -291,6 +312,8 @@ footer a { color: var(--muted); }
   .caption #status { margin-left: 0; }
   .row > label, .row > .label { -webkit-flex-basis: 100%; flex-basis: 100%; margin-right: 0; }
   .btn + .btn { margin-left: 6px; }
+  .seg.wide { display: -webkit-flex; display: flex; width: 100%; -webkit-flex-direction: column; flex-direction: column; border-radius: 22px; }
+  .seg.wide span { text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -364,10 +387,29 @@ footer a { color: var(--muted); }
         <div class="bgs" id="bgs" role="radiogroup" aria-labelledby="h-bg"></div>
         <p class="credit" id="bg-credit"></p>
         <div class="row">
-          <label for="random-bg"><span data-t="randomBg">Random each time the TV turns on</span><span class="sub" data-t="randomBgLede">One of the pictures ticked above, never the same twice in a row.</span></label>
-          <input type="checkbox" class="switch" id="random-bg" role="switch">
+          <span class="label" id="l-bgmode" data-t="bgMode">Choice of background</span>
+          <div class="seg wide" role="radiogroup" aria-labelledby="l-bgmode">
+            <label><input type="radio" name="bgMode" value="fixed"><span data-t="bgFixed">Fixed</span></label>
+            <label><input type="radio" name="bgMode" value="random"><span data-t="bgRandom">Random at power on</span></label>
+            <label><input type="radio" name="bgMode" value="time"><span data-t="bgTime">By time of day</span></label>
+          </div>
         </div>
+        <p class="note" id="mode-note" aria-live="polite"></p>
         <p class="note" id="random-note" aria-live="polite" hidden></p>
+        <div id="time-box" hidden>
+          <h3 class="sub-h" data-t="slotsTitle">Time slots</h3>
+          <p class="note" data-t="slotsLede">Hours on the TV's own clock. A slot lasts until the next one starts; the night goes on past midnight.</p>
+          <ul class="slots" id="slots"></ul>
+          <div class="actions"><button class="btn" type="button" id="slots-reset" data-t="slotsReset">Default hours</button></div>
+          <h3 class="sub-h" data-t="tagsTitle">Pictures for each slot</h3>
+          <p class="note" data-t="tagsLede">Tick the slots each picture goes with. With several for one slot, one is drawn each time the slot begins. A slot with none keeps the picture on the screen.</p>
+          <p class="note" id="time-now" aria-live="polite"></p>
+          <ul class="tagged" id="tagged"></ul>
+        </div>
+        <div class="row">
+          <label for="next-key"><span data-t="nextKey">Remote key for the next background</span><span class="sub" data-t="nextKeyLede">While the Home is in front. The tile "Next background" does the same: add it under Tiles.</span></label>
+          <select id="next-key"></select>
+        </div>
         <div class="row">
           <span class="label" id="l-size" data-t="size">Size</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-size">
@@ -470,7 +512,8 @@ footer a { color: var(--muted); }
 
       <section aria-labelledby="h-update">
         <h2 id="h-update" data-t="updTitle">Updates</h2>
-        <div class="row">
+        <p class="lede" id="upd-perso" data-t="updOff" hidden>This is a personal version, so the project's updates are turned off: one would put the official version over it.</p>
+        <div class="row" id="upd-row">
           <div class="label"><span id="upd-version">Lightkeeper</span><span class="sub" id="upd-state"></span></div>
           <button class="btn" type="button" id="upd-go" data-t="updGo" hidden>Update</button>
         </div>
@@ -510,6 +553,7 @@ footer a { color: var(--muted); }
 <p class="gone" id="gone" hidden></p>
 
 <script src="/logos.js"></script>
+<script src="/fondi.js"></script>
 <script>
 (function () {
   var T = {
@@ -567,7 +611,33 @@ footer a { color: var(--muted); }
       removeTitle: 'Remove Lightkeeper', removeLede: 'Gives the Home key back to LG, stops opening at power on, and deletes these settings and the app.',
       removeYes: 'Remove for good', cancel: 'Cancel', removed: 'Lightkeeper has been removed from the TV. You can close this page.',
       licence: 'MIT licence, use at your own risk', lockTitle: 'Enter the PIN', unlock: 'Unlock', wrong: 'Wrong PIN.',
-      locked: 'Too many tries. Wait a minute and try again.'
+      locked: 'Too many tries. Wait a minute and try again.',
+      // The personal version: the background by the time of day, the next-background tile and key.
+      bgMode: 'Choice of background', bgFixed: 'Fixed', bgRandom: 'Random at power on', bgTime: 'By time of day',
+      modeTime: 'The Home changes the picture by itself as the slots go by, with a soft fade.',
+      slotsTitle: 'Time slots', slotsLede: 'Hours on the TV\'s own clock. A slot lasts until the next one starts; the night goes on past midnight.',
+      slotsReset: 'Default hours', slotUntil: 'until ',
+      tagsTitle: 'Pictures for each slot', tagsLede: 'Tick the slots each picture goes with. With several for one slot, one is drawn each time the slot begins. A slot with none keeps the picture on the screen.',
+      timeNow: 'Now: ', timeNowSome: ' · pictures: ', timeNowNone: ' · none ticked, so the Home keeps the picture on the screen',
+      slot_dawn: 'Dawn', slot_morning: 'Morning', slot_noon: 'Noon', slot_afternoon: 'Afternoon', slot_sunset: 'Sunset', slot_dusk: 'Dusk', slot_night: 'Night',
+      nextKey: 'Remote key for the next background', nextKeyLede: 'While the Home is in front. The tile "Next background" does the same: add it under Tiles.',
+      keyRed: 'Red', keyGreen: 'Green', keyYellow: 'Yellow', keyBlue: 'Blue',
+      nextBgTile: 'Next background', lkGroup: 'Lightkeeper',
+      updOff: 'This is a personal version, so the project\'s updates are turned off: one would put the official version over it.', updOffState: 'Updates are off in this version.'
+    },
+    // French, for the lines above only: the rest of the page stays in English.
+    fr: {
+      bgMode: 'Choix du fond', bgFixed: 'Fixe', bgRandom: 'Aléatoire à l\'allumage', bgTime: 'Selon l\'heure',
+      modeTime: 'Le Home change de fond tout seul au fil des créneaux, avec un fondu doux.',
+      slotsTitle: 'Créneaux', slotsLede: 'Heures de l\'horloge de la TV. Un créneau dure jusqu\'au début du suivant ; la nuit passe minuit.',
+      slotsReset: 'Heures par défaut', slotUntil: 'jusqu\'à ',
+      tagsTitle: 'Fonds de chaque créneau', tagsLede: 'Coche les créneaux de chaque fond. S\'il y en a plusieurs pour un créneau, un est tiré au sort à chaque début de créneau. Un créneau sans fond garde celui de l\'écran.',
+      timeNow: 'Maintenant : ', timeNowSome: ' · fonds : ', timeNowNone: ' · aucun fond coché, le Home garde celui de l\'écran',
+      slot_dawn: 'Aube', slot_morning: 'Matin', slot_noon: 'Midi', slot_afternoon: 'Après-midi', slot_sunset: 'Coucher', slot_dusk: 'Crépuscule', slot_night: 'Nuit',
+      nextKey: 'Touche de la télécommande pour le fond suivant', nextKeyLede: 'Quand le Home est à l\'écran. La tuile « Fond suivant » fait pareil : ajoute-la dans Tiles.',
+      keyNone: 'Aucune', keyRed: 'Rouge', keyGreen: 'Verte', keyYellow: 'Jaune', keyBlue: 'Bleue',
+      nextBgTile: 'Fond suivant', yours: 'Ton image', yoursShort: 'Tienne',
+      updOff: 'Version perso : les mises à jour du projet sont désactivées, car une mise à jour officielle écraserait cette version.', updOffState: 'Mises à jour désactivées dans cette version.'
     }
   };
   var ICON = {
@@ -579,6 +649,12 @@ footer a { color: var(--muted); }
   var GEAR = '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,82a46,46,0,1,0,46,46A46.06,46.06,0,0,0,128,82Zm0,80a34,34,0,1,1,34-34A34,34,0,0,1,128,162ZM214,130.84c.06-1.89.06-3.79,0-5.68L229.33,106a6,6,0,0,0,1.11-5.29A105.34,105.34,0,0,0,219.76,74.9a6,6,0,0,0-4.53-3l-24.45-2.71q-1.93-2.07-4-4l-2.72-24.46a6,6,0,0,0-3-4.53,105.65,105.65,0,0,0-25.77-10.66A6,6,0,0,0,150,26.68l-19.2,15.37c-1.89-.06-3.79-.06-5.68,0L106,26.67a6,6,0,0,0-5.29-1.11A105.34,105.34,0,0,0,74.9,36.24a6,6,0,0,0-3,4.53L69.23,65.22q-2.07,1.94-4,4L40.76,72a6,6,0,0,0-4.53,3,105.65,105.65,0,0,0-10.66,25.77A6,6,0,0,0,26.68,106l15.37,19.2c-.06,1.89-.06,3.79,0,5.68L26.67,150.05a6,6,0,0,0-1.11,5.29A105.34,105.34,0,0,0,36.24,181.1a6,6,0,0,0,4.53,3l24.45,2.71q1.94,2.07,4,4L72,215.24a6,6,0,0,0,3,4.53,105.65,105.65,0,0,0,25.77,10.66,6,6,0,0,0,5.29-1.11L125.16,214c1.89.06,3.79.06,5.68,0l19.21,15.38a6,6,0,0,0,3.75,1.31,6.2,6.2,0,0,0,1.54-.2,105.34,105.34,0,0,0,25.76-10.68,6,6,0,0,0,3-4.53l2.71-24.45q2.07-1.93,4-4l24.46-2.72a6,6,0,0,0,4.53-3,105.49,105.49,0,0,0,10.66-25.77,6,6,0,0,0-1.11-5.29Zm-3.1,41.63-23.64,2.63a6,6,0,0,0-3.82,2,75.14,75.14,0,0,1-6.31,6.31,6,6,0,0,0-2,3.82l-2.63,23.63A94.28,94.28,0,0,1,155.14,218l-18.57-14.86a6,6,0,0,0-3.75-1.31h-.36a78.07,78.07,0,0,1-8.92,0,6,6,0,0,0-4.11,1.3L100.87,218a94.13,94.13,0,0,1-17.34-7.17L80.9,187.21a6,6,0,0,0-2-3.82,75.14,75.14,0,0,1-6.31-6.31,6,6,0,0,0-3.82-2l-23.63-2.63A94.28,94.28,0,0,1,38,155.14l14.86-18.57a6,6,0,0,0,1.3-4.11,78.07,78.07,0,0,1,0-8.92,6,6,0,0,0-1.3-4.11L38,100.87a94.13,94.13,0,0,1,7.17-17.34L68.79,80.9a6,6,0,0,0,3.82-2,75.14,75.14,0,0,1,6.31-6.31,6,6,0,0,0,2-3.82l2.63-23.63A94.28,94.28,0,0,1,100.86,38l18.57,14.86a6,6,0,0,0,4.11,1.3,78.07,78.07,0,0,1,8.92,0,6,6,0,0,0,4.11-1.3L155.13,38a94.13,94.13,0,0,1,17.34,7.17l2.63,23.64a6,6,0,0,0,2,3.82,75.14,75.14,0,0,1,6.31,6.31,6,6,0,0,0,3.82,2l23.63,2.63A94.28,94.28,0,0,1,218,100.86l-14.86,18.57a6,6,0,0,0-1.3,4.11,78.07,78.07,0,0,1,0,8.92,6,6,0,0,0,1.3,4.11L218,155.13A94.13,94.13,0,0,1,210.85,172.47Z"/></svg>';
 
   var cfg = null, tv = { apps: [], inputs: [], keys: [] }, pin = '', t = T.en;
+  // On a French phone, the new lines are French (T.fr holds those lines only).
+  if (/^fr/i.test(navigator.language || '')) {
+    t = {};
+    Object.keys(T.en).forEach(function (k) { t[k] = T.en[k]; });
+    Object.keys(T.fr).forEach(function (k) { t[k] = T.fr[k]; });
+  }
   LOGHI_BASE = '/logos/'; // logos.js's pictures, as the server serves them
   function $(id) { return document.getElementById(id); }
   try { pin = sessionStorage.getItem('pin') || ''; } catch (e) {}
@@ -649,6 +725,8 @@ footer a { color: var(--muted); }
   // The background the Home shows now: this time's random one, the uploaded picture or the chosen one.
   function bgUrl() {
     var now = /^[a-z0-9-]+$/.test(cfg.backgroundNow || '') ? cfg.backgroundNow : null;
+    // By the time of day: the one the Home shows now (fondi.js, as the Home), if any is ticked for the slot.
+    if (cfg.backgroundMode === 'time') now = fondoDelMomento(cfg, new Date(), 0).id || now;
     if (now) return (/^my-/.test(now) ? '/mine/' : '/backgrounds/') + now + '.jpg';
     if (cfg.background && cfg.background.custom) return '/background.jpg?rev=' + (cfg.background.rev || 0);
     return '/backgrounds/' + (/^[a-z0-9-]+$/.test(cfg.preset || '') ? cfg.preset : 'godrevy') + '.jpg';
@@ -1101,7 +1179,8 @@ footer a { color: var(--muted); }
     first.value = '';
     first.textContent = t.add;
     sel.appendChild(first);
-    [[t.apps, tv.apps], [t.inputs, tv.inputs]].forEach(function (g) {
+    // Lightkeeper's own tile, the next background, once.
+    [[t.apps, tv.apps], [t.inputs, tv.inputs], [t.lkGroup, used['lk.nextbg'] ? [] : [{ id: 'lk.nextbg', title: t.nextBgTile }]]].forEach(function (g) {
       var free = g[1].filter(function (x) { return !used[x.id]; });
       if (!free.length) return;
       var og = document.createElement('optgroup');
@@ -1137,7 +1216,7 @@ footer a { color: var(--muted); }
   $('add').onchange = function () {
     var id = this.value;
     if (!id) return;
-    var tile = { id: id, title: tvTitle(id) || id };
+    var tile = id === 'lk.nextbg' ? { id: id, title: t.nextBgTile, logo: 'gallery' } : { id: id, title: tvTitle(id) || id };
     cfg.tiles = (cfg.tiles || []).concat([tile]);
     saveTiles();
     $('add').focus();
@@ -1166,14 +1245,20 @@ footer a { color: var(--muted); }
   }
 
   function renderBg() {
-    var custom = cfg.background && cfg.background.custom, box = $('bgs'), chosen = null, random = !!cfg.randomBackground;
+    var custom = cfg.background && cfg.background.custom, box = $('bgs'), chosen = null, random = cfg.backgroundMode === 'random';
     var picks = pool(), now = cfg.backgroundNow, list = bgs.concat(mine());
     // Chosen: this time's random one, else the picture uploaded or the one the app carries.
     var fixed = custom ? cfg.background.id : cfg.preset;
     box.innerHTML = '';
     box.className = 'bgs' + (random ? ' pool' : '');
     box.setAttribute('role', random ? 'group' : 'radiogroup');
-    $('random-bg').checked = random;
+    radios('bgMode', cfg.backgroundMode || 'fixed');
+    // By the time of day, the grid gives way to the slots and the pictures for each.
+    box.hidden = $('bg-credit').hidden = cfg.backgroundMode === 'time';
+    $('time-box').hidden = cfg.backgroundMode !== 'time';
+    $('mode-note').textContent = random ? t.randomBgLede : cfg.backgroundMode === 'time' ? t.modeTime : '';
+    $('mode-note').hidden = !$('mode-note').textContent;
+    if (cfg.backgroundMode === 'time') renderTime(list);
     list.forEach(function (b) {
       var on = random ? picks.indexOf(b.id) !== -1 : fixed === b.id;
       var tile = document.createElement('div'), btn = document.createElement('button'), img = document.createElement('img');
@@ -1323,7 +1408,117 @@ footer a { color: var(--muted); }
       }, 'image/jpeg');
     });
   };
-  $('random-bg').onchange = function () { save({ randomBackground: this.checked }, renderBg); };
+  /* ---------- by the time of day ---------- */
+
+  function hourText(h) { return (h < 10 ? '0' : '') + h + ':00'; }
+
+  // The start of each slot as the selects show it now: the change is saved whole.
+  function slotsNow() {
+    var out = {};
+    FASCE.forEach(function (f) { out[f] = +$('slot-' + f).value; });
+    return out;
+  }
+
+  function renderSlots() {
+    var box = $('slots'), starts = cfg.timeSlots || FASCE_INIZI;
+    box.innerHTML = '';
+    FASCE.forEach(function (f, i) {
+      var li = document.createElement('li'), label = document.createElement('label'), sel = document.createElement('select');
+      var next = i === FASCE.length - 1 ? starts[FASCE[0]] : starts[FASCE[i + 1]];
+      label.setAttribute('for', 'slot-' + f);
+      label.appendChild(document.createTextNode(t['slot_' + f]));
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      sub.textContent = t.slotUntil + hourText(next);
+      label.appendChild(sub);
+      sel.id = 'slot-' + f;
+      for (var h = 0; h < 24; h++) {
+        var o = document.createElement('option');
+        o.value = h;
+        o.textContent = hourText(h);
+        // Each start stays after the one before and before the one after.
+        o.disabled = (i > 0 && h <= starts[FASCE[i - 1]]) || (i < FASCE.length - 1 && h >= starts[FASCE[i + 1]]);
+        sel.appendChild(o);
+      }
+      sel.value = starts[f];
+      sel.onchange = function () {
+        cfg.timeSlots = slotsNow();
+        save({ timeSlots: cfg.timeSlots }, renderBg);
+      };
+      li.appendChild(label);
+      li.appendChild(sel);
+      box.appendChild(li);
+    });
+  }
+
+  $('slots-reset').onclick = function () { save({ timeSlots: FASCE_INIZI }, renderBg); };
+
+  // A picture's slots, from the config.
+  function slotsOf(id) { return (cfg.bgTags && cfg.bgTags[id] && cfg.bgTags[id].slots) || []; }
+
+  function renderTime(list) {
+    renderSlots();
+    var d = new Date(), now = fondoDelMomento(cfg, d, 0), starts = cfg.timeSlots || FASCE_INIZI;
+    $('time-now').textContent = t.timeNow + t['slot_' + now.fascia] + ' (' + hourText(starts[now.fascia]) + ')' +
+      (now.pool.length ? t.timeNowSome + now.pool.length : t.timeNowNone);
+    var box = $('tagged');
+    box.innerHTML = '';
+    // Your own pictures first: the app's are the ones you are least likely to be looking for.
+    list.filter(function (b) { return b.mine; }).concat(list.filter(function (b) { return !b.mine; })).forEach(function (b) {
+      var li = document.createElement('li'), head = document.createElement('div'), img = document.createElement('img');
+      head.className = 'head';
+      img.src = b.mine ? '/mine/' + b.id + '-thumb.jpg' + (thumbed[b.id] ? '?t=1' : '') : '/backgrounds/thumbs/' + b.id + '.jpg';
+      img.alt = '';
+      img.width = 96;
+      img.height = 54;
+      var nm = document.createElement('span');
+      nm.className = 'nm';
+      nm.textContent = bgName(b);
+      head.appendChild(img);
+      head.appendChild(nm);
+      var chips = document.createElement('div');
+      chips.className = 'chips';
+      FASCE.forEach(function (f) {
+        var label = document.createElement('label'), box1 = document.createElement('input'), span = document.createElement('span');
+        box1.type = 'checkbox';
+        box1.checked = slotsOf(b.id).indexOf(f) !== -1;
+        box1.setAttribute('aria-label', bgName(b) + ': ' + t['slot_' + f]);
+        box1.onchange = function () {
+          var tags = {};
+          Object.keys(cfg.bgTags || {}).forEach(function (id) { tags[id] = { slots: slotsOf(id).slice() }; });
+          var mine = slotsOf(b.id).filter(function (x) { return x !== f; });
+          if (box1.checked) mine.push(f);
+          // In the order of the day, whichever was ticked first.
+          tags[b.id] = { slots: FASCE.filter(function (x) { return mine.indexOf(x) !== -1; }) };
+          // Kept here at once, so that quick taps each start from the last one.
+          cfg.bgTags = tags;
+          preview();
+          save({ bgTags: tags }, renderBg);
+        };
+        span.textContent = t['slot_' + f];
+        label.appendChild(box1);
+        label.appendChild(span);
+        chips.appendChild(label);
+      });
+      li.appendChild(head);
+      li.appendChild(chips);
+      box.appendChild(li);
+    });
+  }
+
+  // The key of the remote for "next background".
+  function renderNextKey() {
+    var sel = $('next-key');
+    sel.innerHTML = '';
+    [['none', t.keyNone], ['red', t.keyRed], ['green', t.keyGreen], ['yellow', t.keyYellow], ['blue', t.keyBlue]].forEach(function (k) {
+      var o = document.createElement('option');
+      o.value = k[0];
+      o.textContent = k[1];
+      sel.appendChild(o);
+    });
+    sel.value = cfg.nextBgKey || 'none';
+  }
+  $('next-key').onchange = function () { save({ nextBgKey: this.value }); };
   $('veil').oninput = preview;
   $('veil').onchange = function () { save({ veil: +this.value }); };
 
@@ -1472,6 +1667,9 @@ footer a { color: var(--muted); }
 
   function renderUpdate(u) {
     $('upd-version').textContent = 'Lightkeeper ' + cfg.version;
+    // A personal version: the server answers that updates are off, and the button never shows.
+    $('upd-perso').hidden = !(u && u.disabled);
+    if (u && u.disabled) { $('upd-go').hidden = true; return ($('upd-state').textContent = t.updOffState); }
     $('upd-go').hidden = !(u && u.available);
     if (!u) return ($('upd-state').textContent = t.updChecking);
     $('upd-state').textContent = u.available ? 'Lightkeeper ' + u.latest + t.updAvailable :
@@ -1595,6 +1793,8 @@ footer a { color: var(--muted); }
     space();
     renderKeys();
     keyNote(cfg.keyStatus || 'active');
+    radios('bgMode', cfg.backgroundMode || 'fixed', function (v) { save({ backgroundMode: v }, function () { renderBg(); preview(); }); });
+    renderNextKey();
     radios('tileStyle', cfg.tileStyle, function (v) { save({ tileStyle: v }); });
     radios('labels', cfg.labels || 'all', function (v) { save({ labels: v }); });
     radios('startTile', cfg.startTile || 'last', function (v) { save({ startTile: v }); });
@@ -1665,6 +1865,8 @@ footer a { color: var(--muted); }
     if (!cfg || $('page').hidden) return;
     $('p-ora').innerHTML = clockText();
     $('p-ora').style.marginLeft = rientroOra(cfg.clockStyle, $('p-ora').textContent);
+    // By the time of day, the picture changes with the slot.
+    if (cfg.backgroundMode === 'time') $('screen').style.backgroundImage = 'url(' + bgUrl() + ')';
     var times = document.querySelectorAll('#clockstyles .ora');
     for (var i = 0; i < times.length; i++) times[i].innerHTML = clockText();
   }, 10000);
