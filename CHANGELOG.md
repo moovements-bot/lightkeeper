@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.9-perso.3 (27 October 2026)
+
+- **A more readable caption**, on the Home and with the painting alone: as big as the weather line (34 px, 40 px on the painting alone), 92% opaque, white with a soft shadow, over a dark halo that fades out at its edges, as on Apple TV; the title is a little bolder than the artist and the year. Looked at over a pale painting (La Moisson) and a dark one (La Nuit étoilée).
+- Two captions corrected: *Paysage au crépuscule* is June 1890 (Van Gogh Museum, s0107V1962, F 770), and Monet's *Champs de tulipes près de La Haye* is 1886 (Van Gogh Museum, s0530N2012, *Tulip Fields near The Hague*).
+
 ## 1.0.9-perso.2 (27 October 2026)
 
 - **Captions.** Each of your pictures can have an artist, a title and a year (*Captions of your paintings* in the settings; `bgInfo` in the config, filled for the first eighteen from `docs/art/legendes-perso.json`). *Caption on the Home* (`captions`, off until turned on) shows it small, in the top right corner, in Jost.
