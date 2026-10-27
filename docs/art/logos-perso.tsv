@@ -1,0 +1,5 @@
+# Logos added by the personal version (1.0.9-perso.N), in white, transparent, 240 px tall like the others.
+# name	where it comes from	how	licence
+stremio	Simple Icons 16.35.0, icons/stremio.svg	path data in app/logos.js (logos.py, SLUGS)	CC0 drawing, the trademark is Smart Code OOD's
+canalplus	Wikimedia Commons, File:Logo Canal+ 1995.svg	logos-perso.py: the black box taken away, the white lettering kept (app/logos/canalplus.png, replacing the picture of logos-commons.tsv, which was the box alone)	public domain (simple text and shapes), trademark Canal+'s
+siptv	The Smart IPTV app's own icon on the TV (listApps, extraLargeIcon, 192 px), no Simple Icons or Commons logo existing	logos-perso.py: what is light (frame, antenna, words) made white, the rest nothing (app/logos/siptv.png)	the app's icon, for personal use on this TV only: not to be redistributed

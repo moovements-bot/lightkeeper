@@ -9,6 +9,7 @@ A personal version of 1.0.9, branch `perso`. See [docs/PERSO.md](docs/PERSO.md).
 - **A soft fade** whenever the Home's picture changes after the first.
 - **Updates are off.** The Updates section says so and has no button; the server neither looks for the project's release nor installs it (`LIGHTKEEPER_UPDATES=on` turns the machinery back on, for the checks), as an official update would put the official version over this one.
 - The new lines of the settings page are in French on a French phone.
+- **Logos**: Stremio (Simple Icons) and Smart IPTV (a white silhouette of the app's icon, for personal use) in the catalogue and chosen by default for their tiles (`io.strem.tv`, `siptv`); CANAL+ as white lettering with no box, like Netflix and Prime Video. Sources in `docs/art/logos-perso.tsv`, the pictures made by `docs/art/logos-perso.py`.
 
 ## 1.0.9 (26 October 2026)
 

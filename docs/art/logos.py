@@ -14,7 +14,7 @@ SLUGS = ['netflix', 'youtube', 'plex', 'spotify', 'twitch', 'appletv', 'dazn', '
          'playstation5', 'playstation4', 'steamdeck', 'nvidia', 'googletv', 'accuweather', 'lg',
          # More streaming services (October 2026): the brand's mark where the app has none of its own,
          # such as RTL for RTL+, Movistar for Movistar Plus+, Red Bull for Red Bull TV.
-         'tubi', 'youtubetv', 'fubo', 'nbc', 'starz', 'cnn', 'nba', 'mlb', 'nhl', 'ufc', 'ted', 'dailymotion',
+         'tubi', 'youtubetv', 'fubo', 'nbc', 'starz', 'cnn', 'nba', 'mlb', 'nhl', 'ufc', 'ted', 'dailymotion', 'stremio',
          'deezer', 'soundcloud', 'pandora', 'iheartradio', 'itvx', 'channel4', 'zdf', 'rtl', 'movistar', 'viaplay', 'redbull']
 pkg = sys.argv[1]
 version = json.load(open(os.path.join(pkg, 'package.json')))['version']

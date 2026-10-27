@@ -396,6 +396,11 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js')
 ].forEach(function (c) { assert.equal(logos.indovinaApparecchio(c[0]), c[1], c[0]); });
 assert.equal(logos.logoDi({ id: 'netflix', title: 'Netflix' }, 'logo'), 'netflix');
 assert.equal(logos.logoDi({ id: 'lk.nextbg', title: 'Fond suivant' }, 'logo'), 'gallery'); // the next-background tile, its icon unless another is chosen
+// The personal version's logos: Stremio and Smart IPTV by the ids the TV lists them with, or by their names; CANAL+ as lettering alone.
+assert.equal(logos.logoDi({ id: 'io.strem.tv', title: 'Stremio' }, 'logo'), 'stremio'); assert.equal(logos.logoDi({ id: 'siptv', title: 'Smart IPTV' }, 'logo'), 'siptv');
+assert.equal(logos.logoDi({ id: 'x.y', title: 'Stremio' }, 'logo'), 'stremio'); assert.equal(logos.logoDi({ id: 'x.y', title: 'Smart IPTV' }, 'logo'), 'siptv');
+assert.ok(logos.SIMPLE_ICONS.stremio && logos.IMMAGINI.siptv && logos.IMMAGINI.canalplus[0] > 1000 && logos.IMMAGINI.canalplus[1] === 240);
+assert.ok(s.CATALOG.stremio && s.CATALOG.siptv && s.CATALOG.canalplus, 'in the catalogue a tile can pick from');
 assert.equal(logos.logoDi({ id: 'netflix', title: 'Netflix' }, 'icon'), ''); // the TV's own icon
 assert.equal(logos.logoDi({ id: 'amazon', title: 'Prime Video' }, 'logo'), 'primevideo');
 assert.equal(logos.logoDi({ id: 'it.rai.raiplay', title: 'RaiPlay' }, 'logo'), 'raiplay');
