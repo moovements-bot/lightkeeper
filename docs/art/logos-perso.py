@@ -11,7 +11,7 @@ the screen in red and blue. What is light becomes white and the rest nothing, so
 the antenna and the words. Python 3 with Pillow; Chrome draws the SVG. Both are written 240 px tall, as the others.
 """
 import os, re, subprocess, sys, tempfile
-from PIL import Image
+from PIL import Image, ImageFilter
 C = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 svg, icon = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
 dest = os.path.abspath(sys.argv[3]) if len(sys.argv) > 3 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'app', 'logos')
@@ -41,7 +41,11 @@ print('canalplus', out.size)
 g = Image.open(icon).convert('RGB').resize((768, 768), Image.LANCZOS).convert('L')
 lo, hi = 150, 195
 out = Image.new('RGBA', g.size, (255, 255, 255, 0))
-out.putalpha(g.point(lambda l: int(min(max((l - lo) / float(hi - lo), 0), 1) * 255)))
+alpha = g.point(lambda l: int(min(max((l - lo) / float(hi - lo), 0), 1) * 255))
+# The icon's lines are thin next to the other logos': thickened by 4 px each side at this size (about a third more on the frame), which
+# keeps the letters apart, then smoothed.
+alpha = alpha.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(2)).point(lambda v: min(255, v * 2))
+out.putalpha(alpha)
 out = out.crop(out.getbbox())
 out = out.resize((round(out.width * 240 / out.height), 240), Image.LANCZOS)
 out.save(os.path.join(dest, 'siptv.png'), optimize=True)
