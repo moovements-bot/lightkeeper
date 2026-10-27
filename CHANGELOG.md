@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9-perso.2 (27 October 2026)
+
+- **Captions.** Each of your pictures can have an artist, a title and a year (*Captions of your paintings* in the settings; `bgInfo` in the config, filled for the first eighteen from `docs/art/legendes-perso.json`). *Caption on the Home* (`captions`, off until turned on) shows it small, in the top right corner, in Jost.
+- **The painting alone.** After 5 minutes without a key on the Home (`idleMinutes`: never, 1, 2, 5, 10, 15, 30 or 60), the time, the weather, the tiles and the shade fade out and the picture drifts very slowly (zoom and pan, 140 s each way, a direction chosen at random each time). The caption shows 40 seconds of every five minutes, at the foot of the picture. Any key or the pointer brings the Home back and is not passed on: it opens nothing. LG's screen saver is not touched: it keeps its own timer, and covers the painting if it starts first.
+- **Controls.** A tile *Controls* (Settings, Tiles, group *Lightkeeper*) opens a panel over the Home, with the remote: *Sources* (the HDMI inputs with the names and devices of the tiles, and Live TV), *Sound output* (TV speakers, optical, HDMI ARC, Bluetooth), *Picture* (the modes the TV offers), *Sleep timer* (off, 30, 60, 90, 120 min), and shortcuts to LG's own pages (Wi-Fi and network, Bluetooth and devices, picture, sound). The server reads and sets only these three LG settings, to the values of fixed lists (`/api/control`, from the Home only). Wi-Fi and Bluetooth themselves are not switched.
+
 ## 1.0.9-perso.1 (27 October 2026)
 
 A personal version of 1.0.9, branch `perso`. See [docs/PERSO.md](docs/PERSO.md).

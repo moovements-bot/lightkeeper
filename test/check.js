@@ -384,9 +384,22 @@ assert.deepEqual(s.validate({ bgTags: {} }, keys), { bgTags: {} });
 assert.deepEqual(s.validate({ tiles: [{ id: 'lk.nextbg', title: 'Fond suivant', logo: 'gallery' }] }, keys), { tiles: [{ id: 'lk.nextbg', title: 'Fond suivant', logo: 'gallery' }] });
 assert.equal(s.validate({ tiles: [{ id: 'lk.nextbg', title: 'x', device: 'ps5' }] }, keys), 'tiles');
 assert.equal(s.validate({ tiles: [{ id: 'lk.nextbg', title: 'x', url: 'https://a.it' }] }, keys), 'tiles');
+// Phase 3: captions, the painting alone after a while, and the panel's tile.
+assert.equal(s.DEFAULTS.captions, false); assert.deepEqual(s.DEFAULTS.bgInfo, {}); assert.equal(s.DEFAULTS.idleMinutes, 5);
+assert.deepEqual(s.validate({ captions: true }, keys), { captions: true }); assert.equal(s.validate({ captions: 'yes' }, keys), 'captions');
+s.IDLE_MINUTES.forEach(function (v) { assert.deepEqual(s.validate({ idleMinutes: v }, keys), { idleMinutes: v }); });
+assert.ok(s.IDLE_MINUTES.indexOf(0) !== -1 && s.IDLE_MINUTES.indexOf(5) !== -1);
+[4, -1, '5', null, 1.5, 600].forEach(function (v) { assert.equal(s.validate({ idleMinutes: v }, keys), 'idleMinutes', String(v)); });
+assert.deepEqual(s.validate({ bgInfo: { night: { artist: ' Claude Monet ', title: 'Meules, fin d\'été', year: '1890–91' }, dawn: { artist: '', title: '' } } }, keys),
+  { bgInfo: { night: { artist: 'Claude Monet', title: 'Meules, fin d\'été', year: '1890–91' } } }); // empty ones are dropped, with the picture that has none
+assert.deepEqual(s.validate({ bgInfo: {} }, keys), { bgInfo: {} });
+[null, [], 'x', { nope: { artist: 'a' } }, { night: 'a' }, { night: [] }, { night: { author: 'a' } }, { night: { artist: 3 } }, { night: { artist: null } }].forEach(function (v) {
+  assert.equal(s.validate({ bgInfo: v }, keys), 'bgInfo', JSON.stringify(v)); });
+assert.equal(s.validate({ bgInfo: { night: { artist: new Array(200).join('a') } } }, keys).bgInfo.night.artist.length, 60); // cut, not refused, as a tile's name is
+assert.deepEqual(s.validate({ tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] }, keys), { tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] });
 // The personal version, said in the three places it is written.
-assert.equal(s.VERSION, '1.0.9-perso.1');
-assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.1');
+assert.equal(s.VERSION, '1.0.9-perso.2');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.2');
 
 // The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
@@ -396,6 +409,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js')
 ].forEach(function (c) { assert.equal(logos.indovinaApparecchio(c[0]), c[1], c[0]); });
 assert.equal(logos.logoDi({ id: 'netflix', title: 'Netflix' }, 'logo'), 'netflix');
 assert.equal(logos.logoDi({ id: 'lk.nextbg', title: 'Fond suivant' }, 'logo'), 'gallery'); // the next-background tile, its icon unless another is chosen
+assert.equal(logos.logoDi({ id: 'lk.control', title: 'Contrôle' }, 'logo'), 'apps');
 // The personal version's logos: Stremio and Smart IPTV by the ids the TV lists them with, or by their names; CANAL+ as lettering alone.
 assert.equal(logos.logoDi({ id: 'io.strem.tv', title: 'Stremio' }, 'logo'), 'stremio'); assert.equal(logos.logoDi({ id: 'siptv', title: 'Smart IPTV' }, 'logo'), 'siptv');
 assert.equal(logos.logoDi({ id: 'x.y', title: 'Stremio' }, 'logo'), 'stremio'); assert.equal(logos.logoDi({ id: 'x.y', title: 'Smart IPTV' }, 'logo'), 'siptv');
@@ -768,9 +782,57 @@ function httpChecks() {
         });
       });
     },
+    // The painting's captions: kept, and cleaned up with the picture they belong to.
+    function (next) { var o = {}; o[mine3[1]] = { artist: 'Vincent van Gogh', title: 'La Nuit étoilée', year: '1889' };
+      req('POST', '/api/config', json({ captions: true, idleMinutes: 10, bgInfo: o }), function (st, j) {
+        assert.equal(st, 200); assert.equal(j.config.captions, true); assert.equal(j.config.idleMinutes, 10); assert.deepEqual(j.config.bgInfo[mine3[1]], o[mine3[1]]);
+        req('POST', '/api/config', json({ idleMinutes: 7 }), function (st2) {
+          assert.equal(st2, 400);
+          req('DELETE', '/api/background?id=' + mine3[1], {}, function (st3, j3) {
+            assert.equal(st3, 200); assert.equal(j3.config.bgInfo[mine3[1]], undefined);
+            req('POST', '/api/config', json({ captions: false, idleMinutes: 5 }), function () { next(); }); }); }); }); },
+    // The panel of controls: from the Home only, reads what the TV answers, sets only a value of the fixed lists.
+    function (next) {
+      var home = { headers: { Origin: 'null' } }, homeJson = json({}); homeJson.headers.Origin = 'null';
+      var set = function (o) { var r = json(o); r.headers.Origin = 'null'; return r; };
+      req('GET', '/api/control', { headers: { Origin: 'http://evil.example' } }, function (st0) {
+        assert.equal(st0, 403);
+        req('GET', '/api/control', home, function (st, j) {
+          assert.equal(st, 200); assert.equal(j.ok, true);
+          assert.deepEqual(j.sound, { current: 'external_arc', options: ['tv_speaker', 'external_optical', 'external_arc', 'bt_soundbar'] });
+          assert.equal(j.picture.current, 'expert2'); assert.deepEqual(j.picture.options, s.CONTROLS.picture.values); // hdrVivid is hidden, so left out
+          assert.deepEqual(j.sleep, { current: 'off', options: ['off', '30', '60', '90', '120'] });
+          assert.deepEqual(j.inputs.map(function (i) { return [i.id, i.connected]; }), [['com.webos.app.hdmi1', false], ['com.webos.app.hdmi2', true], ['com.webos.app.hdmi3', true], ['com.webos.app.livetv', undefined]]); // Live TV is always there
+          req('POST', '/api/control', set({ picture: 'cinema' }), function (st1, j1) {
+            assert.equal(st1, 200); assert.equal(j1.ok, true);
+            assert.ok(/setSystemSettings .*"category":"picture".*"pictureMode":"cinema"/.test(fs.readFileSync(path.join(FAKE, 'calls.log'), 'utf8')), 'the fixed call');
+            req('GET', '/api/control', home, function (st2, j2) {
+              assert.equal(j2.picture.current, 'cinema');
+              var bad = [{ picture: 'hdrVivid' }, { sound: 'tv_speaker; rm -rf /' }, { sleep: '45' }, { sleep: 60 }, { volume: '10' }, { picture: 'cinema', sound: 'tv_speaker' }, {}, []];
+              (function refuse(i) {
+                if (i === bad.length) {
+                  req('POST', '/api/control', { headers: { 'Content-Type': 'text/plain', Origin: 'null' }, body: '{}' }, function (st4) {
+                    assert.equal(st4, 415);
+                    req('POST', '/api/control', (function () { var r = json({ sleep: '60' }); r.headers.Origin = 'http://evil.example'; return r; })(), function (st5) {
+                      assert.equal(st5, 403);
+                      req('POST', '/api/control', set({ picture: 'expert2' }), function () { // the fake TV put back as it was
+                        try { fs.unlinkSync(path.join(FAKE, 'set-pictureMode')); } catch (e) {}
+                        next();
+                      });
+                    });
+                  });
+                  return;
+                }
+                req('POST', '/api/control', set(bad[i]), function (stb) { assert.equal(stb, 400, JSON.stringify(bad[i])); refuse(i + 1); });
+              })(0);
+            });
+          });
+        });
+      });
+    },
     // The project's own updates are off in this version: nothing looked for, nothing installed.
     function (next) { req('GET', '/api/update', {}, function (st, j) {
-      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.1'); assert.equal(j.latest, undefined);
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.2'); assert.equal(j.latest, undefined);
       req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {

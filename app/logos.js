@@ -125,7 +125,7 @@ var ICONE = {
 var ICONE_APP = { 'com.webos.app.browser': 'browser', 'com.webos.app.igallery': 'gallery', 'com.webos.app.discovery': 'apps',
   'com.webos.app.mediadiscovery': 'media', 'com.webos.app.homeconnect': 'home', 'com.webos.app.sportsteamsettings': 'sport',
   // Lightkeeper's own tile, the next background (perso): a picture frame.
-  'lk.nextbg': 'gallery' };
+  'lk.nextbg': 'gallery', 'lk.control': 'apps' };
 
 // What can be plugged into an HDMI input, and the picture for each.
 var APPARECCHI = [

@@ -6,8 +6,32 @@ for a; do uri=$params; params=$a; done
 echo "$uri $params" >> "$F/calls.log"
 case "$uri" in
   */listApps) sed "s#@F@#$F#g" "$F/apps.json" ;;
+  # The TV's settings: what a C1 with webOS 6.5.3 answers (read on it on 27/10/2026); sets are kept in $F/set-<key>.
+  */getSystemSettings)
+    k=$(printf %s "$params" | sed -n 's/.*"keys": *\["\([A-Za-z]*\)".*/\1/p'); c=$(printf %s "$params" | sed -n 's/.*"category": *"\([a-z]*\)".*/\1/p')
+    case "$k" in soundOutput) d=external_arc ;; pictureMode) d=expert2 ;; sleepTimer) d=off ;; *) d= ;; esac
+    [ -f "$F/set-$k" ] && d=$(cat "$F/set-$k")
+    if [ -n "$d" ]; then echo "{\"returnValue\":true,\"category\":\"$c\",\"settings\":{\"$k\":\"$d\"}}"; else echo '{"returnValue":false,"errorText":"There is no matched result from DB"}'; fi ;;
+  */getSystemSettingDesc)
+    k=$(printf %s "$params" | sed -n 's/.*"keys": *\["\([A-Za-z]*\)".*/\1/p')
+    case "$k" in
+      soundOutput) v='tv_speaker external_optical external_arc bt_soundbar headphone' ;;
+      pictureMode) v='vivid normal eco cinema sports game filmMaker expert1 expert2' ;;
+      sleepTimer) v='off 10 20 30 60 90 120 180 240' ;;
+      *) echo '{"returnValue":false}'; exit 0 ;;
+    esac
+    printf '{"returnValue":true,"results":[{"key":"%s","values":{"arrayExt":[' "$k"
+    first=1; for x in $v; do [ $first = 1 ] || printf ','; first=0; printf '{"active":true,"value":"%s","visible":true}' "$x"; done
+    # One the TV lists but hides, as hdrVivid is.
+    printf ',{"active":true,"value":"hdrVivid","visible":false}]}}]}\n' ;;
+  */setSystemSettings)
+    for k in soundOutput pictureMode sleepTimer; do
+      v=$(printf %s "$params" | sed -n "s/.*\"$k\": *\"\([A-Za-z0-9_]*\)\".*/\1/p")
+      [ -n "$v" ] && printf %s "$v" > "$F/set-$k"
+    done
+    echo '{"returnValue":true}' ;;
   */dev/install) echo '{"returnValue":true,"id":"io.github.chiotas.lightkeeper","state":"installed"}' ;;
-  */getAllInputStatus) echo '{"returnValue":true,"devices":[{"id":"HDMI_1","label":"HDMI 1","appId":"com.webos.app.hdmi1"},{"id":"HDMI_2","label":"HDMI 2","appId":"com.webos.app.hdmi2"},{"id":"HDMI_3","label":"Game console","appId":"com.webos.app.hdmi3"}]}' ;;
+  */getAllInputStatus) echo '{"returnValue":true,"devices":[{"id":"HDMI_1","label":"HDMI 1","appId":"com.webos.app.hdmi1","connected":false},{"id":"HDMI_2","label":"HDMI 2","appId":"com.webos.app.hdmi2","connected":true},{"id":"HDMI_3","label":"Game console","appId":"com.webos.app.hdmi3","connected":true}]}' ;;
   */getConfigs)
     if [ -f "$F/chain-has-filter" ]; then
       echo "{\"returnValue\":true,\"configs\":{\"com.webos.surfacemanager.keyFilters\":[{\"file\":\"${LIGHTKEEPER_TVWEB:-$F/tvweb}/remotekeys-filter.js\",\"handler\":\"handleGlasshouseKeys\"}]}}"

@@ -32,6 +32,7 @@ body {
 /* The veil: dark from the top left for the time, from the bottom for the tiles.
    Its opacity is the strength set in the settings. */
 #veil {
+  transition: opacity .4s;
   position: absolute; top: 0; right: 0; bottom: 0; left: 0;
   background:
     radial-gradient(1100px 620px at 0 0, rgba(18,13,8,.92) 0, rgba(18,13,8,0) 100%),
@@ -108,7 +109,7 @@ nav a.open b { font-size: 34px; font-weight: 300; margin-left: 12px; }
   background: rgba(18, 13, 8, .82);
 }
 #aperte[hidden] { display: none; }
-body.pannello header, body.pannello nav, body.pannello #hint { visibility: hidden; }
+body.pannello header, body.pannello nav, body.pannello #hint, body.pannello #legenda { visibility: hidden; }
 #aperte h2 { font-size: 34px; font-weight: 300; opacity: .8; margin-bottom: 28px; }
 #aperte .righe { position: relative; width: 1400px; height: 768px; overflow: hidden; }
 #aperte ul { list-style: none; }
@@ -133,6 +134,25 @@ body.pannello header, body.pannello nav, body.pannello #hint { visibility: hidde
 #aperte li.vuota, #aperte li.vuota.sel { opacity: .8; font-weight: 400; font-weight: 380; cursor: default; }
 #aperte li.vuota span::after { display: none; }
 #aperte p { position: absolute; left: 112px; bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .8; }
+/* The panel of controls: five headings across, what each offers below. */
+#controllo { position: absolute; top: 0; right: 0; bottom: 0; left: 0; padding: 110px 0 0 112px; background: rgba(18, 13, 8, .88); }
+#controllo[hidden] { display: none; }
+#controllo h2 { font-size: 34px; font-weight: 300; opacity: .8; margin-bottom: 30px; }
+#controllo .onglets { display: flex; margin-bottom: 26px; }
+#controllo .onglets a { position: relative; margin-right: 64px; font-size: 40px; font-weight: 400; font-weight: 380; opacity: .55; cursor: pointer; transition: opacity .2s; }
+#controllo .onglets a.sel { opacity: 1; font-weight: 500; font-weight: 450; }
+#controllo .onglets a.sel::after { content: ""; position: absolute; left: 0; bottom: -14px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; }
+#controllo .righe { position: relative; width: 1300px; height: 600px; overflow: hidden; }
+#controllo ul { list-style: none; }
+#controllo li { display: flex; align-items: center; height: 100px; font-size: 40px; font-weight: 400; font-weight: 380; opacity: .6; cursor: pointer; transition: opacity .2s; }
+#controllo li.sel { opacity: 1; font-weight: 500; font-weight: 450; }
+#controllo li span { position: relative; }
+#controllo li.sel span::after { content: ""; position: absolute; left: 0; bottom: -12px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; }
+#controllo li b { margin-left: 28px; font-size: 34px; font-weight: 300; opacity: .9; }
+#controllo li .logo { display: flex; align-items: center; justify-content: center; width: 150px; height: 84px; margin-right: 36px; -webkit-flex: none; flex: none; }
+#controllo li .logo svg, #controllo li .logo img { display: block; }
+#controllo li.assente { opacity: .35; }
+#controllo p { position: absolute; left: 112px; bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .8; }
 /* With the Magic Remote's pointer, arrows at the row's ends slide a row wider than the screen. */
 .freccia {
   position: absolute; bottom: 104px; display: none; align-items: center; width: 200px;
@@ -145,6 +165,38 @@ body.pannello header, body.pannello nav, body.pannello #hint { visibility: hidde
 #fr-dx { right: 0; padding-right: 28px; justify-content: flex-end; background: radial-gradient(farthest-side at 100% 50%, rgba(18, 13, 8, .9), rgba(18, 13, 8, 0)); }
 body.puntatore .freccia.su { display: flex; }
 body.pannello .freccia { visibility: hidden; }
+/* The painting's caption, in the corner opposite the clock; the colour of the words, lightly. */
+#legenda {
+  position: absolute; top: 76px; right: 112px; max-width: 760px; text-align: right; font-size: 26px; font-weight: 300; font-weight: 350;
+  letter-spacing: .01em; opacity: .62; transition: opacity .4s;
+}
+#legenda:empty { display: none; }
+/*
+ * The painting alone, after a while without a key: the time, the weather, the tiles and the shade give way,
+ * and the picture, on a layer of its own, drifts very slowly (zoom and pan, in a direction chosen at each
+ * start), so that no pixel stays lit by the same thing for long. The caption shows for the first forty
+ * seconds of every five minutes, at the foot of the picture. Any key or the pointer ends it.
+ */
+#arte {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0; visibility: hidden;
+  background: center / cover no-repeat #000; transition: opacity .4s, visibility 0s .4s;
+}
+#arte.kb0 { -webkit-animation: kb0 140s ease-in-out infinite alternate; animation: kb0 140s ease-in-out infinite alternate; }
+#arte.kb1 { -webkit-animation: kb1 140s ease-in-out infinite alternate; animation: kb1 140s ease-in-out infinite alternate; }
+@-webkit-keyframes kb0 { from { -webkit-transform: scale(1.02) translate(1.5%, 1%); } to { -webkit-transform: scale(1.16) translate(-2%, -1.5%); } }
+@keyframes kb0 { from { transform: scale(1.02) translate(1.5%, 1%); } to { transform: scale(1.16) translate(-2%, -1.5%); } }
+@-webkit-keyframes kb1 { from { -webkit-transform: scale(1.16) translate(2%, -1.5%); } to { -webkit-transform: scale(1.02) translate(-1.5%, 1%); } }
+@keyframes kb1 { from { transform: scale(1.16) translate(2%, -1.5%); } to { transform: scale(1.02) translate(-1.5%, 1%); } }
+@-webkit-keyframes leg { 0% { opacity: 0; } 1% { opacity: .85; } 13% { opacity: .85; } 14%, 100% { opacity: 0; } }
+@keyframes leg { 0% { opacity: 0; } 1% { opacity: .85; } 13% { opacity: .85; } 14%, 100% { opacity: 0; } }
+body.arte #arte { opacity: 1; visibility: visible; transition: opacity 2s; }
+body.arte #veil { opacity: 0 !important; transition: opacity 2s; }
+body.arte header, body.arte nav, body.arte #hint, body.arte .freccia { opacity: 0; transition: opacity 2s; }
+body.arte #legenda {
+  top: auto; right: auto; left: 112px; bottom: 76px; max-width: 1300px; text-align: left; font-size: 30px; opacity: 0;
+  -webkit-animation: leg 300s linear infinite; animation: leg 300s linear infinite;
+}
+header { transition: opacity .4s; }
 #hint {
   bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: 0; transition: opacity .2s;
   white-space: nowrap;
@@ -154,16 +206,19 @@ body.pannello .freccia { visibility: hidden; }
 </head>
 <body>
 <div id="fondu"></div>
+<div id="arte"></div>
 <div id="veil"></div>
 <header><div id="ora"></div><div id="meteo"></div></header>
 <nav></nav>
 <a class="freccia" id="fr-sx" aria-label="Back along the row"></a><a class="freccia" id="fr-dx" aria-label="On along the row"></a>
 <div id="hint"></div>
+<div id="legenda"></div>
+<div id="controllo" hidden><h2></h2><div class="onglets"></div><div class="righe"><ul></ul></div><p></p></div>
 <div id="aperte" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
 <script src="logos.js"></script>
 <script src="fondi.js"></script>
 <script>
-var APP_VERSION = '1.0.9-perso.1';
+var APP_VERSION = '1.0.9-perso.2';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -178,12 +233,26 @@ var TEXT = { settings: 'Settings', phone: 'or on your phone: ', empty: 'Choose y
   open1: '1 open app', openN: ' open apps', openTitle: 'Open apps', closeAll: 'Close all', openNote: 'OK closes an app · Back returns to the Home',
   none: 'No open apps', openNoteEmpty: 'Back returns to the Home',
   oneBg: 'Only one background for this time of the day', fixedBg: 'The background is fixed: choose another way in the settings',
-  fewBg: 'Tick at least two backgrounds in the settings' };
+  fewBg: 'Tick at least two backgrounds in the settings',
+  control: 'Controls', tabSources: 'Sources', tabSound: 'Sound output', tabPicture: 'Picture', tabSleep: 'Sleep timer', tabLg: 'LG settings',
+  controlNote: 'Left and right: heading · OK: choose · Back: close', loading: 'Reading the TV…', failed: 'The TV did not take that',
+  noInput: 'No inputs', off: 'Off', min: ' min', notConnected: ' (nothing plugged in)',
+  sound_tv_speaker: 'TV speakers', sound_external_optical: 'Optical', sound_external_arc: 'HDMI ARC', sound_bt_soundbar: 'Bluetooth',
+  picture_vivid: 'Vivid', picture_normal: 'Standard', picture_eco: 'Eco', picture_cinema: 'Cinema', picture_sports: 'Sports', picture_game: 'Game',
+  picture_filmMaker: 'Filmmaker', picture_expert1: 'Expert (bright room)', picture_expert2: 'Expert (dark room)',
+  lgNetwork: 'Wi-Fi and network', lgDevice: 'Bluetooth and devices', lgPicture: 'Picture settings', lgSound: 'Sound settings' };
 // The Home's new lines in French when the TV's menus are (the rest is English, as it was).
 if (/^fr/i.test(navigator.language || '')) {
   TEXT.oneBg = 'Un seul fond pour ce moment de la journée';
   TEXT.fixedBg = 'Le fond est fixe : change de mode dans les réglages';
   TEXT.fewBg = 'Coche au moins deux fonds dans les réglages';
+  TEXT.control = 'Contrôle'; TEXT.tabSources = 'Sources'; TEXT.tabSound = 'Sortie son'; TEXT.tabPicture = 'Image'; TEXT.tabSleep = 'Minuterie'; TEXT.tabLg = 'Réglages LG';
+  TEXT.controlNote = 'Gauche et droite : rubrique · OK : choisir · Retour : fermer'; TEXT.loading = 'Lecture de la TV…'; TEXT.failed = 'La TV n\'a pas pris ce réglage';
+  TEXT.noInput = 'Aucune entrée'; TEXT.off = 'Désactivée'; TEXT.notConnected = ' (rien de branché)';
+  TEXT.sound_tv_speaker = 'Haut-parleurs de la TV'; TEXT.sound_external_optical = 'Sortie optique'; TEXT.sound_external_arc = 'HDMI ARC';
+  TEXT.picture_vivid = 'Vif'; TEXT.picture_eco = 'Éco'; TEXT.picture_cinema = 'Cinéma'; TEXT.picture_sports = 'Sport'; TEXT.picture_game = 'Jeu';
+  TEXT.picture_expert1 = 'Expert (pièce claire)'; TEXT.picture_expert2 = 'Expert (pièce sombre)';
+  TEXT.lgNetwork = 'Wi-Fi et réseau'; TEXT.lgDevice = 'Bluetooth et appareils'; TEXT.lgPicture = 'Réglages image'; TEXT.lgSound = 'Réglages son';
 }
 // The colour keys of the remote, as the TV's browser sends them.
 var TOUCHES = { red: 403, green: 404, yellow: 405, blue: 406 };
@@ -262,6 +331,7 @@ function seleziona(i, colPuntatore) {
 function lancia(i) {
   if (voci[i].aperte) return apriPannello();
   if (voci[i].id === 'lk.nextbg') return fondoSuccessivo();
+  if (voci[i].id === 'lk.control') return apriControllo();
   if (voci[i].gear) return apri(BROWSER, { target: server() + '/' });
   try { localStorage.setItem('ultimaId', voci[i].id); localStorage.setItem('ultima', String(i)); } catch (e) {}
   var a = apertura(voci[i], BROWSER);
@@ -330,6 +400,8 @@ function sfondo(url) {
     sfondoMesso = url;
     sfondoChiesto = '';
     mettiSfondo(url, prima);
+    legenda();
+    if (arteAttiva) cambiaArte(url);
   };
   img.onerror = function () { if (sfondoChiesto === url) sfondoChiesto = ''; };
   img.src = url;
@@ -478,6 +550,7 @@ function disegna() {
   else sfondo(url);
   seleziona(iniziale());
   aggiorna();
+  legenda();
 }
 
 document.addEventListener('keydown', function (e) {
@@ -485,6 +558,7 @@ document.addEventListener('keydown', function (e) {
   if (e.keyCode >= 37 && e.keyCode <= 40 || e.keyCode === 1537) conPuntatore(false);
   if (e.keyCode === 1536) conPuntatore(true);
   if (!pannello.hidden) return tastoPannello(e);
+  if (!controllo.hidden) return tastoControllo(e);
   if (cfg.nextBgKey && TOUCHES[cfg.nextBgKey] === e.keyCode) fondoSuccessivo();
   else if (e.keyCode === 37) seleziona(sel - 1);
   else if (e.keyCode === 39) seleziona(sel + 1);
@@ -611,6 +685,226 @@ function tastoPannello(e) {
   else if (e.keyCode === 13) premiP(selP);
   else if (e.keyCode === 461 || e.keyCode === 27 || e.keyCode === 8) chiudiPannello();
   else if (e.keyCode !== 37 && e.keyCode !== 39) return;
+  e.preventDefault();
+}
+
+/*
+ * The caption of the painting on the screen: "Artist — Title, year" from the config's bgInfo, when the
+ * captions are on in the settings and the picture has some.
+ */
+var legendaEl = document.getElementById('legenda');
+function idFondo(url) {
+  var m = /\/mine\/(my-[0-9a-f]{8})\.jpg/.exec(url) || /(?:^|\/)backgrounds\/([a-z0-9-]+)\.jpg/.exec(url);
+  if (m) return m[1];
+  return /\/background\.jpg/.test(url) && cfg.background && cfg.background.id ? cfg.background.id : null;
+}
+
+function legenda() {
+  var i = cfg.captions && cfg.bgInfo && sfondoMesso ? cfg.bgInfo[idFondo(sfondoMesso)] : null, testo = '';
+  if (i && (i.artist || i.title)) testo = [i.artist, i.title].filter(Boolean).join(' — ') + (i.year ? ', ' + i.year : '');
+  legendaEl.textContent = testo;
+}
+
+/*
+ * The painting alone after idleMinutes without a key (or the pointer) on the Home, with the layer that drifts
+ * slowly; any key or the pointer ends it, and is not passed on, so it opens nothing. Not while another app is
+ * in front, nor with a panel open. LG's screen saver is left to its own timer: if it starts first, it covers
+ * this, and the key that wakes it is LG's.
+ */
+var arteEl = document.getElementById('arte'), arteAttiva = false, ultimoTasto = Date.now(), arteFine = null, ultimoMouse = '';
+function attivita() { ultimoTasto = Date.now(); }
+
+function entraArte() {
+  arteAttiva = true;
+  clearTimeout(arteFine);
+  arteEl.style.backgroundImage = 'url(' + sfondoMesso + ')';
+  arteEl.className = 'kb' + (Math.random() < .5 ? 0 : 1);
+  document.body.classList.add('arte');
+}
+
+function esciArte() {
+  if (!arteAttiva) return;
+  arteAttiva = false;
+  document.body.classList.remove('arte');
+  attivita();
+  // The drift stops once the picture has faded out.
+  clearTimeout(arteFine);
+  arteFine = setTimeout(function () { if (!arteAttiva) arteEl.className = ''; }, 700);
+}
+
+// Another picture while the painting is alone: it fades out, and the new one comes in.
+function cambiaArte(url) {
+  arteEl.style.opacity = 0;
+  setTimeout(function () { arteEl.style.backgroundImage = 'url(' + url + ')'; arteEl.style.opacity = ''; }, 2100);
+}
+
+['keydown', 'click', 'wheel'].forEach(function (nome) {
+  document.addEventListener(nome, function (e) {
+    if (arteAttiva) { esciArte(); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    attivita();
+  }, true);
+});
+document.addEventListener('mousemove', function (e) {
+  var dove = e.clientX + ',' + e.clientY;
+  if (dove === ultimoMouse) return;
+  ultimoMouse = dove;
+  if (arteAttiva) esciArte(); else attivita();
+}, true);
+document.addEventListener('cursorStateChange', function () { esciArte(); attivita(); });
+setInterval(function () {
+  var minuti = typeof cfg.idleMinutes === 'number' ? cfg.idleMinutes : 0;
+  if (!minuti || arteAttiva || document.hidden || !sfondoMesso || !pannello.hidden || !controllo.hidden) return;
+  if (Date.now() - ultimoTasto >= minuti * 60000) entraArte();
+}, 5000);
+
+/*
+ * The panel of controls: five headings, and under each what the TV offers. The sources and the pages of LG's
+ * settings are opened as a tile opens an app; the sound output, the picture mode and the sleep timer are
+ * read and set by the server, which only sends LG's settings service the fixed calls it has (see /api/control).
+ * What the TV does not answer for is left out. Left and right change heading, up and down the choice, OK
+ * applies it, Back closes.
+ */
+var controllo = document.getElementById('controllo');
+var ctRighe = controllo.querySelector('.righe'), ctLista = controllo.querySelector('ul'), ctOnglet = controllo.querySelector('.onglets');
+var ctDati = null, ctVoci = [], ctCat = 0, ctSel = [0, 0, 0, 0, 0], ctOcc = false;
+controllo.onclick = function (e) { if (e.target === controllo) chiudiControllo(); };
+
+function apriControllo() {
+  ctDati = null;
+  ctCat = 0;
+  ctSel = [0, 0, 0, 0, 0];
+  controllo.hidden = false;
+  document.body.classList.add('pannello');
+  disegnaControllo('loading');
+  leggiControllo();
+}
+
+function chiudiControllo() {
+  controllo.hidden = true;
+  document.body.classList.remove('pannello');
+  seleziona(ultimaVoce());
+}
+
+function leggiControllo(dopo) {
+  var x = new XMLHttpRequest();
+  x.open('GET', server() + '/api/control');
+  x.timeout = 20000;
+  x.onload = function () {
+    var r = null;
+    try { r = JSON.parse(x.responseText); } catch (e) {}
+    if (controllo.hidden) return;
+    if (r && r.ok) ctDati = r;
+    disegnaControllo(r && r.ok ? dopo : 'failed');
+  };
+  x.onerror = x.ontimeout = function () { if (!controllo.hidden) disegnaControllo('failed'); };
+  x.send();
+}
+
+// The name of a choice: ours, or the TV's own word when we have none.
+function nomeControllo(tipo, v) { return TEXT[tipo + '_' + v] || (v === 'off' ? TEXT.off : /^\d+$/.test(v) ? v + TEXT.min : v); }
+
+// The headings and their choices, from what the TV answered; a heading with no choice is left out.
+function vociControllo() {
+  var d = ctDati || {}, out = [];
+  var sorgenti = (d.inputs || []).map(function (i) {
+    var t = tesseraDi(i.id) || {}, nome = t.title || i.title;
+    return { label: nome + (i.connected === false ? TEXT.notConnected : ''), assente: i.connected === false,
+      logo: logoDi({ id: i.id, title: nome, device: t.device, logo: t.logo }, 'logo', i.title),
+      apri: function () { apri(i.id); chiudiControllo(); } };
+  });
+  out.push({ nome: TEXT.tabSources, voci: sorgenti });
+  [['sound', TEXT.tabSound], ['picture', TEXT.tabPicture], ['sleep', TEXT.tabSleep]].forEach(function (c) {
+    var dato = d[c[0]];
+    out.push({ nome: c[1], voci: dato ? dato.options.map(function (v) {
+      return { label: nomeControllo(c[0], v), segno: dato.current === v, imposta: (function (k, val) { return function () { impostaControllo(k, val); }; })(c[0], v) };
+    }) : [] });
+  });
+  // LG's own pages, by the target its settings app takes.
+  out.push({ nome: TEXT.tabLg, voci: [['network', TEXT.lgNetwork], ['Device', TEXT.lgDevice], ['picture', TEXT.lgPicture], ['sound', TEXT.lgSound]].map(function (p) {
+    return { label: p[1], apri: function () { apri('com.palm.app.settings', { target: p[0] }); chiudiControllo(); } };
+  }) });
+  return out.filter(function (c) { return c.voci.length; });
+}
+
+function disegnaControllo(nota) {
+  var cat = vociControllo();
+  ctCat = Math.min(ctCat, Math.max(0, cat.length - 1));
+  controllo.querySelector('h2').textContent = TEXT.control;
+  ctOnglet.innerHTML = '';
+  cat.forEach(function (c, i) {
+    var a = document.createElement('a');
+    a.textContent = c.nome;
+    a.className = i === ctCat ? 'sel' : '';
+    a.onclick = function () { ctCat = i; disegnaControllo(); };
+    ctOnglet.appendChild(a);
+  });
+  ctLista.innerHTML = '';
+  ctVoci = cat.length ? cat[ctCat].voci : [];
+  ctVoci.forEach(function (v, i) {
+    var li = document.createElement('li'), nome = document.createElement('span');
+    if (v.logo) {
+      var box = document.createElement('div');
+      box.className = 'logo';
+      box.appendChild(disegnaLogo(v.logo, 56, 130, 64));
+      li.appendChild(box);
+    }
+    nome.textContent = v.label;
+    li.appendChild(nome);
+    if (v.segno) { var m = document.createElement('b'); m.textContent = '✓'; li.appendChild(m); }
+    li.onmouseover = function () { selezionaControllo(i); };
+    li.onclick = function () { ctSel[ctCat] = i; premiControllo(); };
+    ctLista.appendChild(li);
+  });
+  // The one chosen now is where the choice starts, the first time a heading shows.
+  if (ctSel[ctCat] === 0) for (var k = 0; k < ctVoci.length; k++) if (ctVoci[k].segno) ctSel[ctCat] = k;
+  selezionaControllo(Math.min(ctSel[ctCat], Math.max(0, ctVoci.length - 1)));
+  controllo.querySelector('p').textContent = nota === 'loading' ? TEXT.loading : nota === 'failed' ? TEXT.failed : TEXT.controlNote;
+}
+
+function selezionaControllo(i) {
+  ctSel[ctCat] = i;
+  for (var k = 0; k < ctLista.children.length; k++) ctLista.children[k].className = (k === i ? 'sel' : '') + (ctVoci[k].assente ? ' assente' : '');
+  var li = ctLista.children[i];
+  if (!li) return;
+  if (li.offsetTop < ctRighe.scrollTop) ctRighe.scrollTop = li.offsetTop;
+  if (li.offsetTop + li.offsetHeight > ctRighe.scrollTop + ctRighe.clientHeight) ctRighe.scrollTop = li.offsetTop + li.offsetHeight - ctRighe.clientHeight;
+}
+
+function premiControllo() {
+  var v = ctVoci[ctSel[ctCat]];
+  if (!v) return;
+  if (v.apri) return v.apri();
+  if (v.imposta) v.imposta();
+}
+
+// One change of the sound output, the picture mode or the sleep timer; the TV is read again for what it did.
+function impostaControllo(nome, valore) {
+  if (ctOcc) return;
+  ctOcc = true;
+  var x = new XMLHttpRequest(), corpo = {};
+  corpo[nome] = valore;
+  x.open('POST', server() + '/api/control');
+  x.setRequestHeader('Content-Type', 'application/json');
+  x.timeout = 15000;
+  x.onload = x.onerror = x.ontimeout = function () {
+    ctOcc = false;
+    var r = null;
+    try { r = JSON.parse(x.responseText); } catch (e) {}
+    if (controllo.hidden) return;
+    if (r && r.ok) leggiControllo(); else disegnaControllo('failed');
+  };
+  x.send(JSON.stringify(corpo));
+}
+
+function tastoControllo(e) {
+  var n = vociControllo().length;
+  if (e.keyCode === 37) { ctCat = (ctCat + n - 1) % n; disegnaControllo(); }
+  else if (e.keyCode === 39) { ctCat = (ctCat + 1) % n; disegnaControllo(); }
+  else if (e.keyCode === 38) selezionaControllo(Math.max(0, ctSel[ctCat] - 1));
+  else if (e.keyCode === 40) selezionaControllo(Math.min(ctVoci.length - 1, ctSel[ctCat] + 1));
+  else if (e.keyCode === 13) premiControllo();
+  else if (e.keyCode === 461 || e.keyCode === 27 || e.keyCode === 8) chiudiControllo();
+  else return;
   e.preventDefault();
 }
 
@@ -785,8 +1079,8 @@ function trovaPorta(cb) {
 }
 
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) { pannello.hidden = true; document.body.classList.remove('pannello'); }
-  else { aggiorna(); fondoDellOra(); leggi(); chiediAperte(); }
+  if (document.hidden) { pannello.hidden = true; controllo.hidden = true; document.body.classList.remove('pannello'); esciArte(); }
+  else { attivita(); aggiorna(); fondoDellOra(); leggi(); chiediAperte(); }
 });
 
 // Home key with the app already open: with handlesRelaunch it comes to the front only if it asks.
@@ -798,7 +1092,10 @@ document.addEventListener('webOSRelaunch', function () {
     if (fatto) return;
     fatto = true;
     if (sistema) sistema.activate();
+    esciArte();
+    attivita();
     pannello.hidden = true;
+    controllo.hidden = true;
     document.body.classList.remove('pannello');
     seleziona(iniziale());
     aggiorna();

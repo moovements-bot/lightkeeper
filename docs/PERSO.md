@@ -1,4 +1,4 @@
-# Lightkeeper, personal version (1.0.9-perso.1)
+# Lightkeeper, personal version (1.0.9-perso.2)
 
 Branch `perso`, from Lightkeeper 1.0.9. Two additions, and the updates off.
 
@@ -38,6 +38,16 @@ The calculation (`fasciaDi`, `chiaveFascia`, `fondiDellaFascia`, `sceltaFascia`,
 - **Tile**: Settings, *Tiles*, *Add a tile…*, group *Lightkeeper*, *Next background* (picture-frame icon, renamable like any tile).
 - **Key**: *Remote key for the next background*: red, green, yellow or blue. The Home reads the colour key itself while it is in front; GlassHouse's key map is not touched.
 - By the time of day: next of the pictures of the slot, kept until the slot changes. Random: next of those ticked, kept until the TV goes off (the server keeps it, `POST /api/background/next`, from the Home only). Fixed: nothing to go through.
+
+## Captions, the painting alone, controls (perso.2)
+
+- **Captions**: settings, *Captions of your paintings* (artist, title, year for each picture of yours), and the switch *Caption on the Home*. Config: `captions`, `bgInfo: { "<id>": { "artist", "title", "year" } }`.
+- **Painting alone**: *Painting alone after* (`idleMinutes`, 5 by default, 0 = never). Any key or the pointer ends it and does nothing else. **LG's screen saver and OLED care are not touched**: the TV's own screen saver has its own timer (it is not readable from here); if it starts before ours, it covers the painting, and a key press wakes the TV from it first. For the painting to show, keep LG's timer longer than ours, or pause it from the settings page (*Pause for an hour*, which is LG's own mechanism).
+- **Controls tile**: *Tiles*, *Add a tile…*, *Lightkeeper*, *Controls*. Left and right change the heading, up and down the choice, OK applies it, Back closes.
+  - Sources: `applicationManager/launch` of the input's app, as a tile does. Names and devices are those of your tiles, else the TV's labels.
+  - Sound output, picture mode, sleep timer: `com.webos.settingsservice` `getSystemSettings` / `getSystemSettingDesc` / `setSystemSettings` (categories `sound`, `picture`, `time`; keys `soundOutput`, `pictureMode`, `sleepTimer`). Read on the C1 (webOS 6.5.3) on 27/10/2026. Only values of the fixed lists in `server.js` (`CONTROLS`) are sent, and only those the TV itself lists as active and visible.
+  - LG's pages: `applicationManager/launch` of `com.palm.app.settings` with `{"target": "network" | "Device" | "picture" | "sound"}`, targets read in that app's own code.
+  - Left out: switching Wi-Fi or Bluetooth on or off (undocumented services), and the sound outputs the TV lists beyond the four above.
 
 ## Updates
 

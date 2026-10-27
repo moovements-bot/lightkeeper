@@ -14,3 +14,4 @@ __pycache__/
 test/fake-tv/port
 test/fake-tv/running
 test/fake-tv/session
+test/fake-tv/set-*

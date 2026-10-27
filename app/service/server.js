@@ -27,7 +27,7 @@ var vm = require('vm');
 var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 
-var VERSION = '1.0.9-perso.1';
+var VERSION = '1.0.9-perso.2';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -112,8 +112,11 @@ var FONDI = (function () {
   return ctx;
 })();
 var NEXT_BG_KEYS = ['none', 'red', 'green', 'yellow', 'blue'];
-// A tile that is not an app: it changes the background, from the Home, and opens nothing.
+// Tiles that are not apps: the next background, and the panel of controls (sources, sound, picture, sleep timer).
 var NEXT_BG_TILE = 'lk.nextbg';
+var CONTROL_TILE = 'lk.control';
+// How long the Home may be left alone before only the painting shows, in minutes; 0 is never.
+var IDLE_MINUTES = [0, 1, 2, 5, 10, 15, 30, 60];
 
 var DEFAULTS = {
   clock: '24',
@@ -142,6 +145,11 @@ var DEFAULTS = {
   bgTags: {},
   // A colour key of the remote that moves on to the next background while the Home is in front.
   nextBgKey: 'none',
+  // The painting's caption on the Home, from bgInfo: for each picture uploaded, {artist, title, year}.
+  captions: false,
+  bgInfo: {},
+  // The painting alone, slowly moving, after this many minutes without a key on the Home.
+  idleMinutes: 5,
   veil: 80,
   key: 'home',
   openAtPowerOn: true,
@@ -458,6 +466,23 @@ function validate(body, keyNames) {
       }
       out[k] = tags;
     }
+    else if (k === 'captions') { if (typeof v !== 'boolean') return 'captions'; out[k] = v; }
+    else if (k === 'idleMinutes') { if (IDLE_MINUTES.indexOf(v) === -1) return 'idleMinutes'; out[k] = v; }
+    // The artist, the title and the year of each picture, as the caption writes them: texts, none required.
+    else if (k === 'bgInfo') {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return 'bgInfo';
+      var shown = PRESETS.concat(mineIds()), info = {}, who = Object.keys(v), LONG = { artist: 60, title: 90, year: 16 };
+      for (var w = 0; w < who.length; w++) {
+        var f = v[who[w]], fk = f && typeof f === 'object' && !Array.isArray(f) ? Object.keys(f) : null, one = {};
+        if (shown.indexOf(who[w]) === -1 || !fk) return 'bgInfo';
+        for (var q = 0; q < fk.length; q++) {
+          if (!has(LONG, fk[q]) || typeof f[fk[q]] !== 'string') return 'bgInfo';
+          if (str(f[fk[q]], LONG[fk[q]])) one[fk[q]] = str(f[fk[q]], LONG[fk[q]]);
+        }
+        if (Object.keys(one).length) info[who[w]] = one;
+      }
+      out[k] = info;
+    }
     else if (k === 'nextBgKey') { if (NEXT_BG_KEYS.indexOf(v) === -1) return 'nextBgKey'; out[k] = v; }
     else if (k === 'key') {
       if (v !== 'none' && v !== 'home' && keyNames.indexOf(v) === -1) return 'key';
@@ -578,7 +603,7 @@ function inputChoices(apps, cb) {
     var out = [];
     ((r && r.devices) || []).forEach(function (d) {
       var id = d.appId || ('com.webos.app.' + String(d.id || '').toLowerCase().replace(/_/g, ''));
-      if (/^com\.webos\.app\.hdmi\d$/.test(id)) out.push({ id: id, title: str(d.label, 40) || String(d.id) });
+      if (/^com\.webos\.app\.hdmi\d$/.test(id)) out.push({ id: id, title: str(d.label, 40) || String(d.id), connected: d.connected === true });
     });
     if (!out.length) {
       (apps || []).forEach(function (a) { if (/^com\.webos\.app\.hdmi\d$/.test(a.id)) out.push({ id: a.id, title: a.title || a.id }); });
@@ -873,6 +898,66 @@ function watchApp() {
   uninstall(false, function () { process.exit(0); });
 }
 
+/*
+ * The panel of controls on the Home: the sound output, the picture mode and the sleep timer of the TV.
+ * Each is a setting of LG's settings service, read and set with the fixed calls below, and only to a
+ * value of the list beside it: the TV's own list of what it offers, from getSystemSettingDesc, narrows
+ * it, never widens it. Read on a C1 with webOS 6.5.3 (27/10/2026): soundOutput external_arc, pictureMode
+ * expert2, sleepTimer off. Wi-Fi and Bluetooth are not touched here: the Home only opens LG's own pages.
+ */
+var SETTINGS = 'com.webos.settingsservice/';
+var CONTROLS = {
+  sound: { category: 'sound', key: 'soundOutput', values: ['tv_speaker', 'external_optical', 'external_arc', 'bt_soundbar'] },
+  picture: { category: 'picture', key: 'pictureMode', values: ['vivid', 'normal', 'eco', 'cinema', 'sports', 'game', 'filmMaker', 'expert1', 'expert2'] },
+  sleep: { category: 'time', key: 'sleepTimer', values: ['off', '30', '60', '90', '120'] }
+};
+
+// cb({current, options}): the setting now, and which of its values the TV offers; current null when it cannot be read.
+function readControl(name, cb) {
+  var c = CONTROLS[name];
+  luna(SETTINGS + 'getSystemSettings', { category: c.category, keys: [c.key] }, function (r) {
+    var now = r && r.settings && typeof r.settings[c.key] === 'string' ? r.settings[c.key] : null;
+    luna(SETTINGS + 'getSystemSettingDesc', { category: c.category, keys: [c.key] }, function (d) {
+      var offered = null;
+      try {
+        offered = d.results[0].values.arrayExt.filter(function (v) { return v.active && v.visible; }).map(function (v) { return v.value; });
+      } catch (e) {}
+      // Not readable on this TV: nothing is offered, and the panel leaves it out.
+      cb({ current: now, options: now === null ? [] : c.values.filter(function (v) { return !offered || offered.indexOf(v) !== -1 || v === now; }) });
+    });
+  });
+}
+
+function controlState(cb) {
+  var out = { ok: true };
+  listApps(function (apps) {
+    inputChoices(apps, function (inputs) {
+      out.inputs = inputs;
+      readControl('sound', function (a) {
+        out.sound = a;
+        readControl('picture', function (b) {
+          out.picture = b;
+          readControl('sleep', function (c) { out.sleep = c; cb(out); });
+        });
+      });
+    });
+  });
+}
+
+// One change, {sound|picture|sleep: value}, the one value of the fixed list; cb(true) when the TV took it.
+function setControl(body, cb) {
+  var names = Object.keys(body);
+  if (names.length !== 1 || !has(CONTROLS, names[0])) return cb(false, 'sound, picture or sleep expected');
+  var c = CONTROLS[names[0]];
+  if (typeof body[names[0]] !== 'string' || c.values.indexOf(body[names[0]]) === -1) return cb(false, names[0] + ': not a value of the list');
+  var settings = {};
+  settings[c.key] = body[names[0]];
+  luna(SETTINGS + 'setSystemSettings', { category: c.category, settings: settings }, function (r) {
+    if (r) log('control: ' + c.key + ' ' + body[names[0]]);
+    cb(!!r, r ? '' : 'the TV did not take it');
+  });
+}
+
 /* ---------- HTTP ---------- */
 
 var TYPES = { '.html': 'text/html; charset=utf-8', '.woff2': 'font/woff2', '.jpg': 'image/jpeg',
@@ -1128,6 +1213,29 @@ function handle(req, res) {
       send(res, next ? 200 : 409, { ok: !!next, now: next }, nbCors);
     });
   }
+  // The panel of controls, for the Home only (as the open apps and the next background are).
+  if (p === '/api/control') {
+    if (!fromHome(req)) {
+      log('control refused: ' + req.socket.remoteAddress + ', origin ' + req.headers.origin);
+      return send(res, 403, { ok: false, error: 'the Home only' });
+    }
+    var ctCors = req.headers.origin ? { 'Access-Control-Allow-Origin': req.headers.origin, 'Vary': 'Origin' } : {};
+    if (m === 'OPTIONS') {
+      ctCors['Access-Control-Allow-Methods'] = 'POST';
+      ctCors['Access-Control-Allow-Headers'] = 'Content-Type';
+      ctCors['Access-Control-Max-Age'] = '600';
+      return send(res, 204, '', ctCors);
+    }
+    if (m === 'GET') return controlState(function (state) { send(res, 200, state, ctCors); });
+    if (m !== 'POST') return send(res, 405, { ok: false, error: 'not allowed' }, ctCors);
+    if (String(req.headers['content-type'] || '').split(';')[0].toLowerCase() !== 'application/json') return send(res, 415, { ok: false, error: 'bad request' }, ctCors);
+    return readBody(req, MAX_JSON, function (b) {
+      var body = null;
+      try { body = JSON.parse(String(b)); } catch (e) {}
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return send(res, 400, { ok: false, error: 'a change expected' }, ctCors);
+      setControl(body, function (ok, why) { send(res, ok ? 200 : (why === 'the TV did not take it' ? 502 : 400), { ok: ok, error: why || undefined }, ctCors); });
+    });
+  }
   if (p.indexOf('/api/') !== 0) return send(res, 404, { ok: false, error: 'not found' });
   if (!pinOk(req)) {
     return send(res, 401, { ok: false, error: Date.now() < pinLockedUntil ? 'locked' : 'pin' });
@@ -1216,6 +1324,7 @@ function handle(req, res) {
       config.mine = mineIds();
       if (config.backgroundPool) config.backgroundPool = config.backgroundPool.filter(function (b) { return b !== gone; });
       if (config.bgTags) delete config.bgTags[gone];
+      if (config.bgInfo) delete config.bgInfo[gone];
     }
     if (config.background.custom && (!gone || config.background.id === gone)) config.background = { custom: false, rev: (config.background.rev || 0) + 1 };
     saveConfig();
@@ -1364,7 +1473,7 @@ function start() {
 }
 
 module.exports = { DEVICES: DEVICES, DEFAULTS: DEFAULTS, CATALOG: CATALOG, webUrl: webUrl, newer: newer, readManifest: readManifest, verifyIpk: verifyIpk, validate: validate, jpegSize: jpegSize, isLocal: isLocal, hostOk: hostOk,
-  applyKey: applyKey, VERSION: VERSION, FONDI: FONDI, iconFile: iconFile, pickBackground: pickBackground, appChoices: appChoices, openApps: openApps, fromHome: fromHome, keysOnTv: keysOnTv,
+  applyKey: applyKey, VERSION: VERSION, CONTROLS: CONTROLS, IDLE_MINUTES: IDLE_MINUTES, FONDI: FONDI, iconFile: iconFile, pickBackground: pickBackground, appChoices: appChoices, openApps: openApps, fromHome: fromHome, keysOnTv: keysOnTv,
   pinHash: pinHash, same: same };
 
 if (require.main === module) {

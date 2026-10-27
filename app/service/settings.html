@@ -254,6 +254,17 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chips input:checked + span { background: var(--ink); color: var(--ground); border-color: var(--ink); }
 .chips input:focus + span { outline: 2px solid var(--ink); outline-offset: 2px; }
 .chips input:focus:not(:focus-visible) + span { outline: none; }
+/* The captions: a picture, and its artist, title and year. */
+details.captions { margin-top: 14px; border-top: 1px solid var(--line); }
+details.captions summary { padding: 14px 0; cursor: pointer; font-size: 17px; }
+.infos { list-style: none; }
+.infos li { display: flex; padding: 10px 0; border-top: 1px solid var(--line); }
+.infos img { display: block; width: 96px; height: 54px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.infos .champs { -webkit-flex: 1; flex: 1; min-width: 0; }
+.infos input { display: block; width: 100%; height: 40px; margin-bottom: 6px; font-size: 15px; }
+.infos .duo { display: flex; }
+.infos .duo input:first-child { margin-right: 6px; -webkit-flex: 3; flex: 3; }
+.infos .duo input:last-child { -webkit-flex: 1; flex: 1; }
 .credit { margin-top: 12px; font-size: 15px; color: var(--muted); }
 .credit a { color: var(--ink); }
 .file { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -410,6 +421,19 @@ footer a { color: var(--muted); }
           <label for="next-key"><span data-t="nextKey">Remote key for the next background</span><span class="sub" data-t="nextKeyLede">While the Home is in front. The tile "Next background" does the same: add it under Tiles.</span></label>
           <select id="next-key"></select>
         </div>
+        <div class="row">
+          <label for="captions"><span data-t="captionsOn">Caption on the Home</span><span class="sub" data-t="captionsLede">Artist, title and year of the painting, small, in the corner.</span></label>
+          <input type="checkbox" class="switch" id="captions" role="switch">
+        </div>
+        <div class="row">
+          <label for="idle"><span data-t="idleTitle">Painting alone after</span><span class="sub" data-t="idleLede">Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.</span></label>
+          <select id="idle"></select>
+        </div>
+        <p class="note" data-t="idleLg">LG's own screen saver keeps its timer: if it starts first, it covers the painting.</p>
+        <details class="captions" id="infos-box">
+          <summary data-t="infosTitle">Captions of your paintings</summary>
+          <ul class="infos" id="infos"></ul>
+        </details>
         <div class="row">
           <span class="label" id="l-size" data-t="size">Size</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-size">
@@ -623,6 +647,11 @@ footer a { color: var(--muted); }
       nextKey: 'Remote key for the next background', nextKeyLede: 'While the Home is in front. The tile "Next background" does the same: add it under Tiles.',
       keyRed: 'Red', keyGreen: 'Green', keyYellow: 'Yellow', keyBlue: 'Blue',
       nextBgTile: 'Next background', lkGroup: 'Lightkeeper',
+      captionsOn: 'Caption on the Home', captionsLede: 'Artist, title and year of the painting, small, in the corner.',
+      idleTitle: 'Painting alone after', idleLede: 'Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.',
+      idleNever: 'Never', idleMin: ' min', idleLg: 'LG\'s own screen saver keeps its timer: if it starts first, it covers the painting.',
+      infosTitle: 'Captions of your paintings', infoArtist: 'Artist', infoTitle: 'Title', infoYear: 'Year',
+      controlTile: 'Controls',
       updOff: 'This is a personal version, so the project\'s updates are turned off: one would put the official version over it.', updOffState: 'Updates are off in this version.'
     },
     // French, for the lines above only: the rest of the page stays in English.
@@ -637,6 +666,11 @@ footer a { color: var(--muted); }
       nextKey: 'Touche de la télécommande pour le fond suivant', nextKeyLede: 'Quand le Home est à l\'écran. La tuile « Fond suivant » fait pareil : ajoute-la dans Tiles.',
       keyNone: 'Aucune', keyRed: 'Rouge', keyGreen: 'Verte', keyYellow: 'Jaune', keyBlue: 'Bleue',
       nextBgTile: 'Fond suivant', yours: 'Ton image', yoursShort: 'Tienne',
+      captionsOn: 'Légende sur l\'accueil', captionsLede: 'Artiste, titre et année du tableau, en petit, dans le coin.',
+      idleTitle: 'Tableau seul après', idleLede: 'Sans touche sur l\'accueil : l\'heure, la météo et les tuiles disparaissent, et le tableau bouge très lentement. Une touche suffit pour revenir.',
+      idleNever: 'Jamais', idleMin: ' min', idleLg: 'L\'économiseur d\'écran de LG garde sa propre minuterie : s\'il démarre avant, il recouvre le tableau.',
+      infosTitle: 'Légendes de tes tableaux', infoArtist: 'Artiste', infoTitle: 'Titre', infoYear: 'Année',
+      controlTile: 'Contrôle',
       updOff: 'Version perso : les mises à jour du projet sont désactivées, car une mise à jour officielle écraserait cette version.', updOffState: 'Mises à jour désactivées dans cette version.'
     }
   };
@@ -1180,7 +1214,7 @@ footer a { color: var(--muted); }
     first.textContent = t.add;
     sel.appendChild(first);
     // Lightkeeper's own tile, the next background, once.
-    [[t.apps, tv.apps], [t.inputs, tv.inputs], [t.lkGroup, used['lk.nextbg'] ? [] : [{ id: 'lk.nextbg', title: t.nextBgTile }]]].forEach(function (g) {
+    [[t.apps, tv.apps], [t.inputs, tv.inputs], [t.lkGroup, [{ id: 'lk.nextbg', title: t.nextBgTile }, { id: 'lk.control', title: t.controlTile }].filter(function (x) { return !used[x.id]; })]].forEach(function (g) {
       var free = g[1].filter(function (x) { return !used[x.id]; });
       if (!free.length) return;
       var og = document.createElement('optgroup');
@@ -1216,7 +1250,8 @@ footer a { color: var(--muted); }
   $('add').onchange = function () {
     var id = this.value;
     if (!id) return;
-    var tile = id === 'lk.nextbg' ? { id: id, title: t.nextBgTile, logo: 'gallery' } : { id: id, title: tvTitle(id) || id };
+    var tile = id === 'lk.nextbg' ? { id: id, title: t.nextBgTile, logo: 'gallery' } : id === 'lk.control' ? { id: id, title: t.controlTile, logo: 'apps' } :
+      { id: id, title: tvTitle(id) || id };
     cfg.tiles = (cfg.tiles || []).concat([tile]);
     saveTiles();
     $('add').focus();
@@ -1324,6 +1359,7 @@ footer a { color: var(--muted); }
       var held = list.filter(function (b) { return b.id === fixed; })[0] || bgs[0] || { id: '', title: '' };
       note.textContent = picks.length < 2 ? t.randomFew + bgName(held) + '.' : now ? t.randomNow + (chosen ? bgName(chosen) : now) + '.' : '';
     }
+    renderInfos();
     var c = $('bg-credit');
     c.innerHTML = '';
     if (chosen && chosen.mine) c.textContent = bgName(chosen) + ' · ' + t.yoursBy;
@@ -1519,6 +1555,70 @@ footer a { color: var(--muted); }
     sel.value = cfg.nextBgKey || 'none';
   }
   $('next-key').onchange = function () { save({ nextBgKey: this.value }); };
+
+  /* ---------- captions and the painting alone ---------- */
+
+  $('captions').onchange = function () { save({ captions: this.checked }); };
+  $('idle').onchange = function () { save({ idleMinutes: +this.value }); };
+
+  function renderIdle() {
+    var sel = $('idle');
+    sel.innerHTML = '';
+    [0, 1, 2, 5, 10, 15, 30, 60].forEach(function (m) {
+      var o = document.createElement('option');
+      o.value = m;
+      o.textContent = m ? m + t.idleMin : t.idleNever;
+      sel.appendChild(o);
+    });
+    sel.value = typeof cfg.idleMinutes === 'number' ? cfg.idleMinutes : 5;
+    $('captions').checked = !!cfg.captions;
+  }
+
+  // The artist, title and year of each of your pictures, saved a moment after the last key.
+  function renderInfos() {
+    var box = $('infos'), list = mine();
+    box.innerHTML = '';
+    $('infos-box').hidden = !list.length;
+    list.forEach(function (b) {
+      var info = (cfg.bgInfo && cfg.bgInfo[b.id]) || {}, li = document.createElement('li'), img = document.createElement('img'), champs = document.createElement('div'), duo = document.createElement('div');
+      img.src = '/mine/' + b.id + '-thumb.jpg' + (thumbed[b.id] ? '?t=1' : '');
+      img.alt = '';
+      img.width = 96;
+      img.height = 54;
+      champs.className = 'champs';
+      duo.className = 'duo';
+      var timer = null, inputs = {};
+      var commit = function () {
+        clearTimeout(timer);
+        var all = {};
+        Object.keys(cfg.bgInfo || {}).forEach(function (id) { all[id] = cfg.bgInfo[id]; });
+        var one = {};
+        ['artist', 'title', 'year'].forEach(function (k) { var v = inputs[k].value.replace(/^\s+|\s+$/g, ''); if (v) one[k] = v; });
+        if (Object.keys(one).length) all[b.id] = one; else delete all[b.id];
+        cfg.bgInfo = all;
+        save({ bgInfo: all });
+      };
+      [['artist', 60, t.infoArtist, champs], ['title', 90, t.infoTitle, champs], ['year', 16, t.infoYear, duo]].forEach(function (f) {
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.maxLength = f[1];
+        input.value = info[f[0]] || '';
+        input.placeholder = f[2];
+        input.setAttribute('aria-label', f[2] + ': ' + bgName(b));
+        input.oninput = function () { clearTimeout(timer); timer = setTimeout(commit, 700); };
+        input.onchange = commit;
+        inputs[f[0]] = input;
+        f[3].appendChild(input);
+      });
+      // The year beside the title, which is the line before it.
+      champs.removeChild(inputs.title);
+      duo.insertBefore(inputs.title, duo.firstChild);
+      champs.appendChild(duo);
+      li.appendChild(img);
+      li.appendChild(champs);
+      box.appendChild(li);
+    });
+  }
   $('veil').oninput = preview;
   $('veil').onchange = function () { save({ veil: +this.value }); };
 
@@ -1795,6 +1895,8 @@ footer a { color: var(--muted); }
     keyNote(cfg.keyStatus || 'active');
     radios('bgMode', cfg.backgroundMode || 'fixed', function (v) { save({ backgroundMode: v }, function () { renderBg(); preview(); }); });
     renderNextKey();
+    renderIdle();
+    renderInfos();
     radios('tileStyle', cfg.tileStyle, function (v) { save({ tileStyle: v }); });
     radios('labels', cfg.labels || 'all', function (v) { save({ labels: v }); });
     radios('startTile', cfg.startTile || 'last', function (v) { save({ startTile: v }); });
