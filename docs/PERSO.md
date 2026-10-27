@@ -46,4 +46,4 @@ Off: no button, and the server answers that updates are off. An official update 
 ## Back to the official version
 
 Install the project's `lightkeeper.ipk` (latest release) over this one: Homebrew Channel, or from a computer
-`LIGHTKEEPER_SSH="ssh -i <key>" ./lightkeeper.sh install <tv>` with the official sources. Your settings are in `/var/lib/lightkeeper/` and stay; fields the official version does not know (`backgroundMode`, `timeSlots`, `bgTags`, `nextBgKey`) are ignored by it. A copy of that folder, taken before installing this version, is in `~/Pictures/TV-fonds/backup-lightkeeper-2026-10-27/`.
+`LIGHTKEEPER_SSH="ssh -i <key>" ./lightkeeper.sh install <tv>` with the official sources. Your settings are in `/var/lib/lightkeeper/` and stay; fields the official version does not know (`backgroundMode`, `timeSlots`, `bgTags`, `nextBgKey`) are ignored by it, and dropped at its next save. A copy of that folder, taken before installing this version, is in `~/Pictures/TV-fonds/backup-lightkeeper-2026-10-27/`.
