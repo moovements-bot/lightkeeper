@@ -56,7 +56,9 @@ header { top: 68px; }
 #meteo { margin-top: 18px; height: 40px; font-size: 34px; font-weight: 300; opacity: .9; display: flex; align-items: center; }
 #meteo svg { width: 34px; height: 34px; margin-left: 14px; }
 nav { bottom: 104px; display: flex; align-items: flex-end; transition: -webkit-transform .2s, transform .2s; }
-nav a { position: relative; margin-right: 72px; font-size: 44px; font-weight: 400; font-weight: 380; letter-spacing: .01em; opacity: .72; cursor: pointer; transition: opacity .2s; }
+nav a { position: relative; margin-right: 72px; font-size: 44px; font-weight: 400; font-weight: 380; letter-spacing: .01em; opacity: .72; cursor: pointer; transition: opacity .12s; }
+/* OK presses the tile in at once, before the app opens. */
+nav a.premuto { opacity: .6; transition-duration: .05s; }
 nav a.sel { opacity: 1; font-weight: 500; font-weight: 450; }
 nav a.sel::after {
   content: ""; position: absolute; left: 0; bottom: -20px;
@@ -70,27 +72,30 @@ nav.icons a.gear { width: auto; margin-left: 12px; }
 nav.icons i { display: block; font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 nav.icons img {
   display: block; width: 132px; height: 132px; margin: 0 auto 20px; border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .45); transition: transform .2s;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
 }
+/* Focus in about 120 ms, with a slight overshoot. */
+nav.icons a > img { transition: transform .12s cubic-bezier(.3, 1.6, .6, 1); }
 nav.icons a.sel img { -webkit-transform: scale(1.06); transform: scale(1.06); }
 /* A logo, white like the words: no frame, as the brands ask, a shadow to read over the picture. */
 nav.icons .logo {
   display: flex; align-items: center; justify-content: center; height: 132px; margin-bottom: 20px;
-  -webkit-filter: drop-shadow(0 2px 14px rgba(0, 0, 0, .5)); filter: drop-shadow(0 2px 14px rgba(0, 0, 0, .5));
-  transition: transform .2s;
+  transition: transform .12s cubic-bezier(.3, 1.6, .6, 1);
 }
-nav.icons .logo svg, nav.icons .logo img { display: block; }
+/* The shadow is on the logo itself, not on the box that grows: drawn once, then only moved (measured on the C1). */
+nav.icons .logo svg, nav.icons .logo img { display: block; -webkit-filter: drop-shadow(0 2px 14px rgba(0, 0, 0, .5)); filter: drop-shadow(0 2px 14px rgba(0, 0, 0, .5)); }
 nav.icons .logo img, nav.icons a.sel .logo img { margin: 0; border-radius: 0; box-shadow: none; -webkit-transform: none; transform: none; }
 nav.icons a.sel .logo { -webkit-transform: scale(1.06); transform: scale(1.06); }
 /* A logo chosen for a tile, among app icons: on a dark tile of the icons' size. */
 nav.icons .riquadro {
   display: flex; align-items: center; justify-content: center; width: 132px; height: 132px; margin: 0 auto 20px;
-  border-radius: 24px; background: rgba(20, 16, 12, .86); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); transition: transform .2s;
+  border-radius: 24px; background: rgba(20, 16, 12, .86); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); transition: transform .12s cubic-bezier(.3, 1.6, .6, 1);
 }
 nav.icons a.sel .riquadro { -webkit-transform: scale(1.06); transform: scale(1.06); }
 nav.icons .riquadro svg, nav.icons .riquadro img { display: block; }
 nav.icons .riquadro img, nav.icons a.sel .riquadro img { margin: 0; border-radius: 0; box-shadow: none; -webkit-transform: none; transform: none; }
 nav.icons a.sel::after { bottom: -16px; left: 50%; margin-left: -18px; }
+nav.icons a.premuto > img, nav.icons a.premuto .logo, nav.icons a.premuto .riquadro { -webkit-transform: scale(.94); transform: scale(.94); transition-duration: .06s; }
 /* Names under logos and icons: only the selected one's, smaller; or none, the line under the icon alone. */
 nav.icons.only-sel i { visibility: hidden; font-size: 26px; }
 nav.icons.only-sel a.sel i { visibility: visible; }
@@ -167,15 +172,18 @@ body.puntatore .freccia.su { display: flex; }
 body.pannello .freccia { visibility: hidden; }
 /*
  * The painting's caption, in the corner opposite the clock, as big as the weather line and readable over a pale
- * painting as over a dark one: a soft shadow on the words, and behind them a dark halo that fades out at its
- * edges (a box with a blurred shadow of its own colour), as the captions of Apple TV have. The title is a
+ * painting as over a dark one: behind the words a dark patch that fades out at its edges, as the captions of
+ * Apple TV have. A plain gradient, drawn once: no blurred shadow to work out at every frame. The title is a
  * little bolder than the artist and the year.
  */
 #legenda {
   position: absolute; top: 74px; right: 112px; max-width: 900px; padding: 4px 0; text-align: right; font-size: 34px; font-weight: 300; font-weight: 350;
   line-height: 1.25; letter-spacing: .01em; opacity: .92; color: #fff; transition: opacity .4s;
-  background: rgba(18, 13, 8, .34); border-radius: 12px; box-shadow: 0 0 44px 36px rgba(18, 13, 8, .34);
-  text-shadow: 0 2px 10px rgba(0, 0, 0, .8), 0 0 3px rgba(0, 0, 0, .55);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .55);
+}
+#legenda::before {
+  content: ""; position: absolute; z-index: -1; top: -110px; right: -170px; bottom: -110px; left: -230px;
+  background: radial-gradient(closest-side, rgba(18, 13, 8, .5), rgba(18, 13, 8, .44) 45%, rgba(18, 13, 8, .2) 75%, rgba(18, 13, 8, 0));
 }
 #legenda b { font-weight: 500; font-weight: 520; }
 #legenda:empty { display: none; }
@@ -226,7 +234,7 @@ header { transition: opacity .4s; }
 <script src="logos.js"></script>
 <script src="fondi.js"></script>
 <script>
-var APP_VERSION = '1.0.9-perso.3';
+var APP_VERSION = '1.0.9-perso.4';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -314,14 +322,39 @@ function iniziale() {
 }
 
 var spostamento = 0; // how far a row wider than the screen has slid
+/*
+ * Where each tile is in the row, and the row's size, read once after it is drawn (and once the fonts are in):
+ * moving along the row then asks the engine for no layout. A tile a little wider when chosen (bolder) is off by
+ * a few pixels at most, within the margin.
+ */
+var misura = null;
+function posti() {
+  if (misura) return misura;
+  misura = { tiles: [], width: nav.offsetWidth, height: nav.offsetHeight };
+  for (var k = 0; k < nav.children.length; k++) {
+    var c = nav.children[k];
+    misura.tiles.push({ left: c.offsetLeft, right: c.offsetLeft + c.offsetWidth });
+  }
+  return misura;
+}
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function () { misura = null; });
+function classeVoce(k) { return (k === sel ? 'sel' : '') + (voci[k].gear ? ' gear' : voci[k].aperte ? ' gear open' : ''); }
+var selMostrata = -1; // the tile drawn as chosen, -1 after the row is drawn again
 function seleziona(i, colPuntatore) {
   sel = Math.max(0, Math.min(voci.length - 1, i));
-  for (var k = 0; k < nav.children.length; k++) nav.children[k].className = (k === sel ? 'sel' : '') + (voci[k].gear ? ' gear' : voci[k].aperte ? ' gear open' : '');
+  // Only the tile left and the one chosen change class.
+  if (selMostrata === -1 || selMostrata >= nav.children.length) {
+    for (var k = 0; k < nav.children.length; k++) nav.children[k].className = classeVoce(k);
+  } else if (selMostrata !== sel) {
+    nav.children[selMostrata].className = classeVoce(selMostrata);
+    if (nav.children[sel]) nav.children[sel].className = classeVoce(sel);
+  }
+  selMostrata = nav.children[sel] ? sel : -1;
   // A row wider than the screen slides, with the arrows only, so the chosen tile stays in view.
-  var el = nav.children[sel], largo = 1920 - 224;
+  var el = nav.children[sel] && posti().tiles[sel], largo = 1920 - 224;
   if (el && !colPuntatore) {
-    if (el.offsetLeft + el.offsetWidth > spostamento + largo) spostamento = el.offsetLeft + el.offsetWidth - largo;
-    if (el.offsetLeft < spostamento) spostamento = el.offsetLeft;
+    if (el.right > spostamento + largo) spostamento = el.right - largo;
+    if (el.left < spostamento) spostamento = el.left;
     nav.style.webkitTransform = nav.style.transform = 'translateX(' + -spostamento + 'px)';
     caricaVisibili();
     frecce();
@@ -334,6 +367,16 @@ function seleziona(i, colPuntatore) {
   } else {
     hint.className = '';
   }
+}
+
+// OK seen at once: the tile presses in for a moment while the app is asked for.
+var premutoTimer = null;
+function premi(i) {
+  var a = nav.children[i];
+  if (!a) return;
+  clearTimeout(premutoTimer);
+  a.classList.add('premuto');
+  premutoTimer = setTimeout(function () { a.classList.remove('premuto'); }, 160);
 }
 
 function lancia(i) {
@@ -377,8 +420,8 @@ var caricatori = [];
 function caricaVisibili() {
   var da = spostamento - 1920, fino = spostamento + 2 * 1920;
   for (var k = 0; k < caricatori.length; k++) {
-    var el = caricatori[k] && nav.children[k];
-    if (el && el.offsetLeft + el.offsetWidth >= da && el.offsetLeft <= fino) {
+    var el = caricatori[k] && posti().tiles[k];
+    if (el && el.right >= da && el.left <= fino) {
       var f = caricatori[k];
       caricatori[k] = null;
       f();
@@ -401,42 +444,101 @@ var fondu = document.getElementById('fondu'), dissolvenza = null, inArrivo = '';
 function sfondo(url) {
   if (url === sfondoMesso || url === sfondoChiesto) return;
   sfondoChiesto = url;
-  var img = new Image();
-  img.onload = function () {
+  prepara(url, function (ok) {
     if (sfondoChiesto !== url) return;
+    sfondoChiesto = '';
+    if (!ok) return;
     var prima = sfondoMesso;
     sfondoMesso = url;
-    sfondoChiesto = '';
     mettiSfondo(url, prima);
     legenda();
     if (arteAttiva) cambiaArte(url);
-  };
-  img.onerror = function () { if (sfondoChiesto === url) sfondoChiesto = ''; };
-  img.src = url;
+    // The next ones are made ready once this fade is over.
+    setTimeout(preparaProssimi, 2500);
+  });
 }
 
 /*
- * The picture, loaded, goes on the body: the first one at once, each after it over the old
+ * Pictures loaded and decoded before they show, by address: the one on the screen, the one asked for, and the
+ * next ones (preparaProssimi), so that a fade starts on its first frame instead of waiting for the decoding.
+ * The others are let go.
+ */
+var pronte = {};
+function prepara(url, cb) {
+  var p = pronte[url];
+  if (!p) {
+    p = pronte[url] = { img: new Image(), fatto: false, ok: false, attesa: [] };
+    var fine = function (ok) {
+      if (p.fatto) return;
+      p.fatto = true;
+      p.ok = ok;
+      if (!ok && pronte[url] === p) delete pronte[url]; // asked again next time
+      var a = p.attesa;
+      p.attesa = [];
+      a.forEach(function (f) { f(ok); });
+    };
+    p.img.onload = function () {
+      if (p.img.decode) p.img.decode().then(function () { fine(true); }, function () { fine(true); });
+      else fine(true);
+    };
+    p.img.onerror = function () { fine(false); };
+    p.img.src = url;
+  }
+  if (!cb) return;
+  if (p.fatto) cb(p.ok);
+  else p.attesa.push(cb);
+}
+
+/*
+ * The next pictures, by the time of day: the one "next background" goes to, and in the last ten minutes of a
+ * slot the first one of the next slot. Called after each change and every minute.
+ */
+function preparaProssimi() {
+  var tieni = {}, adesso = new Date();
+  tieni[sfondoMesso] = tieni[sfondoChiesto] = true;
+  if (cfg.backgroundMode === 'time') {
+    var ora = fondoDelMomento(cfg, adesso, 0);
+    if (ora.pool.length > 1) tieni[urlFondo(fondoDelMomento(cfg, adesso, passoFondo(ora.chiave) + 1).id)] = true;
+    var dopo = new Date(adesso.getTime() + 10 * 60000);
+    if (fasciaDi(dopo.getHours(), cfg.timeSlots) !== ora.fascia) {
+      dopo.setMinutes(0, 0, 0);
+      var poi = fondoDelMomento(cfg, dopo, 0);
+      if (poi.id) tieni[urlFondo(poi.id)] = true;
+    }
+  }
+  Object.keys(pronte).forEach(function (u) { if (!tieni[u] && pronte[u].fatto) delete pronte[u]; });
+  Object.keys(tieni).forEach(function (u) { if (u) prepara(u); });
+}
+
+/*
+ * The picture, ready, goes on the body: the first one at once, each after it over the old
  * one, which it gradually covers in under two seconds. The body takes it when that is done.
+ * Only the opacity changes: the start of the fade is drawn two frames before it, without
+ * asking the engine for a layout.
  */
 function mettiSfondo(url, prima) {
   var corpo = document.body.style, f = fondu.style;
-  // Another change while one is under way: the one coming in is already on the body.
-  if (dissolvenza) { clearTimeout(dissolvenza); dissolvenza = null; corpo.backgroundImage = 'url(' + inArrivo + ')'; }
+  // Another change while one is under way: the one coming in goes on the body.
+  if (inArrivo) { clearTimeout(dissolvenza); dissolvenza = null; corpo.backgroundImage = 'url(' + inArrivo + ')'; inArrivo = ''; }
   f.webkitTransition = f.transition = 'none';
   f.opacity = 0;
   if (!prima) { corpo.backgroundImage = 'url(' + url + ')'; return; }
   f.backgroundImage = 'url(' + url + ')';
   inArrivo = url;
-  void fondu.offsetWidth; // the start is drawn before the change
-  f.webkitTransition = f.transition = 'opacity 1.6s ease';
-  f.opacity = 1;
-  dissolvenza = setTimeout(function () {
-    dissolvenza = null;
-    corpo.backgroundImage = 'url(' + url + ')';
-    f.webkitTransition = f.transition = 'none';
-    f.opacity = 0;
-  }, 1700);
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      if (inArrivo !== url) return;
+      f.webkitTransition = f.transition = 'opacity 1.6s ease';
+      f.opacity = 1;
+      dissolvenza = setTimeout(function () {
+        dissolvenza = null;
+        inArrivo = '';
+        corpo.backgroundImage = 'url(' + url + ')';
+        f.webkitTransition = f.transition = 'none';
+        f.opacity = 0;
+      }, 1700);
+    });
+  });
 }
 
 /*
@@ -518,6 +620,8 @@ function disegna() {
   nav.innerHTML = '';
   spostamento = 0;
   caricatori = [];
+  misura = null;
+  selMostrata = -1;
   voci = (cfg.tiles || []).slice();
   if (cfg.openApps) voci.push({ aperte: true });
   // Without tiles the gear stays, as the Home would have nothing to choose.
@@ -570,7 +674,7 @@ document.addEventListener('keydown', function (e) {
   if (cfg.nextBgKey && TOUCHES[cfg.nextBgKey] === e.keyCode) fondoSuccessivo();
   else if (e.keyCode === 37) seleziona(sel - 1);
   else if (e.keyCode === 39) seleziona(sel + 1);
-  else if (e.keyCode === 13) lancia(sel);
+  else if (e.keyCode === 13) { premi(sel); lancia(sel); }
   else if (e.keyCode === 40) apri(LG_HOME); // Down: LG's Home
   else if (e.keyCode === 461 && sistema) sistema.platformBack(); // Back
   else return;
@@ -941,9 +1045,9 @@ function conPuntatore(on) {
   frecce();
 }
 // How far the row can slide, and the arrows where it can.
-function margine() { return Math.max(0, nav.offsetWidth - (1920 - 224)); }
+function margine() { return Math.max(0, posti().width - (1920 - 224)); }
 function frecce() {
-  frSx.style.height = frDx.style.height = nav.offsetHeight + 'px';
+  frSx.style.height = frDx.style.height = posti().height + 'px';
   frSx.className = 'freccia' + (spostamento > 0 ? ' su' : '');
   frDx.className = 'freccia' + (spostamento < margine() ? ' su' : '');
 }
@@ -1011,13 +1115,33 @@ function meteo() {
   x.send();
 }
 
+var oraMostrata = ''; // the time and the style drawn, so the same minute is not drawn again
 function aggiorna() {
   var d = new Date(), h = d.getHours(), m = (d.getMinutes() < 10 ? ':0' : ':') + d.getMinutes();
-  if (cfg.clock === '12') ora.innerHTML = ((h + 11) % 12 + 1) + m + '<small>' + (h < 12 ? 'AM' : 'PM') + '</small>';
-  else ora.textContent = h + m;
-  ora.style.marginLeft = rientroOra(cfg.clockStyle, ora.textContent);
+  var qui = cfg.clock + ' ' + cfg.clockStyle + ' ' + h + m;
+  if (qui !== oraMostrata) {
+    oraMostrata = qui;
+    if (cfg.clock === '12') ora.innerHTML = ((h + 11) % 12 + 1) + m + '<small>' + (h < 12 ? 'AM' : 'PM') + '</small>';
+    else ora.textContent = h + m;
+    ora.style.marginLeft = rientroOra(cfg.clockStyle, ora.textContent);
+  }
   var per = cfg.weather ? cfg.weather.lat + ',' + cfg.weather.lon + ',' + cfg.units : '';
   if (per !== meteoPer || Date.now() - meteoAlle > 15 * 60000) meteo();
+}
+
+/*
+ * The clock, the weather and the slot of the background, on each new minute of the TV's clock, and not at all
+ * while an app is in front (the Home is hidden then): it starts again when the Home comes back.
+ */
+var battitoTimer = null;
+function battito() {
+  clearTimeout(battitoTimer);
+  if (document.hidden) return;
+  aggiorna();
+  fondoDellOra();
+  preparaProssimi();
+  var d = new Date();
+  battitoTimer = setTimeout(battito, 60000 - d.getSeconds() * 1000 - d.getMilliseconds() + 50);
 }
 
 /*
@@ -1091,8 +1215,8 @@ function trovaPorta(cb) {
 }
 
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) { pannello.hidden = true; controllo.hidden = true; document.body.classList.remove('pannello'); esciArte(); }
-  else { attivita(); aggiorna(); fondoDellOra(); leggi(); chiediAperte(); }
+  if (document.hidden) { clearTimeout(battitoTimer); pannello.hidden = true; controllo.hidden = true; document.body.classList.remove('pannello'); esciArte(); }
+  else { attivita(); battito(); leggi(); chiediAperte(); }
 });
 
 // Home key with the app already open: with handlesRelaunch it comes to the front only if it asks.
@@ -1124,9 +1248,7 @@ document.addEventListener('webOSRelaunch', function () {
 disegna();
 controlla(5);
 chiediAperte();
-setInterval(aggiorna, 5000);
-// By the time of day, the slot is looked at again every minute.
-setInterval(function () { if (!document.hidden) fondoDellOra(); }, 60000);
+battito();
 // Changes made on a phone show within seconds; nothing is asked while hidden.
 var mancate = 0;
 setInterval(function () {

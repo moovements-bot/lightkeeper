@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.9-perso.4 (29 October 2026)
+
+Smoother Home, measured on the C1 with the web inspector before and after.
+
+- **Moving along the row asks for no layout.** Where each tile is, and the row's size, are read once after the row is drawn (and once the fonts are in); a key then changes the class of two tiles, not all of them. The logos' shadow is on the logo itself rather than on the box that grows, so it is drawn once instead of at every frame of the focus. No extra layers (`will-change`): measured on the C1, they made its graphics slower, not faster.
+- **Focus in about 120 ms**, with a slight overshoot; **OK presses the tile in at once** (160 ms), before the app opens.
+- **The fade changes only the opacity**: its start is drawn two frames before it, without forcing a layout. Each picture is loaded and decoded (`img.decode()`) before it fades in, and the next ones are made ready ahead: the one *Next background* goes to, and, in the last ten minutes of a slot, the first of the next slot. The others are let go.
+- **The clock is drawn once a minute**, on the minute, with the slot of the background; nothing runs for it while an app is in front, and it starts again when the Home comes back.
+- **The caption sits on a plain gradient** that fades out at its edges, drawn once, instead of a blurred halo and blurred shadows on the words.
+- The eighteen pictures of this TV are now 1920 × 1080 progressive JPEGs (quality 85) instead of 3840 × 2160: about 11 MB instead of 62.
+
 ## 1.0.9-perso.3 (27 October 2026)
 
 - **A more readable caption**, on the Home and with the painting alone: as big as the weather line (34 px, 40 px on the painting alone), 92% opaque, white with a soft shadow, over a dark halo that fades out at its edges, as on Apple TV; the title is a little bolder than the artist and the year. Looked at over a pale painting (La Moisson) and a dark one (La Nuit étoilée).
