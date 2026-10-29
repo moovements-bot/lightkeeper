@@ -398,8 +398,8 @@ assert.deepEqual(s.validate({ bgInfo: {} }, keys), { bgInfo: {} });
 assert.equal(s.validate({ bgInfo: { night: { artist: new Array(200).join('a') } } }, keys).bgInfo.night.artist.length, 60); // cut, not refused, as a tile's name is
 assert.deepEqual(s.validate({ tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] }, keys), { tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] });
 // The personal version, said in the three places it is written.
-assert.equal(s.VERSION, '1.0.9-perso.4');
-assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.4');
+assert.equal(s.VERSION, '1.0.9-perso.5');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.5');
 
 // The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
@@ -477,6 +477,9 @@ assert.equal(logos.rientroOra('digital', '8:41'), '-0.099em');
 assert.ok(!logos.RIENTRO_ORA.thin);
 var homeHtml = fs.readFileSync(path.join(__dirname, '..', 'app', 'index.html'), 'utf8');
 assert.ok(/ora\.style\.marginLeft = rientroOra\(cfg\.clockStyle, ora\.textContent\)/.test(homeHtml), 'the Home lines the clock up');
+// noSplash only for the apps tried on the C1, and only as a fixed flag of the launch call.
+assert.ok(homeHtml.indexOf("var SANS_ECRAN_GRIS = { netflix: true, siptv: true, 'com.webos.app.hdmi3': true };") !== -1, 'noSplash list');
+assert.ok(homeHtml.indexOf('if (SANS_ECRAN_GRIS[id] === true) chiesta.noSplash = true;') !== -1, 'noSplash flag');
 assert.ok(homeHtml.indexOf('#ora { font-size: 150px; font-weight: 200; line-height: 1; letter-spacing: -.02em; }') !== -1, 'the default clock rule is unchanged');
 ['classic', 'mono', 'rounded', 'digital'].forEach(function (n) {
   var f = path.join(__dirname, '..', 'app', 'clock', n + '.woff2');
@@ -832,7 +835,7 @@ function httpChecks() {
     },
     // The project's own updates are off in this version: nothing looked for, nothing installed.
     function (next) { req('GET', '/api/update', {}, function (st, j) {
-      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.4'); assert.equal(j.latest, undefined);
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.5'); assert.equal(j.latest, undefined);
       req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {

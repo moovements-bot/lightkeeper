@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.9-perso.5 (30 October 2026)
+
+- **No grey screen for Netflix, Smart IPTV and the Apple TV input (HDMI 3).** Started cold, these apps showed LG's default loading picture (a grey screen with squares, the splash their store package carries), and the input switch a grey screen of its own. They are now launched with webOS's `noSplash`: the Home stays until the app or the input is ready. Looked at frame by frame with screen captures on the C1, app by app; CANAL+, Prime Video, Disney+, Stremio and Jellyfin keep their own splash (their logo, not grey). CANAL+'s grey screen when it comes back is the app's own page loading, which only CANAL+ can change.
+- **The pictures are the 4K ones again**, exactly the files installed before 1.0.9-perso.4 (checked byte for byte on the TV). The Home is drawn at 3840 × 2160 on the C1 (a pixel ratio of 2), so the 1080p ones were enlarged twice and lost the finest strokes; their colours and average brightness were the same.
+
 ## 1.0.9-perso.4 (29 October 2026)
 
 Smoother Home, measured on the C1 with the web inspector before and after.
@@ -9,7 +14,7 @@ Smoother Home, measured on the C1 with the web inspector before and after.
 - **The fade changes only the opacity**: its start is drawn two frames before it, without forcing a layout. Each picture is loaded and decoded (`img.decode()`) before it fades in, and the next ones are made ready ahead: the one *Next background* goes to, and, in the last ten minutes of a slot, the first of the next slot. The others are let go.
 - **The clock is drawn once a minute**, on the minute, with the slot of the background; nothing runs for it while an app is in front, and it starts again when the Home comes back.
 - **The caption sits on a plain gradient** that fades out at its edges, drawn once, instead of a blurred halo and blurred shadows on the words.
-- The eighteen pictures of this TV are now 1920 × 1080 progressive JPEGs (quality 85) instead of 3840 × 2160: about 11 MB instead of 62.
+- The eighteen pictures of this TV are now 1920 × 1080 progressive JPEGs (quality 85) instead of 3840 × 2160: about 11 MB instead of 62. (Undone in perso.5.)
 
 ## 1.0.9-perso.3 (27 October 2026)
 

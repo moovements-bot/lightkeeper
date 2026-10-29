@@ -234,7 +234,7 @@ header { transition: opacity .4s; }
 <script src="logos.js"></script>
 <script src="fondi.js"></script>
 <script>
-var APP_VERSION = '1.0.9-perso.4';
+var APP_VERSION = '1.0.9-perso.5';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -304,8 +304,17 @@ function luna(uri, params, cb) {
   b.call(uri, JSON.stringify(params));
 }
 
+/*
+ * Apps that open on LG's grey loading picture (the default splash of LG's store, a grey screen with squares) when
+ * they start cold, and the HDMI input whose switch shows a grey screen too: launched with webOS's noSplash, the
+ * Home stays on the screen until the app (or the input) is ready, with no grey in between. Tried one by one on the
+ * C1 (webOS 6.5.3) on 30/10/2026; the other apps keep their own splash, which is theirs and not grey.
+ */
+var SANS_ECRAN_GRIS = { netflix: true, siptv: true, 'com.webos.app.hdmi3': true };
 function apri(id, params) {
-  luna('luna://com.webos.applicationManager/launch', params ? { id: id, params: params } : { id: id });
+  var chiesta = params ? { id: id, params: params } : { id: id };
+  if (SANS_ECRAN_GRIS[id] === true) chiesta.noSplash = true;
+  luna('luna://com.webos.applicationManager/launch', chiesta);
 }
 
 // The tile selected when the Home opens: the first, or the one last opened, kept by
