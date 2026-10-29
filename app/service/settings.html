@@ -246,6 +246,14 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tagged .head { display: flex; align-items: center; }
 .tagged img { display: block; width: 96px; height: 54px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
 .tagged .nm { font-size: 15px; color: var(--muted); }
+/* The library's albums: cover, name, how many, and a switch. */
+.libalbums { list-style: none; margin-top: 12px; border-top: 1px solid var(--line); }
+.libalbums li { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.libalbums img { display: block; width: 96px; height: 54px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.libalbums label { -webkit-flex: 1; flex: 1; min-width: 0; }
+.libalbums .sub { display: block; font-size: 14px; color: var(--muted); }
+#lib-url { width: 100%; margin-top: 10px; }
+.err-note { color: #ff8f80; }
 .chips { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 10px; }
 .chips label { position: relative; cursor: pointer; margin: 0 6px 6px 0; }
 .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -403,6 +411,7 @@ footer a { color: var(--muted); }
             <label><input type="radio" name="bgMode" value="fixed"><span data-t="bgFixed">Fixed</span></label>
             <label><input type="radio" name="bgMode" value="random"><span data-t="bgRandom">Random at power on</span></label>
             <label><input type="radio" name="bgMode" value="time"><span data-t="bgTime">By time of day</span></label>
+            <label><input type="radio" name="bgMode" value="library"><span data-t="bgLibrary">Library</span></label>
           </div>
         </div>
         <p class="note" id="mode-note" aria-live="polite"></p>
@@ -416,6 +425,27 @@ footer a { color: var(--muted); }
           <p class="note" data-t="tagsLede">Tick the slots each picture goes with. With several for one slot, one is drawn each time the slot begins. A slot with none keeps the picture on the screen.</p>
           <p class="note" id="time-now" aria-live="polite"></p>
           <ul class="tagged" id="tagged"></ul>
+        </div>
+        <div id="lib-box" hidden>
+          <h3 class="sub-h" data-t="libTitle">Library on your server</h3>
+          <label for="lib-url" class="note" data-t="libUrlLede">The https address of its manifest.json</label>
+          <input type="url" id="lib-url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…/manifest.json">
+          <div class="actions"><button class="btn" type="button" id="lib-save" data-t="libSave">Save the address</button><button class="btn" type="button" id="lib-sync" data-t="libSync">Read the library now</button></div>
+          <p class="note" id="lib-state" aria-live="polite"></p>
+          <h3 class="sub-h" data-t="libAlbumsTitle">Albums</h3>
+          <p class="note" data-t="libAlbumsLede">Tick one to stay on it, several to mix them. None ticked: all of them.</p>
+          <ul class="libalbums" id="lib-albums"></ul>
+          <div class="row">
+            <span class="label" id="l-libord" data-t="libOrder">Order</span>
+            <div class="seg" role="radiogroup" aria-labelledby="l-libord">
+              <label><input type="radio" name="libOrder" value="shuffle"><span data-t="libShuffle">Shuffled</span></label>
+              <label><input type="radio" name="libOrder" value="order"><span data-t="libInOrder">In order</span></label>
+            </div>
+          </div>
+          <div class="row">
+            <label for="lib-rotate"><span data-t="libRotate">New picture</span></label>
+            <select id="lib-rotate"></select>
+          </div>
         </div>
         <div class="row">
           <label for="next-key"><span data-t="nextKey">Remote key for the next background</span><span class="sub" data-t="nextKeyLede">While the Home is in front. The tile "Next background" does the same: add it under Tiles.</span></label>
@@ -651,7 +681,14 @@ footer a { color: var(--muted); }
       idleTitle: 'Painting alone after', idleLede: 'Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.',
       idleNever: 'Never', idleMin: ' min', idleLg: 'LG\'s own screen saver keeps its timer: if it starts first, it covers the painting.',
       infosTitle: 'Captions of your paintings', infoArtist: 'Artist', infoTitle: 'Title', infoYear: 'Year',
-      controlTile: 'Controls',
+      controlTile: 'Controls', albumsTile: 'Albums',
+      bgLibrary: 'Library', libTitle: 'Library on your server', libUrlLede: 'The https address of its manifest.json', libSave: 'Save the address',
+      libSync: 'Read the library now', libAlbumsTitle: 'Albums', libAlbumsLede: 'Tick one to stay on it, several to mix them. None ticked: all of them.',
+      libOrder: 'Order', libShuffle: 'Shuffled', libInOrder: 'In order', libRotate: 'New picture', rotPower: 'Each time the TV comes on',
+      rotManual: 'Only with Next background', rotEvery: 'Every ', libNone: 'No library yet: give the address of its manifest.json.',
+      libPictures: ' pictures in ', libAlbumsN: ' albums', libInUse: ' in use', libCache: 'cache ', libOf: ' of ', libLast: 'read at ',
+      libErr: 'The library does not answer: ', libErrKeep: ' The TV keeps showing the pictures it has.', libBadUrl: 'An https address ending with /manifest.json.',
+      libNever: 'not read yet', libCount: ' pictures', modeLibrary: 'The pictures come from the albums of your library, with their captions. The key or the tile Next background goes to the next one; a long press of the key, or the tile Albums, chooses the albums on the TV.',
       updOff: 'This is a personal version, so the project\'s updates are turned off: one would put the official version over it.', updOffState: 'Updates are off in this version.'
     },
     // French, for the lines above only: the rest of the page stays in English.
@@ -670,7 +707,14 @@ footer a { color: var(--muted); }
       idleTitle: 'Tableau seul après', idleLede: 'Sans touche sur l\'accueil : l\'heure, la météo et les tuiles disparaissent, et le tableau bouge très lentement. Une touche suffit pour revenir.',
       idleNever: 'Jamais', idleMin: ' min', idleLg: 'L\'économiseur d\'écran de LG garde sa propre minuterie : s\'il démarre avant, il recouvre le tableau.',
       infosTitle: 'Légendes de tes tableaux', infoArtist: 'Artiste', infoTitle: 'Titre', infoYear: 'Année',
-      controlTile: 'Contrôle',
+      controlTile: 'Contrôle', albumsTile: 'Albums',
+      bgLibrary: 'Bibliothèque', libTitle: 'Bibliothèque sur ton serveur', libUrlLede: 'L\'adresse https de son manifest.json', libSave: 'Enregistrer l\'adresse',
+      libSync: 'Relire la bibliothèque', libAlbumsTitle: 'Albums', libAlbumsLede: 'Coche un album pour rester dessus, plusieurs pour les mélanger. Aucun coché : tous.',
+      libOrder: 'Ordre', libShuffle: 'Mélanger', libInOrder: 'Dans l\'ordre', libRotate: 'Nouveau fond', rotPower: 'À chaque allumage',
+      rotManual: 'Seulement à la demande', rotEvery: 'Toutes les ', libNone: 'Pas encore de bibliothèque : donne l\'adresse de son manifest.json.',
+      libPictures: ' fonds dans ', libAlbumsN: ' albums', libInUse: ' en service', libCache: 'cache ', libOf: ' sur ', libLast: 'lue à ',
+      libErr: 'La bibliothèque ne répond pas : ', libErrKeep: ' La TV continue avec les fonds qu\'elle a déjà.', libBadUrl: 'Une adresse https qui finit par /manifest.json.',
+      libNever: 'pas encore lue', libCount: ' fonds', modeLibrary: 'Les fonds viennent des albums de ta bibliothèque, avec leur légende. La touche ou la tuile Fond suivant passe au suivant ; un appui long sur la touche, ou la tuile Albums, choisit les albums depuis la TV.',
       updOff: 'Version perso : les mises à jour du projet sont désactivées, car une mise à jour officielle écraserait cette version.', updOffState: 'Mises à jour désactivées dans cette version.'
     }
   };
@@ -761,6 +805,8 @@ footer a { color: var(--muted); }
     var now = /^[a-z0-9-]+$/.test(cfg.backgroundNow || '') ? cfg.backgroundNow : null;
     // By the time of day: the one the Home shows now (fondi.js, as the Home), if any is ticked for the slot.
     if (cfg.backgroundMode === 'time') now = fondoDelMomento(cfg, new Date(), 0).id || now;
+    // The library: the small copy of the picture the Home shows.
+    if (cfg.backgroundMode === 'library' && cfg.libraryNow) return '/lib/thumb/' + cfg.libraryNow.id + '.jpg';
     if (now) return (/^my-/.test(now) ? '/mine/' : '/backgrounds/') + now + '.jpg';
     if (cfg.background && cfg.background.custom) return '/background.jpg?rev=' + (cfg.background.rev || 0);
     return '/backgrounds/' + (/^[a-z0-9-]+$/.test(cfg.preset || '') ? cfg.preset : 'godrevy') + '.jpg';
@@ -1214,7 +1260,7 @@ footer a { color: var(--muted); }
     first.textContent = t.add;
     sel.appendChild(first);
     // Lightkeeper's own tile, the next background, once.
-    [[t.apps, tv.apps], [t.inputs, tv.inputs], [t.lkGroup, [{ id: 'lk.nextbg', title: t.nextBgTile }, { id: 'lk.control', title: t.controlTile }].filter(function (x) { return !used[x.id]; })]].forEach(function (g) {
+    [[t.apps, tv.apps], [t.inputs, tv.inputs], [t.lkGroup, [{ id: 'lk.nextbg', title: t.nextBgTile }, { id: 'lk.control', title: t.controlTile }, { id: 'lk.albums', title: t.albumsTile }].filter(function (x) { return !used[x.id]; })]].forEach(function (g) {
       var free = g[1].filter(function (x) { return !used[x.id]; });
       if (!free.length) return;
       var og = document.createElement('optgroup');
@@ -1251,6 +1297,7 @@ footer a { color: var(--muted); }
     var id = this.value;
     if (!id) return;
     var tile = id === 'lk.nextbg' ? { id: id, title: t.nextBgTile, logo: 'gallery' } : id === 'lk.control' ? { id: id, title: t.controlTile, logo: 'apps' } :
+      id === 'lk.albums' ? { id: id, title: t.albumsTile, logo: 'media' } :
       { id: id, title: tvTitle(id) || id };
     cfg.tiles = (cfg.tiles || []).concat([tile]);
     saveTiles();
@@ -1289,9 +1336,11 @@ footer a { color: var(--muted); }
     box.setAttribute('role', random ? 'group' : 'radiogroup');
     radios('bgMode', cfg.backgroundMode || 'fixed');
     // By the time of day, the grid gives way to the slots and the pictures for each.
-    box.hidden = $('bg-credit').hidden = cfg.backgroundMode === 'time';
+    box.hidden = $('bg-credit').hidden = cfg.backgroundMode === 'time' || cfg.backgroundMode === 'library';
     $('time-box').hidden = cfg.backgroundMode !== 'time';
-    $('mode-note').textContent = random ? t.randomBgLede : cfg.backgroundMode === 'time' ? t.modeTime : '';
+    $('lib-box').hidden = cfg.backgroundMode !== 'library';
+    if (cfg.backgroundMode === 'library') renderLibrary();
+    $('mode-note').textContent = random ? t.randomBgLede : cfg.backgroundMode === 'time' ? t.modeTime : cfg.backgroundMode === 'library' ? t.modeLibrary : '';
     $('mode-note').hidden = !$('mode-note').textContent;
     if (cfg.backgroundMode === 'time') renderTime(list);
     list.forEach(function (b) {
@@ -1543,6 +1592,87 @@ footer a { color: var(--muted); }
   }
 
   // The key of the remote for "next background".
+  /* ---------- the library (perso.6) ---------- */
+
+  var lib = null; // what the TV says of it: albums, cache, last reading
+  function mb(n) { return (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB'; }
+  function hhmm(ms) { var d = new Date(ms); return d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes(); }
+  function renderLibrary() {
+    if (document.activeElement !== $('lib-url')) $('lib-url').value = cfg.libraryUrl || '';
+    radios('libOrder', cfg.libraryOrder || 'shuffle', function (v) { save({ libraryOrder: v }, renderLibrary); });
+    var sel = $('lib-rotate');
+    sel.innerHTML = '';
+    [['power', t.rotPower], [15], [30], [60], [120], ['manual', t.rotManual]].forEach(function (r) {
+      var o = document.createElement('option');
+      o.value = String(r[0]);
+      o.textContent = r[1] || t.rotEvery + r[0] + ' min';
+      sel.appendChild(o);
+    });
+    sel.value = String(cfg.libraryRotate || 'power');
+    var st = $('lib-state'), box = $('lib-albums');
+    box.innerHTML = '';
+    st.className = 'note';
+    if (!cfg.libraryUrl) { st.textContent = t.libNone; return; }
+    if (!lib) { st.textContent = '…'; return loadLibrary(); }
+    var parts = [];
+    if (lib.pictures) parts.push(lib.pictures + t.libPictures + lib.albums.length + t.libAlbumsN + ' (' + lib.inUse + t.libInUse + ')');
+    parts.push(t.libCache + mb(lib.cacheBytes) + (lib.capBytes !== null ? t.libOf + mb(lib.capBytes) : '') + ' (' + lib.cached + ')');
+    parts.push(lib.lastOk ? t.libLast + hhmm(lib.lastOk) : t.libNever);
+    st.textContent = (lib.error ? t.libErr + lib.error + '.' + t.libErrKeep + ' ' : '') + parts.join(' · ');
+    if (lib.error) st.className = 'note err-note';
+    var chosen = cfg.libraryAlbums || [];
+    lib.albums.forEach(function (a) {
+      var li = document.createElement('li'), img = document.createElement('img'), label = document.createElement('label'), sw = document.createElement('input');
+      img.src = '/lib/thumb/' + a.cover + '.jpg';
+      img.alt = '';
+      img.width = 96;
+      img.height = 54;
+      label.htmlFor = sw.id = 'alb-' + a.id;
+      label.textContent = a.name;
+      var n = document.createElement('span');
+      n.className = 'sub';
+      n.textContent = a.count + t.libCount;
+      label.appendChild(n);
+      sw.type = 'checkbox';
+      sw.className = 'switch';
+      sw.setAttribute('role', 'switch');
+      sw.checked = chosen.indexOf(a.id) !== -1;
+      sw.onchange = function () {
+        var next = (cfg.libraryAlbums || []).filter(function (x) { return x !== a.id; });
+        if (sw.checked) next.push(a.id);
+        cfg.libraryAlbums = next;
+        save({ libraryAlbums: next }, function () { loadLibrary(); });
+      };
+      li.appendChild(img);
+      li.appendChild(label);
+      li.appendChild(sw);
+      box.appendChild(li);
+    });
+  }
+  function loadLibrary() {
+    api('GET', '/api/library', null, function (r) {
+      lib = r && r.library;
+      if (lib && cfg.backgroundMode === 'library') renderLibrary();
+    });
+  }
+  $('lib-rotate').onchange = function () { var v = this.value; save({ libraryRotate: /^\d+$/.test(v) ? +v : v }); };
+  $('lib-save').onclick = function () {
+    var u = $('lib-url').value.replace(/^\s+|\s+$/g, '');
+    if (u && !/^https:\/\/[^\s\/]+\/\S*manifest\.json$/.test(u)) { $('lib-state').textContent = t.libBadUrl; $('lib-state').className = 'note err-note'; return; }
+    save({ libraryUrl: u }, function (ok) { if (ok) { lib = null; renderLibrary(); } });
+  };
+  $('lib-sync').onclick = function () {
+    status(t.saving);
+    api('POST', '/api/library/sync', {}, function (r) {
+      if (!r) return status(t.notSaved + t.offline, true);
+      lib = r.library;
+      cfg = r.config;
+      status(t.saved);
+      renderLibrary();
+      preview();
+    });
+  };
+
   function renderNextKey() {
     var sel = $('next-key');
     sel.innerHTML = '';

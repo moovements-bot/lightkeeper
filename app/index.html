@@ -158,6 +158,19 @@ body.pannello header, body.pannello nav, body.pannello #hint, body.pannello #leg
 #controllo li .logo svg, #controllo li .logo img { display: block; }
 #controllo li.assente { opacity: .35; }
 #controllo p { position: absolute; left: 112px; bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .8; }
+/* The albums of the library, ticked with the remote (perso.6): all of them, or the ones ticked mixed. */
+#albumi { position: absolute; top: 0; right: 0; bottom: 0; left: 0; padding: 120px 0 0 112px; background: rgba(18, 13, 8, .86); }
+#albumi[hidden] { display: none; }
+#albumi h2 { font-size: 34px; font-weight: 300; opacity: .8; margin-bottom: 28px; }
+#albumi .righe { position: relative; width: 1400px; height: 780px; overflow: hidden; }
+#albumi ul { list-style: none; }
+#albumi li { display: flex; align-items: center; height: 104px; font-size: 44px; font-weight: 400; font-weight: 380; opacity: .6; cursor: pointer; transition: opacity .12s; }
+#albumi li.sel { opacity: 1; font-weight: 500; font-weight: 450; }
+#albumi li i { width: 64px; font-style: normal; -webkit-flex: none; flex: none; }
+#albumi li span { position: relative; }
+#albumi li.sel span::after { content: ""; position: absolute; left: 0; bottom: -14px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; }
+#albumi li b { margin-left: 28px; font-size: 32px; font-weight: 300; opacity: .8; }
+#albumi p { position: absolute; left: 112px; bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .8; }
 /* With the Magic Remote's pointer, arrows at the row's ends slide a row wider than the screen. */
 .freccia {
   position: absolute; bottom: 104px; display: none; align-items: center; width: 200px;
@@ -231,10 +244,11 @@ header { transition: opacity .4s; }
 <div id="legenda"></div>
 <div id="controllo" hidden><h2></h2><div class="onglets"></div><div class="righe"><ul></ul></div><p></p></div>
 <div id="aperte" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
+<div id="albumi" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
 <script src="logos.js"></script>
 <script src="fondi.js"></script>
 <script>
-var APP_VERSION = '1.0.9-perso.5';
+var APP_VERSION = '1.0.9-perso.6';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -256,7 +270,9 @@ var TEXT = { settings: 'Settings', phone: 'or on your phone: ', empty: 'Choose y
   sound_tv_speaker: 'TV speakers', sound_external_optical: 'Optical', sound_external_arc: 'HDMI ARC', sound_bt_soundbar: 'Bluetooth',
   picture_vivid: 'Vivid', picture_normal: 'Standard', picture_eco: 'Eco', picture_cinema: 'Cinema', picture_sports: 'Sports', picture_game: 'Game',
   picture_filmMaker: 'Filmmaker', picture_expert1: 'Expert (bright room)', picture_expert2: 'Expert (dark room)',
-  lgNetwork: 'Wi-Fi and network', lgDevice: 'Bluetooth and devices', lgPicture: 'Picture settings', lgSound: 'Sound settings' };
+  lgNetwork: 'Wi-Fi and network', lgDevice: 'Bluetooth and devices', lgPicture: 'Picture settings', lgSound: 'Sound settings',
+  albums: 'Albums', allAlbums: 'All albums', albumsNote: 'OK: tick or untick · Back: close', noAlbums: 'No albums: set the library in the settings',
+  oneLib: 'Only one background in these albums' };
 // The Home's new lines in French when the TV's menus are (the rest is English, as it was).
 if (/^fr/i.test(navigator.language || '')) {
   TEXT.oneBg = 'Un seul fond pour ce moment de la journée';
@@ -268,6 +284,8 @@ if (/^fr/i.test(navigator.language || '')) {
   TEXT.sound_tv_speaker = 'Haut-parleurs de la TV'; TEXT.sound_external_optical = 'Sortie optique'; TEXT.sound_external_arc = 'HDMI ARC';
   TEXT.picture_vivid = 'Vif'; TEXT.picture_eco = 'Éco'; TEXT.picture_cinema = 'Cinéma'; TEXT.picture_sports = 'Sport'; TEXT.picture_game = 'Jeu';
   TEXT.picture_expert1 = 'Expert (pièce claire)'; TEXT.picture_expert2 = 'Expert (pièce sombre)';
+  TEXT.albums = 'Albums'; TEXT.allAlbums = 'Tous les albums'; TEXT.albumsNote = 'OK : cocher ou décocher · Retour : fermer';
+  TEXT.noAlbums = 'Aucun album : règle la bibliothèque dans les réglages'; TEXT.oneLib = 'Un seul fond dans ces albums';
   TEXT.lgNetwork = 'Wi-Fi et réseau'; TEXT.lgDevice = 'Bluetooth et appareils'; TEXT.lgPicture = 'Réglages image'; TEXT.lgSound = 'Réglages son';
 }
 // The colour keys of the remote, as the TV's browser sends them.
@@ -392,6 +410,7 @@ function lancia(i) {
   if (voci[i].aperte) return apriPannello();
   if (voci[i].id === 'lk.nextbg') return fondoSuccessivo();
   if (voci[i].id === 'lk.control') return apriControllo();
+  if (voci[i].id === 'lk.albums') return apriAlbum();
   if (voci[i].gear) return apri(BROWSER, { target: server() + '/' });
   try { localStorage.setItem('ultimaId', voci[i].id); localStorage.setItem('ultima', String(i)); } catch (e) {}
   var a = apertura(voci[i], BROWSER);
@@ -505,6 +524,7 @@ function prepara(url, cb) {
 function preparaProssimi() {
   var tieni = {}, adesso = new Date();
   tieni[sfondoMesso] = tieni[sfondoChiesto] = true;
+  if (cfg.backgroundMode === 'library' && cfg.libraryNow && cfg.libraryNow.next) tieni[urlLib(cfg.libraryNow.next)] = true;
   if (cfg.backgroundMode === 'time') {
     var ora = fondoDelMomento(cfg, adesso, 0);
     if (ora.pool.length > 1) tieni[urlFondo(fondoDelMomento(cfg, adesso, passoFondo(ora.chiave) + 1).id)] = true;
@@ -566,6 +586,10 @@ function passoFondo(chiave, nuovo) {
   return p && p.key === chiave ? p.step : 0;
 }
 
+// A picture of the library, through the server on this TV, which keeps it in its cache.
+function urlLib(id) { return server() + '/lib/' + id + '.jpg'; }
+var didascalie = {}; // the captions of the library's pictures seen, by id
+
 function urlFondo(id) {
   return /^my-/.test(id) ? server() + '/mine/' + id + '.jpg?s=' + (cfg.started || 0) : 'backgrounds/' + id + '.jpg';
 }
@@ -609,13 +633,14 @@ function fondoSuccessivo() {
     passoFondo(ora.chiave, passoFondo(ora.chiave) + 1);
     return fondoDellOra();
   }
-  if (cfg.backgroundMode !== 'random') return avviso(TEXT.fixedBg);
+  if (cfg.backgroundMode !== 'random' && cfg.backgroundMode !== 'library') return avviso(TEXT.fixedBg);
+  if (cfg.backgroundMode === 'library' && cfg.libraryNow && !cfg.libraryNow.next) return avviso(TEXT.oneLib);
   var x = new XMLHttpRequest();
   x.open('POST', server() + '/api/background/next');
   x.setRequestHeader('Content-Type', 'application/json');
   x.timeout = 5000;
   x.onload = function () {
-    if (x.status === 409) return avviso(TEXT.fewBg);
+    if (x.status === 409) return avviso(cfg.backgroundMode === 'library' ? TEXT.oneLib : TEXT.fewBg);
     leggi(); // the new one comes with the config
   };
   x.send('{}');
@@ -666,7 +691,10 @@ function disegna() {
   // With a random background, the one the server picked for this time the TV is on.
   var url = urlFissa();
   // The random one kept from last time is not shown before the server's answer, for a moment at most.
-  if (cfg.backgroundMode === 'time') fondoDellOra();
+  if (cfg.libraryNow && cfg.libraryNow.captions) for (var cid in cfg.libraryNow.captions) didascalie[cid] = cfg.libraryNow.captions[cid];
+  if (cfg.backgroundMode === 'library' && cfg.libraryNow) sfondo(urlLib(cfg.libraryNow.id));
+  else if (cfg.backgroundMode === 'library' && !letto) setTimeout(function () { if (!letto) sfondo(url); }, 800);
+  else if (cfg.backgroundMode === 'time') fondoDellOra();
   else if (cfg.randomBackground && !letto) setTimeout(function () { if (!letto) sfondo(url); }, 800);
   else sfondo(url);
   seleziona(iniziale());
@@ -680,7 +708,8 @@ document.addEventListener('keydown', function (e) {
   if (e.keyCode === 1536) conPuntatore(true);
   if (!pannello.hidden) return tastoPannello(e);
   if (!controllo.hidden) return tastoControllo(e);
-  if (cfg.nextBgKey && TOUCHES[cfg.nextBgKey] === e.keyCode) fondoSuccessivo();
+  if (!albumi.hidden) return tastoAlbum(e);
+  if (cfg.nextBgKey && TOUCHES[cfg.nextBgKey] === e.keyCode) tastoColore(e);
   else if (e.keyCode === 37) seleziona(sel - 1);
   else if (e.keyCode === 39) seleziona(sel + 1);
   else if (e.keyCode === 13) { premi(sel); lancia(sel); }
@@ -810,20 +839,126 @@ function tastoPannello(e) {
 }
 
 /*
+ * The albums of the library, from the tile "Albums" or a long press of the next background's key: "All albums",
+ * then each album with how many pictures; OK ticks or unticks one (several are mixed), Back closes. Saved at
+ * once by the server, which moves on to a picture of the albums ticked.
+ */
+var albumi = document.getElementById('albumi');
+var alRighe = albumi.querySelector('.righe'), alLista = albumi.querySelector('ul'), selA = 0;
+albumi.querySelector('h2').textContent = TEXT.albums;
+albumi.onclick = function (e) { if (e.target === albumi) chiudiAlbum(); };
+function voceAlbum() { return [{ tutti: true }].concat(cfg.libraryAlbumList || []); }
+function apriAlbum() {
+  selA = 0;
+  albumi.hidden = false;
+  document.body.classList.add('pannello');
+  disegnaAlbum();
+}
+function chiudiAlbum() {
+  albumi.hidden = true;
+  document.body.classList.remove('pannello');
+  seleziona(sel, true);
+}
+function disegnaAlbum() {
+  var scelti = cfg.libraryAlbums || [], lista = voceAlbum();
+  alLista.innerHTML = '';
+  if (lista.length < 2) {
+    var vuoto = document.createElement('li'), nv = document.createElement('span');
+    nv.textContent = TEXT.noAlbums;
+    vuoto.appendChild(nv);
+    alLista.appendChild(vuoto);
+  }
+  else lista.forEach(function (a, i) {
+    var li = document.createElement('li'), segno = document.createElement('i'), nome = document.createElement('span');
+    segno.textContent = (a.tutti ? !scelti.length : scelti.indexOf(a.id) !== -1) ? '\u2713' : '';
+    nome.textContent = a.tutti ? TEXT.allAlbums : a.name;
+    li.appendChild(segno);
+    li.appendChild(nome);
+    if (!a.tutti) { var n = document.createElement('b'); n.textContent = String(a.count); li.appendChild(n); }
+    li.onmouseover = function () { selezionaAlbum(i); };
+    li.onclick = function () { selezionaAlbum(i); premiAlbum(i); };
+    alLista.appendChild(li);
+  });
+  albumi.querySelector('p').textContent = lista.length < 2 ? '' : TEXT.albumsNote;
+  selezionaAlbum(Math.min(selA, alLista.children.length - 1));
+}
+function selezionaAlbum(i) {
+  selA = i;
+  for (var k = 0; k < alLista.children.length; k++) alLista.children[k].className = k === i ? 'sel' : '';
+  var li = alLista.children[i];
+  if (!li) return;
+  if (li.offsetTop < alRighe.scrollTop) alRighe.scrollTop = li.offsetTop;
+  if (li.offsetTop + li.offsetHeight > alRighe.scrollTop + alRighe.clientHeight) alRighe.scrollTop = li.offsetTop + li.offsetHeight - alRighe.clientHeight;
+}
+function premiAlbum(i) {
+  var lista = voceAlbum(), a = lista[i], scelti = (cfg.libraryAlbums || []).slice();
+  if (!a) return chiudiAlbum();
+  if (a.tutti) scelti = [];
+  else if (scelti.indexOf(a.id) !== -1) scelti.splice(scelti.indexOf(a.id), 1);
+  else scelti.push(a.id);
+  cfg.libraryAlbums = scelti;
+  disegnaAlbum();
+  var x = new XMLHttpRequest();
+  x.open('POST', server() + '/api/library/albums');
+  x.setRequestHeader('Content-Type', 'application/json');
+  x.timeout = 5000;
+  x.onload = function () { leggi(); };
+  x.send(JSON.stringify({ albums: scelti }));
+}
+function tastoAlbum(e) {
+  if (e.keyCode === 38) selezionaAlbum(Math.max(0, selA - 1));
+  else if (e.keyCode === 40) selezionaAlbum(Math.min(alLista.children.length - 1, selA + 1));
+  else if (e.keyCode === 13) premiAlbum(selA);
+  else if (e.keyCode === 461 || e.keyCode === 27 || e.keyCode === 8) chiudiAlbum();
+  else if (e.keyCode !== 37 && e.keyCode !== 39) return;
+  e.preventDefault();
+}
+
+/*
+ * The next background's key: with the library, a short press moves on (on release), a long one (the remote
+ * repeating the key) opens the albums. Without a release or a repeat, it moves on after 0.6 s.
+ */
+var coloreTimer = null;
+function tastoColore(e) {
+  if (cfg.backgroundMode !== 'library') return fondoSuccessivo();
+  if (e.repeat) {
+    if (coloreTimer) { clearTimeout(coloreTimer); coloreTimer = null; apriAlbum(); }
+    return;
+  }
+  clearTimeout(coloreTimer);
+  coloreTimer = setTimeout(function () { coloreTimer = null; fondoSuccessivo(); }, 600);
+}
+document.addEventListener('keyup', function (e) {
+  if (!coloreTimer || !cfg.nextBgKey || TOUCHES[cfg.nextBgKey] !== e.keyCode) return;
+  clearTimeout(coloreTimer);
+  coloreTimer = null;
+  fondoSuccessivo();
+});
+
+/*
  * The caption of the painting on the screen: "Artist — Title, year" from the config's bgInfo, when the
  * captions are on in the settings and the picture has some.
  */
 var legendaEl = document.getElementById('legenda');
 function idFondo(url) {
-  var m = /\/mine\/(my-[0-9a-f]{8})\.jpg/.exec(url) || /(?:^|\/)backgrounds\/([a-z0-9-]+)\.jpg/.exec(url);
+  var m = /\/mine\/(my-[0-9a-f]{8})\.jpg/.exec(url) || /\/lib\/([0-9a-f]{16})\.jpg/.exec(url) || /(?:^|\/)backgrounds\/([a-z0-9-]+)\.jpg/.exec(url);
   if (m) return m[1];
   return /\/background\.jpg/.test(url) && cfg.background && cfg.background.id ? cfg.background.id : null;
 }
 
 function legenda() {
-  var i = cfg.captions && cfg.bgInfo && sfondoMesso ? cfg.bgInfo[idFondo(sfondoMesso)] : null;
+  var id = sfondoMesso ? idFondo(sfondoMesso) : null;
+  var i = !cfg.captions || !id ? null : /^[0-9a-f]{16}$/.test(id) ? didascalie[id] : cfg.bgInfo ? cfg.bgInfo[id] : null;
   legendaEl.textContent = '';
   if (!i || !(i.artist || i.title)) return;
+  // A photo, with its place: "Title, place — author, year".
+  if (i.place) {
+    var bp = document.createElement('b');
+    bp.textContent = i.title || i.place;
+    legendaEl.appendChild(bp);
+    legendaEl.appendChild(document.createTextNode((i.title ? ', ' + i.place : '') + (i.artist ? ' \u2014 ' + i.artist : '') + (i.year ? ', ' + i.year : '')));
+    return;
+  }
   // "Artist — Title, year", the title bolder.
   if (i.artist) legendaEl.appendChild(document.createTextNode(i.artist + (i.title ? ' \u2014 ' : '')));
   if (i.title) { var b = document.createElement('b'); b.textContent = i.title; legendaEl.appendChild(b); }
@@ -878,7 +1013,7 @@ document.addEventListener('mousemove', function (e) {
 document.addEventListener('cursorStateChange', function () { esciArte(); attivita(); });
 setInterval(function () {
   var minuti = typeof cfg.idleMinutes === 'number' ? cfg.idleMinutes : 0;
-  if (!minuti || arteAttiva || document.hidden || !sfondoMesso || !pannello.hidden || !controllo.hidden) return;
+  if (!minuti || arteAttiva || document.hidden || !sfondoMesso || !pannello.hidden || !controllo.hidden || !albumi.hidden) return;
   if (Date.now() - ultimoTasto >= minuti * 60000) entraArte();
 }, 5000);
 
@@ -1224,7 +1359,7 @@ function trovaPorta(cb) {
 }
 
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) { clearTimeout(battitoTimer); pannello.hidden = true; controllo.hidden = true; document.body.classList.remove('pannello'); esciArte(); }
+  if (document.hidden) { clearTimeout(battitoTimer); pannello.hidden = true; controllo.hidden = true; albumi.hidden = true; document.body.classList.remove('pannello'); esciArte(); }
   else { attivita(); battito(); leggi(); chiediAperte(); }
 });
 
@@ -1241,6 +1376,7 @@ document.addEventListener('webOSRelaunch', function () {
     attivita();
     pannello.hidden = true;
     controllo.hidden = true;
+    albumi.hidden = true;
     document.body.classList.remove('pannello');
     seleziona(iniziale());
     aggiorna();

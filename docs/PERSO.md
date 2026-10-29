@@ -1,4 +1,4 @@
-# Lightkeeper, personal version (1.0.9-perso.5)
+# Lightkeeper, personal version (1.0.9-perso.6)
 
 Branch `perso`, from Lightkeeper 1.0.9. Two additions, and the updates off.
 
@@ -57,3 +57,13 @@ Off: no button, and the server answers that updates are off. An official update 
 
 Install the project's `lightkeeper.ipk` (latest release) over this one: Homebrew Channel, or from a computer
 `LIGHTKEEPER_SSH="ssh -i <key>" ./lightkeeper.sh install <tv>` with the official sources. Your settings are in `/var/lib/lightkeeper/` and stay; fields the official version does not know (`backgroundMode`, `timeSlots`, `bgTags`, `nextBgKey`) are ignored by it, and dropped at its next save. A copy of that folder, taken before installing this version, is in `~/Pictures/TV-fonds/backup-lightkeeper-2026-10-27/`.
+
+## Library of backgrounds on a server (perso.6)
+
+Settings, *Background*, *Choice of background*: **Library**. Give the https address of the library's `manifest.json`.
+
+- On the server (SoQa): one folder per album in `/srv/tv-fonds/source/` (the Storage Box, `tv-fonds/source` in Filestash), and in each a `legendes.json` (`titre`, `artiste`, `annee`, `lieu`, optional `moment`). Every 5 minutes the pictures are made 3840 × 2160 (a 4K 16:9 JPEG is kept as it is) and the manifest written; pictures without a caption get one proposed automatically, marked `auto` or `a-verifier`. See `INFRA.md` in soqa-ai.
+- Config: `backgroundMode: "library"`, `libraryUrl`, `libraryAlbums` (ids; none = all), `libraryOrder: "shuffle" | "order"`, `libraryRotate: "power" | "manual" | 15 | 30 | 60 | 120`. The cache is in `/var/lib/lightkeeper/library/`.
+- On the Home: the next background's key or tile goes to the next picture; a long press of the key, or the tile *Albums*, chooses the albums. Code: `app/service/bibliotheque.js`.
+- **Back**: *Choice of background* → *By time of day* (or another): the pictures uploaded on the TV are still there. Removing the library: empty the address.
+

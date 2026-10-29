@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.9-perso.6 (30 October 2026)
+
+- **A library of backgrounds on your server, in albums.** *Choice of background*: **Library**, with the https address of a `manifest.json` (a folder per album on the server, each picture 3840 × 2160, named by its SHA-256, with its caption). Tick one album to stay on it, several to mix them, none for all; *Shuffled* or *In order*; a new picture each time the TV comes on, every 15, 30, 60 or 120 minutes, or only on demand. The page shows the albums with their cover and count, the cache, the last reading, and a clear line when the library does not answer.
+- **On the TV**: the manifest is read at start, when the TV comes on and every 30 minutes (a copy is kept). Pictures are fetched only when needed, checked against their SHA-256, and kept in a cache that follows the room really free, Lightkeeper's 64 MB reserve kept; the least recently shown go first, never the one on the screen, the next one, nor the last two shown of each album in use, so the Home still has pictures without the server or the internet. The next one is fetched and decoded ahead.
+- **Next background** (its key or tile) goes through the albums in use, fetching a picture not yet in the cache and fading to it once it is ready. A **long press of that key**, or the new tile **Albums**, opens the albums on the TV: OK ticks or unticks, Back closes.
+- **Captions** from the library: title, artist, year; for a photo, title, place, artist. *Caption on the Home* still turns them on.
+- The only requests made: GET of the manifest at the address set, and of the files it names beside it. The address is checked strictly (https, a host name, a path ending in `/manifest.json`); the manifest is checked field by field. *By time of day*, *Random* and *Fixed* work as before.
+
 ## 1.0.9-perso.5 (30 October 2026)
 
 - **No grey screen for Netflix, Smart IPTV and the Apple TV input (HDMI 3).** Started cold, these apps showed LG's default loading picture (a grey screen with squares, the splash their store package carries), and the input switch a grey screen of its own. They are now launched with webOS's `noSplash`: the Home stays until the app or the input is ready. Looked at frame by frame with screen captures on the C1, app by app; CANAL+, Prime Video, Disney+, Stremio and Jellyfin keep their own splash (their logo, not grey). CANAL+'s grey screen when it comes back is the app's own page loading, which only CANAL+ can change.

@@ -26,8 +26,9 @@ var crypto = require('crypto');
 var vm = require('vm');
 var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
+var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.5';
+var VERSION = '1.0.9-perso.6';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -143,6 +144,13 @@ var DEFAULTS = {
   // Each entry is an object so that a later version can add seasons to it.
   timeSlots: copy(FONDI.FASCE_INIZI),
   bgTags: {},
+  // The library of backgrounds on a server (perso.6, backgroundMode 'library'): the manifest's https
+  // address ('' = off), the albums in use (none = all), shuffled or in order, and when it moves on:
+  // each time the TV comes on, every 15/30/60/120 minutes, or only with "next background".
+  libraryUrl: '',
+  libraryAlbums: [],
+  libraryOrder: 'shuffle',
+  libraryRotate: 'power',
   // A colour key of the remote that moves on to the next background while the Home is in front.
   nextBgKey: 'none',
   // The painting's caption on the Home, from bgInfo: for each picture uploaded, {artist, title, year}.
@@ -248,8 +256,13 @@ function publicConfig() {
   c.backgroundNow = sessionBackground();
   // Every picture there is, in the order the Home and the page draw from, for the time of day.
   c.backgroundIds = PRESETS.concat(mineIds());
+  // The library: what the Home shows (null: the usual background), and the albums for its picker.
+  c.libraryNow = lib && config.backgroundMode === 'library' ? lib.now() : null;
+  c.libraryAlbumList = lib && lib.current() ? lib.current().albums.map(function (a) { return { id: a.id, name: a.name, count: a.count }; }) : [];
   return c;
 }
+
+var lib = null; // the library of backgrounds, once the server starts
 
 /*
  * A background for each time the TV comes on, at random among those ticked: kept until
@@ -346,6 +359,7 @@ function sessionBackground() {
  * the Home moves on by itself, from the config: nothing is kept here.)
  */
 function nextBackground() {
+  if (config.backgroundMode === 'library') return lib ? lib.next() : null;
   if (!config.randomBackground) return null;
   var pool = bgPool(), now = sessionBackground();
   if (pool.length < 2 || !now) return null;
@@ -445,7 +459,16 @@ function validate(body, keyNames) {
       }))) return 'backgroundPool';
       out[k] = v;
     }
-    else if (k === 'backgroundMode') { if (['fixed', 'random', 'time'].indexOf(v) === -1) return 'backgroundMode'; out[k] = v; }
+    else if (k === 'backgroundMode') { if (['fixed', 'random', 'time', 'library'].indexOf(v) === -1) return 'backgroundMode'; out[k] = v; }
+    // The library: an https address of a manifest.json, or '' for none.
+    else if (k === 'libraryUrl') { if (!BIB.validUrl(v)) return 'libraryUrl'; out[k] = v; }
+    // Album ids as the manifest has them, each once; whether they are still there is the library's business.
+    else if (k === 'libraryAlbums') {
+      if (!Array.isArray(v) || v.length > 500 || v.some(function (a, j) { return typeof a !== 'string' || !BIB.ALBUM.test(a) || v.indexOf(a) !== j; })) return 'libraryAlbums';
+      out[k] = v.slice();
+    }
+    else if (k === 'libraryOrder') { if (BIB.ORDERS.indexOf(v) === -1) return 'libraryOrder'; out[k] = v; }
+    else if (k === 'libraryRotate') { if (BIB.ROTATE.indexOf(v) === -1) return 'libraryRotate'; out[k] = v; }
     // The start hour of each of the seven slots of the day, all given.
     else if (k === 'timeSlots') {
       if (!FONDI.iniziValidi(v)) return 'timeSlots';
@@ -1134,6 +1157,15 @@ function handle(req, res) {
     // Not kept by the browser when the small copy is still on its way.
     return sendFile(res, minePath(mp[1], thumb), mp[2] && !thumb ? 'no-store' : 'max-age=31536000');
   }
+  // A picture of the library, fetched into the cache if it is not there yet; its small copy, for the page.
+  var lp = /^\/lib\/(thumb\/)?([0-9a-f]{16})\.jpg$/.exec(p);
+  if (m === 'GET' && lp) {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return lib[lp[1] ? 'ensureThumb' : 'ensure'](lp[2], function (err, file) {
+      if (err) return send(res, err.message === 'not in the library' ? 404 : 503, { ok: false, error: err.message });
+      sendFile(res, file, 'max-age=31536000');
+    });
+  }
   if (m === 'GET' && p === '/icon') {
     var id = decodeURIComponent((/(?:^|&)id=([^&]*)/.exec(query) || [])[1] || '');
     if (!ID_RE.test(id)) return send(res, 400, { ok: false, error: 'bad id' });
@@ -1213,6 +1245,33 @@ function handle(req, res) {
       send(res, next ? 200 : 409, { ok: !!next, now: next }, nbCors);
     });
   }
+  // The albums in use, chosen on the Home with the remote: from the Home only, as the next background.
+  if (p === '/api/library/albums') {
+    if (!fromHome(req)) {
+      log('albums refused: ' + req.socket.remoteAddress + ', origin ' + req.headers.origin);
+      return send(res, 403, { ok: false, error: 'the Home only' });
+    }
+    var alCors = req.headers.origin ? { 'Access-Control-Allow-Origin': req.headers.origin, 'Vary': 'Origin' } : {};
+    if (m === 'OPTIONS') {
+      alCors['Access-Control-Allow-Methods'] = 'POST';
+      alCors['Access-Control-Allow-Headers'] = 'Content-Type';
+      alCors['Access-Control-Max-Age'] = '600';
+      return send(res, 204, '', alCors);
+    }
+    if (m !== 'POST') return send(res, 405, { ok: false, error: 'not allowed' }, alCors);
+    if (String(req.headers['content-type'] || '').split(';')[0].toLowerCase() !== 'application/json') return send(res, 415, { ok: false, error: 'bad request' }, alCors);
+    return readBody(req, MAX_JSON, function (b) {
+      var body = null;
+      try { body = JSON.parse(String(b)); } catch (e) {}
+      var change = body && typeof body === 'object' && Object.keys(body).join() === 'albums' ? validate({ libraryAlbums: body.albums }, []) : 'albums';
+      if (typeof change === 'string') return send(res, 400, { ok: false, error: 'albums expected' }, alCors);
+      config.libraryAlbums = change.libraryAlbums;
+      try { saveConfig(); } catch (e) { return send(res, 500, { ok: false, error: e.message }, alCors); }
+      if (lib) { lib.arrangeIfNeeded(); lib.prefetch(); }
+      log('albums in use: ' + (config.libraryAlbums.join(', ') || 'all'));
+      send(res, 200, { ok: true, now: lib ? lib.now() : null }, alCors);
+    });
+  }
   // The panel of controls, for the Home only (as the open apps and the next background are).
   if (p === '/api/control') {
     if (!fromHome(req)) {
@@ -1265,6 +1324,10 @@ function handle(req, res) {
         if (mine) config.background = { custom: true, id: mine, rev: (config.background.rev || 0) + 1 };
         else if (has(change, 'preset') && config.background.custom) config.background = { custom: false, rev: (config.background.rev || 0) + 1 };
         try { saveConfig(); } catch (e) { return send(res, 500, { ok: false, error: e.message }); }
+        if (lib && (has(change, 'libraryAlbums') || has(change, 'libraryOrder') || has(change, 'backgroundMode'))) { lib.arrangeIfNeeded(); lib.prefetch(); }
+        if (lib && has(change, 'libraryUrl')) {
+          return lib.sync(function () { send(res, 200, { ok: true, config: publicConfig(), keyStatus: keyStatus, library: lib.state() }); });
+        }
         if (!has(change, 'key')) return send(res, 200, { ok: true, config: publicConfig(), keyStatus: keyStatus });
         applyKey(config.key, function (state) {
           keyStatus = state;
@@ -1329,6 +1392,12 @@ function handle(req, res) {
     if (config.background.custom && (!gone || config.background.id === gone)) config.background = { custom: false, rev: (config.background.rev || 0) + 1 };
     saveConfig();
     return send(res, 200, { ok: true, config: publicConfig() });
+  }
+  // The library, for the settings page: albums, cache, last reading; and reading it again now.
+  if (p === '/api/library' && m === 'GET') return send(res, 200, { ok: true, library: lib ? lib.state() : null });
+  if (p === '/api/library/sync' && m === 'POST') {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return readBody(req, MAX_JSON, function () { lib.sync(function () { send(res, 200, { ok: true, library: lib.state(), config: publicConfig() }); }); });
   }
   if (m === 'POST' && p === '/api/screensaver') {
     return readJson(req, res, function (body) {
@@ -1467,6 +1536,11 @@ function start() {
     });
   })(0);
   setInterval(watchApp, 30000);
+  lib = new BIB.Library({ data: DATA, minFree: MIN_FREE, freeSpace: freeSpace, log: log,
+    config: function () { return config; },
+    mark: function () { try { return fs.readFileSync(SESSION_FILE, 'utf8').trim(); } catch (e) { return ''; } } });
+  setTimeout(function () { lib.tick(); }, 10000);
+  setInterval(function () { lib.tick(); }, 60000);
   // Stopped by the boot hook (an update, a new start): the screen saver watch goes too.
   process.on('SIGTERM', function () { process.exit(0); });
   process.on('exit', function () { if (saverChild) saverChild.kill(); });
