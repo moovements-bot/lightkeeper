@@ -82,6 +82,7 @@ function checkManifest(m) {
     if (it.format === 'difficile') one.format = 'difficile';
     if (it.aRevoir === true) one.aRevoir = true; // edges taken off or a hard format, until someone says OK
     if (typeof it.apercu === 'string' && /^apercus\/[0-9a-f]{16}\.jpg$/.test(it.apercu)) one.apercu = it.apercu.slice(8, 24);
+    if (typeof it.original === 'string' && /^originaux\/[0-9a-f]{16}\.jpg$/.test(it.original)) one.original = it.original.slice(10, 26);
     items.push(one);
   }
   for (var i = 0; i < m.collections.length; i++) {
@@ -446,12 +447,14 @@ Library.prototype.ensure = function (id, cb) {
   });
 };
 
-// The uncropped preview of a picture, for the review on the settings page. cb(err, file).
-Library.prototype.ensureApercu = function (key, cb) {
-  var self = this, file = path.join(this.thumbDir, 'ap-' + key + '.jpg'), m = this.current();
+// The uncropped preview of a picture, or its whole original (small), for the gallery on the settings page. cb(err, file).
+Library.prototype.ensureApercu = function (key, cb) { this.ensureVue('apercu', key, cb); };
+Library.prototype.ensureOriginal = function (key, cb) { this.ensureVue('original', key, cb); };
+Library.prototype.ensureVue = function (kind, key, cb) {
+  var self = this, pre = kind === 'original' ? 'or-' : 'ap-', file = path.join(this.thumbDir, pre + key + '.jpg'), m = this.current();
   if (fs.existsSync(file)) return cb(null, file);
-  if (!m || !m.items.some(function (i) { return i.apercu === key; })) return cb(new Error('not in the library'));
-  get(this.fileUrl('apercus/' + key + '.jpg'), {}, MAX_THUMB, function (err, status, body) {
+  if (!m || !m.items.some(function (i) { return i[kind] === key; })) return cb(new Error('not in the library'));
+  get(this.fileUrl((kind === 'original' ? 'originaux/' : 'apercus/') + key + '.jpg'), {}, kind === 'original' ? 3 * MAX_THUMB : MAX_THUMB, function (err, status, body) {
     if (err || status !== 200) return cb(err || new Error('HTTP ' + status));
     try { self.mkdirs(); fs.writeFileSync(file + '.tmp', body, { mode: 420 }); fs.renameSync(file + '.tmp', file); } catch (e) { return cb(e); }
     cb(null, file);
@@ -490,8 +493,8 @@ Library.prototype.cleanup = function () {
   [this.cacheDir, this.thumbDir].forEach(function (d) {
     try {
       fs.readdirSync(d).forEach(function (f) {
-        var m = /^([0-9a-f]{16})\.jpg(\.tmp)?$/.exec(f), a = /^ap-([0-9a-f]{16})\.jpg$/.exec(f);
-        var gone = m ? (m[2] || !self.item(m[1])) : a ? !self.current().items.some(function (i) { return i.apercu === a[1]; }) : false;
+        var m = /^([0-9a-f]{16})\.jpg(\.tmp)?$/.exec(f), a = /^(ap|or)-([0-9a-f]{16})\.jpg$/.exec(f);
+        var gone = m ? (m[2] || !self.item(m[1])) : a ? !self.current().items.some(function (i) { return i[a[1] === 'or' ? 'original' : 'apercu'] === a[2]; }) : false;
         if (gone) { try { fs.unlinkSync(path.join(d, f)); } catch (e) {} }
       });
     } catch (e) {}

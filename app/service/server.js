@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.14';
+var VERSION = '1.0.9-perso.15';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -1182,10 +1182,10 @@ function handle(req, res) {
     return sendFile(res, minePath(mp[1], thumb), mp[2] && !thumb ? 'no-store' : 'max-age=31536000');
   }
   // A picture of the library, fetched into the cache if it is not there yet; its small copy, for the page.
-  var lp = /^\/lib\/(thumb\/|apercu\/)?([0-9a-f]{16})\.jpg$/.exec(p);
+  var lp = /^\/lib\/(thumb\/|apercu\/|original\/)?([0-9a-f]{16})\.jpg$/.exec(p);
   if (m === 'GET' && lp) {
     if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
-    return lib[lp[1] === 'thumb/' ? 'ensureThumb' : lp[1] === 'apercu/' ? 'ensureApercu' : 'ensure'](lp[2], function (err, file) {
+    return lib[{ 'thumb/': 'ensureThumb', 'apercu/': 'ensureApercu', 'original/': 'ensureOriginal' }[lp[1]] || 'ensure'](lp[2], function (err, file) {
       if (err) return send(res, err.message === 'not in the library' ? 404 : 503, { ok: false, error: err.message });
       sendFile(res, file, 'max-age=31536000');
     });

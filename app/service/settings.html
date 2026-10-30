@@ -288,6 +288,24 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rev .crop .ligne span { min-width: 64px; color: var(--muted); }
 .rev .crop .ligne .btn { margin-right: 6px; padding: 0 10px; height: 34px; font-size: 14px; }
 .rev .crop .ligne .btn.on { background: var(--ink); color: var(--ground); }
+/* The crop editor (perso.15): the whole original, a red 16:9 frame to move and resize, the rest darkened. */
+.ed { padding: 10px; }
+.ed .cadre-ed { position: relative; padding: 18px; touch-action: none; -webkit-user-select: none; user-select: none; }
+.ed .scene { position: relative; overflow: hidden; border-radius: 4px; }
+.ed .scene img { display: block; width: 100%; height: auto; pointer-events: none; }
+.ed .rect { position: absolute; border: 2px solid #ff3b30; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .55); cursor: move; }
+.ed .rect .rep { position: absolute; border: 1px dashed rgba(255, 255, 255, .75); border-radius: 3px; display: none; }
+.ed.reperes .rect .rep { display: block; }
+.ed .poignee { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: #fff; border: 3px solid #ff3b30;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .5); touch-action: none; }
+.ed .poignee.nw, .ed .poignee.se { cursor: nwse-resize; }
+.ed .poignee.ne, .ed .poignee.sw { cursor: nesw-resize; }
+.ed .res { margin-top: 6px; font-size: 14px; color: var(--muted); }
+.ed .res.mou { color: #ffb070; }
+.ed .tvprev { position: relative; width: 100%; padding-top: 56.25%; margin-top: 10px; border-radius: 8px; background: #000 no-repeat; }
+.ed .ligne { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-items: center; align-items: center; margin-top: 10px; font-size: 14px; }
+.ed .ligne .btn { margin: 0 6px 6px 0; }
+.ed .ligne label { margin-right: 14px; }
 .chips { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 10px; }
 .chips label { position: relative; cursor: pointer; margin: 0 6px 6px 0; }
 .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -754,7 +772,9 @@ footer a { color: var(--muted); }
       revDeleteAsk: 'Put this picture in the bin? It can be restored.', revKept: 'kept', revIsHidden: 'hidden', revIsHard: 'hard format',
       revApply: 'Apply', revCancel: 'Cancel', revX: 'Across', revY: 'Down', revZoom: 'Zoom', revLeft: 'Left', revCentre: 'Centre', revRight: 'Right',
       revTop: 'Top', revMiddle: 'Middle', revBottom: 'Bottom', revRedoing: 'The server makes the picture again…', revNone: 'No pictures here.',
-      revCount: ' pictures · ', revHardN: ' hard format · ', revHiddenN: ' hidden · ', revBinN: ' in the bin', capTitle: 'Captions to check', capLoad: 'Show the captions', capAll: 'Also the checked ones',
+      revCount: ' pictures · ', revHardN: ' hard format · ', revHiddenN: ' hidden · ', revBinN: ' in the bin',
+      edGuides: 'Show where the clock, caption and tiles go', edPreview: 'The TV version', edSave: 'Save', edReset: 'Reset',
+      edSharp: 'Sharp 4K', edUp: 'Enlarged ×', edEffective: 'real resolution ', capTitle: 'Captions to check', capLoad: 'Show the captions', capAll: 'Also the checked ones',
       capToCheck: ' to check', capAuto: ' automatic', capNone: 'All the captions are checked.', capNoToken: 'The library\'s token is not set on this TV.',
       capTitleF: 'Title', capArtist: 'Artist or author', capYear: 'Year', capPlace: 'Place (photo)', capTags: 'Tags, one line per kind: artiste, type, periode, style, sujet, saison, moment',
       capOk: 'Validate', capSaved: 'Validated', st_a_verifier: 'to check', st_auto: 'automatic', st_verifie: 'checked', st_manuelle: 'by hand', st_nom: 'from the file name', hiddenOnTv: 'Hidden on the Home (TV settings)', collKey: 'Remote key for the collections', collKeyLede: 'With the library: opens the collections on the Home. Not the same key as the next background.', libMatch: 'With several', libMatchAny: 'Any of them', libMatchCross: 'Crossed',
@@ -791,7 +811,9 @@ footer a { color: var(--muted); }
       revDeleteAsk: 'Retirer cette image (original et version TV) dans la corbeille du serveur ? Elle pourra être restaurée.', revKept: 'gardée', revIsHidden: 'masquée', revIsHard: 'format difficile',
       revApply: 'Appliquer', revCancel: 'Annuler', revX: 'Largeur', revY: 'Hauteur', revZoom: 'Zoom', revLeft: 'Gauche', revCentre: 'Centre', revRight: 'Droite',
       revTop: 'Haut', revMiddle: 'Milieu', revBottom: 'Bas', revRedoing: 'Le serveur refait l\'image…', revNone: 'Aucune image ici.',
-      revCount: ' images · ', revHardN: ' format difficile · ', revHiddenN: ' masquées · ', revBinN: ' à la corbeille', capTitle: 'Légendes à vérifier', capLoad: 'Afficher les légendes', capAll: 'Voir aussi les vérifiées',
+      revCount: ' images · ', revHardN: ' format difficile · ', revHiddenN: ' masquées · ', revBinN: ' à la corbeille',
+      edGuides: 'Repères : horloge, légende, tuiles', edPreview: 'La version TV', edSave: 'Enregistrer', edReset: 'Réinitialiser',
+      edSharp: '4K nette', edUp: 'Agrandie ×', edEffective: 'résolution réelle ', capTitle: 'Légendes à vérifier', capLoad: 'Afficher les légendes', capAll: 'Voir aussi les vérifiées',
       capToCheck: ' à vérifier', capAuto: ' automatiques', capNone: 'Toutes les légendes sont vérifiées.', capNoToken: 'Le jeton de la bibliothèque n\'est pas réglé sur cette TV.',
       capTitleF: 'Titre', capArtist: 'Artiste ou auteur', capYear: 'Année', capPlace: 'Lieu (photo)', capTags: 'Tags, une ligne par sorte : artiste, type, periode, style, sujet, saison, moment',
       capOk: 'Valider', capSaved: 'Validée', st_a_verifier: 'à vérifier', st_auto: 'auto', st_verifie: 'vérifiée', st_manuelle: 'à la main', st_nom: 'nom de fichier', hiddenOnTv: 'Masquée sur l\'accueil (réglages de la TV)', collKey: 'Touche de la télécommande pour les collections', collKeyLede: 'Avec la bibliothèque : ouvre les collections sur l\'accueil. Pas la même touche que le fond suivant.', libMatch: 'Avec plusieurs', libMatchAny: 'L\'une ou l\'autre', libMatchCross: 'Croisées',
@@ -1945,62 +1967,118 @@ footer a { color: var(--muted); }
       box.appendChild(card);
     });
   }
+  /*
+   * The crop editor: the whole original, a red frame locked to 16:9 over the current crop, the rest darkened.
+   * The frame moves with a finger or the mouse, is resized by its corners (big handles) or a pinch; it stays in
+   * the picture, and no smaller than 1920 px of the original (the server checks the same). Below, the TV version
+   * as it will be; Save sends {x, y, w} (fractions of the original) and the server makes the 4K again.
+   */
+  var MIN_PX = 1920;
   function ouvreCrop(card, i) {
-    var vecchio = card.querySelector('.crop');
+    var vecchio = card.querySelector('.ed');
     if (vecchio) return card.removeChild(vecchio);
-    var rec = { x: i.recadrage.x, y: i.recadrage.y, zoom: i.recadrage.zoom || 1 };
-    var src = i.apercu ? '/lib/apercu/' + i.apercu.slice(8, 24) + '.jpg' : '/lib/thumb/' + i.id + '.jpg';
-    var c = document.createElement('div'), vue = document.createElement('div');
-    c.className = 'crop';
-    vue.className = 'vue';
-    c.appendChild(vue);
-    var righe = [];
-    var ridisegna = function () {
-      vueCrop(vue, src, rec);
-      righe.forEach(function (f) { f(); });
-    };
-    var ligne = function (nome, scelte) {
-      var l = document.createElement('div'), n = document.createElement('span');
-      l.className = 'ligne';
-      n.textContent = nome;
-      l.appendChild(n);
-      scelte.forEach(function (sc) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'btn';
-        b.textContent = sc[0];
-        b.onclick = function () { sc[1](); ridisegna(); };
-        if (sc[2]) righe.push(function () { b.className = 'btn' + (sc[2]() ? ' on' : ''); });
-        l.appendChild(b);
-      });
-      c.appendChild(l);
-    };
-    ligne(t.revX, [[t.revLeft, function () { rec.x = 'gauche'; }, function () { return rec.x === 'gauche'; }],
-      [t.revCentre, function () { rec.x = 'centre'; }, function () { return rec.x === 'centre'; }],
-      [t.revRight, function () { rec.x = 'droite'; }, function () { return rec.x === 'droite'; }]]);
-    ligne(t.revY, [[t.revTop, function () { rec.y = 'haut'; }, function () { return rec.y === 'haut'; }],
-      [t.revMiddle, function () { rec.y = 'milieu'; }, function () { return rec.y === 'milieu'; }],
-      [t.revBottom, function () { rec.y = 'bas'; }, function () { return rec.y === 'bas'; }]]);
-    var zl = document.createElement('b');
-    ligne(t.revZoom, [['−', function () { rec.zoom = Math.max(1, Math.round((rec.zoom - 0.1) * 10) / 10); }],
-      ['+', function () { rec.zoom = Math.min(2.5, Math.round((rec.zoom + 0.1) * 10) / 10); }]]);
-    c.lastChild.appendChild(zl);
-    righe.push(function () { zl.textContent = ' × ' + rec.zoom.toFixed(1); });
-    var act = document.createElement('div');
-    act.className = 'ligne';
-    var ap = document.createElement('button'), an = document.createElement('button');
-    ap.type = an.type = 'button';
-    ap.className = 'btn primary';
-    an.className = 'btn';
-    ap.textContent = t.revApply;
-    an.textContent = t.revCancel;
-    ap.onclick = function () { revAgis(i, { action: 'recadrer', recadrage: rec }, function () { card.removeChild(c); }); };
-    an.onclick = function () { card.removeChild(c); };
-    act.appendChild(ap);
-    act.appendChild(an);
-    c.appendChild(act);
-    card.appendChild(c);
-    ridisegna();
+    if (!i.original || !i.orig || !i.cadre) return;
+    var ow = i.orig[0], oh = i.orig[1], hw = (9 / 16) * ow / oh; // height of the frame for a width of 1, in fractions
+    var wmax = Math.min(1, 1 / hw), wmin = Math.min(wmax, MIN_PX / ow);
+    var st = { x: i.cadre[0], y: i.cadre[1], w: Math.min(wmax, i.cadre[2]) };
+    var ed = document.createElement('div');
+    ed.className = 'ed';
+    ed.innerHTML = '<div class="cadre-ed"><div class="scene"><img alt=""><div class="rect">' +
+      '<div class="rep" style="left:6%;top:6%;width:17%;height:16%"></div><div class="rep" style="right:6%;top:7%;width:32%;height:6%"></div>' +
+      '<div class="rep" style="left:6%;bottom:8%;width:72%;height:14%"></div></div></div>' +
+      '<i class="poignee nw"></i><i class="poignee ne"></i><i class="poignee sw"></i><i class="poignee se"></i></div>' +
+      '<p class="res"></p><div class="ligne"><label><input type="checkbox" class="g"> ' + t.edGuides + '</label></div>' +
+      '<div class="tvprev" aria-label="' + t.edPreview + '"></div><div class="ligne act"></div>';
+    var cadre = ed.querySelector('.cadre-ed'), scene = ed.querySelector('.scene'), img = ed.querySelector('img'), rect = ed.querySelector('.rect');
+    var prev = ed.querySelector('.tvprev'), res = ed.querySelector('.res'), maniglie = ed.querySelectorAll('.poignee');
+    var src = '/lib/original/' + i.original.slice(10, 26) + '.jpg';
+    img.src = src;
+    prev.style.backgroundImage = 'url(' + src + ')';
+    ed.querySelector('.g').onchange = function () { ed.className = 'ed' + (this.checked ? ' reperes' : ''); };
+    function borne() {
+      st.w = Math.max(wmin, Math.min(wmax, st.w));
+      st.x = Math.max(0, Math.min(1 - st.w, st.x));
+      st.y = Math.max(0, Math.min(1 - st.w * hw, st.y));
+    }
+    function dessine() {
+      borne();
+      var h = st.w * hw, W = scene.clientWidth, H = scene.clientHeight;
+      rect.style.left = st.x * 100 + '%';
+      rect.style.top = st.y * 100 + '%';
+      rect.style.width = st.w * 100 + '%';
+      rect.style.height = h * 100 + '%';
+      var coins = { nw: [st.x, st.y], ne: [st.x + st.w, st.y], sw: [st.x, st.y + h], se: [st.x + st.w, st.y + h] };
+      for (var k = 0; k < maniglie.length; k++) {
+        var c = coins[maniglie[k].className.split(' ')[1]];
+        maniglie[k].style.left = 18 + c[0] * W + 'px';
+        maniglie[k].style.top = 18 + c[1] * H + 'px';
+      }
+      prev.style.backgroundSize = (100 / st.w) + '% auto';
+      prev.style.backgroundPosition = (st.w < 1 ? st.x / (1 - st.w) * 100 : 0) + '% ' + (h < 1 ? st.y / (1 - h) * 100 : 0) + '%';
+      var px = Math.round(st.w * ow), py = Math.round(px * 9 / 16);
+      res.textContent = px >= 3840 ? t.edSharp + ' (' + px + ' × ' + py + ')' : t.edUp + (3840 / px).toFixed(1) + ' · ' + t.edEffective + px + ' × ' + py;
+      res.className = 'res' + (px < 2880 ? ' mou' : '');
+    }
+    img.onload = dessine;
+    window.addEventListener('resize', dessine);
+    // Pointers: one on the frame moves it, one on a corner resizes from the opposite corner, two pinch.
+    var punti = {}, geste = null;
+    function pos(e) { var r = scene.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
+    function avvio(e) {
+      var ids = Object.keys(punti);
+      if (ids.length === 2) {
+        var a = punti[ids[0]], b = punti[ids[1]];
+        geste = { tipo: 'pizzico', d: Math.sqrt(Math.pow((a.x - b.x) * ow, 2) + Math.pow((a.y - b.y) * oh, 2)), w: st.w, cx: st.x + st.w / 2, cy: st.y + st.w * hw / 2 };
+      } else if (e.target.className && /poignee/.test(e.target.className)) {
+        var c = e.target.className.split(' ')[1], h = st.w * hw;
+        geste = { tipo: 'coin', c: c, ax: /w/.test(c) ? st.x + st.w : st.x, ay: /n/.test(c) ? st.y + h : st.y };
+      } else if (e.target === rect || rect.contains(e.target)) {
+        var p = pos(e);
+        geste = { tipo: 'sposta', dx: p.x - st.x, dy: p.y - st.y };
+      } else geste = null;
+    }
+    cadre.addEventListener('pointerdown', function (e) {
+      punti[e.pointerId] = pos(e);
+      try { cadre.setPointerCapture(e.pointerId); } catch (x) {}
+      avvio(e);
+      e.preventDefault();
+    });
+    cadre.addEventListener('pointermove', function (e) {
+      if (!punti[e.pointerId] || !geste) return;
+      var p = pos(e);
+      punti[e.pointerId] = p;
+      if (geste.tipo === 'sposta') { st.x = p.x - geste.dx; st.y = p.y - geste.dy; }
+      else if (geste.tipo === 'coin') {
+        var dx = Math.abs(p.x - geste.ax), dy = Math.abs(p.y - geste.ay) / hw;
+        var w = Math.max(dx, dy), lim = Math.min(/w/.test(geste.c) ? geste.ax : 1 - geste.ax, (/n/.test(geste.c) ? geste.ay : 1 - geste.ay) / hw);
+        st.w = Math.max(wmin, Math.min(w, lim, wmax));
+        st.x = /w/.test(geste.c) ? geste.ax - st.w : geste.ax;
+        st.y = /n/.test(geste.c) ? geste.ay - st.w * hw : geste.ay;
+      } else if (geste.tipo === 'pizzico') {
+        var ids = Object.keys(punti), a = punti[ids[0]], b = punti[ids[1]];
+        var d = Math.sqrt(Math.pow((a.x - b.x) * ow, 2) + Math.pow((a.y - b.y) * oh, 2));
+        st.w = Math.max(wmin, Math.min(wmax, geste.w * d / (geste.d || 1)));
+        st.x = geste.cx - st.w / 2;
+        st.y = geste.cy - st.w * hw / 2;
+      }
+      dessine();
+      e.preventDefault();
+    });
+    var fine = function (e) { delete punti[e.pointerId]; geste = null; if (Object.keys(punti).length) avvio(e); };
+    cadre.addEventListener('pointerup', fine);
+    cadre.addEventListener('pointercancel', fine);
+    var act = ed.querySelector('.act');
+    var bouton = function (txt, cls, fai) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + cls; b.textContent = txt; b.onclick = fai; act.appendChild(b); };
+    var chiudi = function () { window.removeEventListener('resize', dessine); if (ed.parentNode) ed.parentNode.removeChild(ed); };
+    bouton(t.edSave, ' primary', function () {
+      borne();
+      revAgis(i, { action: 'recadrer', rect: { x: +st.x.toFixed(5), y: +st.y.toFixed(5), w: +st.w.toFixed(5) } }, chiudi);
+    });
+    bouton(t.edReset, '', function () { revAgis(i, { action: 'reinitialiser' }, chiudi); });
+    bouton(t.revCancel, '', chiudi);
+    card.appendChild(ed);
+    ed._etat = st; // for the checks
+    dessine();
   }
   $('rev-load').onclick = function () { chargeRev(0); };
   $('rev-ov').onchange = renderRev;

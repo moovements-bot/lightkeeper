@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.9-perso.15 (30 October 2026)
+
+- **A visual crop editor in the Gallery** (iPhone or Mac): the whole original with a red frame locked to 16:9 over the current crop, the rest darkened; move it with a finger or the mouse, resize it by its corners (big handles) or with a pinch; it stays in the picture and no smaller than 1920 px of the original, the real resolution shown (sharp 4K, or enlarged ×n). Guides for the clock, the caption and the tiles if wanted; the TV version below, live. *Save* sends x/y/width (fractions of the original): the server checks them (16:9 worked out on its side), makes the 4K again from the original and keeps this crop as manual, never rewritten; the picture is validated. *Reset* goes back to the automatic crop. Pointer events only, no library.
+- The TV serves each picture's whole original (small, from the library) for the editor.
+
 ## 1.0.9-perso.14 (30 October 2026)
 
 - **Gallery** (Background → Library → *Gallery*, on the iPhone or a Mac): filters *All · To review · Validated · Bin*; for each picture *OK* (validated), *Crop*, *Hide from the TV*, *Remove* (the original and the TV version into the server's bin, restorable). A picture whose edges the server took off, or in a hard format, is *to review* until OK. The TV's settings, Background → Library: how many pictures are to review.

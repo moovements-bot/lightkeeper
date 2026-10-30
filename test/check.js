@@ -418,8 +418,8 @@ assert.deepEqual(s.validate({ bgInfo: {} }, keys), { bgInfo: {} });
 assert.equal(s.validate({ bgInfo: { night: { artist: new Array(200).join('a') } } }, keys).bgInfo.night.artist.length, 60); // cut, not refused, as a tile's name is
 assert.deepEqual(s.validate({ tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] }, keys), { tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] });
 // The personal version, said in the three places it is written.
-assert.equal(s.VERSION, '1.0.9-perso.14');
-assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.14');
+assert.equal(s.VERSION, '1.0.9-perso.15');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.15');
 
 // The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
@@ -644,7 +644,7 @@ assert.ok(/delete c\.libraryToken;/.test(fs.readFileSync(path.join(__dirname, '.
 // The review of the pictures (perso.13): a hidden picture is kept but never shown nor counted; hard format, preview.
 (function () {
   var m = JSON.parse(JSON.stringify(goodManifest));
-  m.items[0].hidden = true; m.items[1].format = 'difficile'; m.items[1].aRevoir = true; m.items[2].aRevoir = 'oui'; m.items[1].apercu = 'apercus/0123456789abcdef.jpg'; m.items[2].apercu = '../x.jpg'; m.items[2].hidden = 'yes';
+  m.items[0].hidden = true; m.items[1].format = 'difficile'; m.items[1].original = 'originaux/fedcba9876543210.jpg'; m.items[2].original = 'originaux/../../x.jpg'; m.items[1].aRevoir = true; m.items[2].aRevoir = 'oui'; m.items[1].apercu = 'apercus/0123456789abcdef.jpg'; m.items[2].apercu = '../x.jpg'; m.items[2].hidden = 'yes';
   var c = BIB.checkManifest(m);
   assert.equal(c.items[0].hidden, true);
   assert.equal(c.items[1].format, 'difficile');
@@ -652,6 +652,8 @@ assert.ok(/delete c\.libraryToken;/.test(fs.readFileSync(path.join(__dirname, '.
   assert.equal(c.items[2].aRevoir, undefined);
   assert.equal(c.items[1].apercu, '0123456789abcdef');
   assert.equal(c.items[2].apercu, undefined);
+  assert.equal(c.items[1].original, 'fedcba9876543210');
+  assert.equal(c.items[2].original, undefined);
   assert.equal(c.items[2].hidden, undefined);
   assert.equal(c.collections.filter(function (x) { return x.id === 'artiste:van-gogh'; })[0].count, 1); // the hidden one not counted
   var dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'lk-lib-')), cf = { libraryUrl: 'https://soqa.fr/x/manifest.json', libraryCollections: [], libraryOrder: 'order' };
@@ -990,7 +992,7 @@ function httpChecks() {
     },
     // The project's own updates are off in this version: nothing looked for, nothing installed.
     function (next) { req('GET', '/api/update', {}, function (st, j) {
-      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.14'); assert.equal(j.latest, undefined);
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.15'); assert.equal(j.latest, undefined);
       req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {
