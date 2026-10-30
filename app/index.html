@@ -158,30 +158,40 @@ body.pannello header, body.pannello nav, body.pannello #hint, body.pannello #leg
 #controllo li .logo svg, #controllo li .logo img { display: block; }
 #controllo li.assente { opacity: .35; }
 #controllo p { position: absolute; left: 112px; bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .8; }
-/* The TV's own settings (perso.9, reglages.js): headings on the left, their settings on the right. */
-#reglages { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(18, 13, 8, .9); }
+/* The TV's own settings (reglages.js), in the look of the Controls panel: tabs, sub-tabs, then the list (perso.10). */
+#reglages { position: absolute; top: 0; right: 0; bottom: 0; left: 0; padding: 110px 0 0 112px; background: rgba(18, 13, 8, .88); }
 #reglages[hidden] { display: none; }
-#reglages .menu { position: absolute; left: 112px; top: 110px; width: 460px; }
-#reglages h2, #reglages h3 { height: 41px; font-size: 34px; font-weight: 300; opacity: .8; margin-bottom: 40px; }
-#reglages .rub { list-style: none; }
-#reglages .rub li { position: relative; height: 84px; line-height: 84px; font-size: 44px; font-weight: 400; font-weight: 380; opacity: .5; transition: opacity .12s; }
-#reglages .rub li.sel, #reglages .rub li.scelta { opacity: 1; font-weight: 500; font-weight: 450; }
-#reglages .rub li.scelta { opacity: .85; }
-#reglages .rub li.sel::after { content: ""; position: absolute; left: 0; bottom: 12px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; }
-#reglages .det { position: absolute; left: 640px; top: 110px; right: 112px; }
-#reglages .vista { position: relative; height: 736px; overflow: hidden; }
-#reglages .voci { list-style: none; transition: -webkit-transform .18s, transform .18s; }
-#reglages .voci li { display: flex; justify-content: space-between; align-items: center; height: 92px; padding: 0 32px; border-radius: 20px;
-  font-size: 38px; font-weight: 400; font-weight: 380; opacity: .62; transition: opacity .12s, background-color .12s; }
-#reglages .voci li b { font-size: 32px; font-weight: 300; opacity: .85; white-space: nowrap; }
-#reglages .voci li.sel { opacity: 1; background: rgba(244, 241, 236, .12); }
-#reglages .voci li.val.sel b::before { content: "\2039\00a0\00a0"; opacity: .6; }
-#reglages .voci li.val.sel b::after { content: "\00a0\00a0\203a"; opacity: .6; }
-#reglages .voci li.apre b::after { content: "\00a0\00a0\203a"; opacity: .5; }
-#reglages .voci li.info { opacity: .42; }
-#reglages .voci li.info.sel { opacity: .8; }
-#reglages .voci li.sposta { background: rgba(244, 241, 236, .24); opacity: 1; }
-#reglages .voci li.spenta span { opacity: .5; }
+#reglages h2 { font-size: 34px; font-weight: 300; opacity: .8; margin-bottom: 30px; }
+#reglages .tabs, #reglages .subs { display: flex; margin-bottom: 26px; }
+#reglages .tabs a, #reglages .subs a { position: relative; margin-right: 64px; font-size: 40px; font-weight: 400; font-weight: 380; opacity: .55; transition: opacity .12s; }
+#reglages .subs { margin-top: 8px; }
+#reglages .subs[hidden] { display: none; }
+#reglages .subs a { margin-right: 52px; font-size: 32px; }
+#reglages .tabs a.sel, #reglages .subs a.sel { opacity: .8; font-weight: 500; font-weight: 450; }
+#reglages .tabs a.fuoco, #reglages .subs a.fuoco { opacity: 1; }
+#reglages .tabs a.fuoco::after, #reglages .subs a.fuoco::after { content: ""; position: absolute; left: 0; bottom: -14px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; }
+#reglages .tabs a.sel:not(.fuoco)::after, #reglages .subs a.sel:not(.fuoco)::after { content: ""; position: absolute; left: 0; bottom: -14px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; opacity: .45; }
+#reglages .righe { position: relative; width: 1300px; height: 600px; overflow: hidden; }
+#reglages.senza-sub .righe { height: 680px; }
+#reglages ul { list-style: none; transition: -webkit-transform .18s, transform .18s; }
+#reglages li { display: flex; align-items: center; height: 100px; font-size: 40px; font-weight: 400; font-weight: 380; opacity: .6; transition: opacity .12s; }
+#reglages li.sel { opacity: 1; font-weight: 500; font-weight: 450; }
+#reglages li span { position: relative; }
+#reglages li.sel span::after { content: ""; position: absolute; left: 0; bottom: -12px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; }
+#reglages li b { margin-left: 28px; font-size: 34px; font-weight: 300; opacity: .9; white-space: nowrap; }
+#reglages li i { margin-left: 20px; font-style: normal; font-size: 30px; font-weight: 300; opacity: .6; }
+#reglages li .logo { display: flex; align-items: center; justify-content: center; width: 150px; height: 84px; margin-right: 36px; -webkit-flex: none; flex: none; }
+#reglages li .logo svg, #reglages li .logo img { display: block; }
+#reglages li.val.sel b::before { content: "\2039\00a0\00a0"; opacity: .6; }
+#reglages li.val.sel b::after { content: "\00a0\00a0\203a"; opacity: .6; }
+#reglages li.apri b::after, #reglages li.azione span::after { content: none; }
+#reglages li.info { opacity: .45; }
+#reglages li.info.sel { opacity: .85; }
+#reglages li.titolo { height: 100px; padding-top: 28px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .55; text-transform: uppercase; letter-spacing: .08em; }
+#reglages li.assente, #reglages li.spenta { opacity: .35; }
+#reglages li.spenta.sel { opacity: .7; }
+#reglages li.sposta { opacity: 1; }
+#reglages li.sposta b { opacity: 1; font-weight: 500; }
 #reglages .qr { position: absolute; right: 112px; bottom: 120px; width: 300px; text-align: center; }
 #reglages .qr svg { display: block; border-radius: 16px; }
 #reglages .qr p { margin-top: 18px; font-size: 24px; font-weight: 300; font-weight: 350; opacity: .8; }
@@ -271,7 +281,7 @@ header { transition: opacity .4s; }
 <a class="freccia" id="fr-sx" aria-label="Back along the row"></a><a class="freccia" id="fr-dx" aria-label="On along the row"></a>
 <div id="hint"></div>
 <div id="legenda"></div>
-<div id="reglages" hidden><div class="menu"><h2></h2><ul class="rub"></ul></div><div class="det"><h3></h3><div class="vista"><ul class="voci"></ul></div></div><div class="qr"></div><p class="nota"></p></div>
+<div id="reglages" hidden><h2></h2><div class="tabs"></div><div class="subs"></div><div class="righe"><ul class="voci"></ul></div><div class="qr"></div><p class="nota"></p></div>
 <div id="controllo" hidden><h2></h2><div class="onglets"></div><div class="righe"><ul></ul></div><p></p></div>
 <div id="aperte" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
 <div id="albumi" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
@@ -279,7 +289,7 @@ header { transition: opacity .4s; }
 <script src="fondi.js"></script>
 <script src="qr.js"></script>
 <script>
-var APP_VERSION = '1.0.9-perso.9';
+var APP_VERSION = '1.0.9-perso.10';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -309,14 +319,19 @@ var TEXT = { settings: 'Settings', phone: 'or on your phone: ', empty: 'Choose y
   rgFailed: 'The TV did not take that', rgTicked: 'ticked', rgOrder: 'Order', rgShuffle: 'Shuffled', rgInOrder: 'In order', rgRotate: 'New background',
   rgPower: 'At power on', rgManual: 'On demand', rgCross: 'Crossed collections', rgCaption: 'Caption', rgIdle: 'Painting alone after', rgNever: 'Never',
   rgByTime: 'Background by time of day', rgSync: 'Read the library now', rgSyncing: 'Reading the library…', rgSynced: 'Library read', rgState: 'Library',
-  rgNoLib: 'No library: set its address on the settings page', rgLibAway: 'not answering', rgPictures: 'backgrounds', rgCollections: 'collections', rgCache: 'cache', rgRead: 'read at',
+  rgNoLib: 'No library: set its address on the settings page', rgLibAway: 'not answering', rgPictures: 'backgrounds', rgCollections: 'collections', rgCache: 'Cache', rgRead: 'Last read',
   rgTiles: 'Tiles', rgShown: 'shown', rgHidden: 'hidden', rgShownOne: 'Shown', rgHiddenOne: 'Hidden', rgMoving: 'Up or down, then OK',
   rgTileStyle: 'Show', rgNames: 'Names', rgLogos: 'Logos', rgIcons: 'App icons', rgLabels: 'Names under logos', rgLabelsAll: 'All', rgLabelsSel: 'Selected', rgLabelsNone: 'None',
   rgClock: 'Clock', rgThin: 'Thin', rgClassic: 'Classic', rgBold: 'Bold', rgMono: 'Mono', rgRounded: 'Rounded', rgDigital: 'Digital',
   rgClockSize: 'Clock size', rgSmall: 'Small', rgMedium: 'Medium', rgLarge: 'Large', rgClockFormat: 'Clock format', rgWeather: 'Weather', rgUnits: 'Units',
   rgWeatherPhone: 'Choose the city on the settings page (System)', rgVeil: 'Shade', rgNextKey: 'Next background', rgCollKey: 'Collections',
   rgKeysHelp: 'Back: return · OK: choose', rgVersion: 'Version', rgPage: 'Settings page', rgReload: 'Restart the Home', rgQr: 'Open on your phone',
-  keyNone: 'None', keyRed: 'Red', keyGreen: 'Green', keyYellow: 'Yellow', keyBlue: 'Blue' };
+  keyNone: 'None', keyRed: 'Red', keyGreen: 'Green', keyYellow: 'Yellow', keyBlue: 'Blue',
+  rgScroll: 'Rotation', rgCaptionIdle: 'Caption & idle', rgLibrary: 'Contents', rgCity: 'City', rgWallpaper: 'Background', rgClockStyle: 'Style',
+  rgHelpTab: 'Left and right: tab · Down: go in · Back: close', rgHelpSub: 'Left and right: section · Down: settings · Up: tabs · Back: return',
+  rgHelpVal: 'Left and right: change · Up and down: move · Back: return', rgHelpTick: 'OK: tick or untick · Up and down: move · Back: return',
+  rgHelpOk: 'OK: choose · Up and down: move · Back: return', rgHelpInfo: 'Up and down: move · Back: return',
+  rgHelpTile: 'Left or right: show or hide · OK: move it · Back: return', rgHelpMoving: 'Up and down: move the tile · OK: drop it · Back: cancel' };
 // The Home's new lines in French when the TV's menus are (the rest is English, as it was).
 if (/^fr/i.test(navigator.language || '')) {
   TEXT.oneBg = 'Un seul fond pour ce moment de la journée';
@@ -348,6 +363,16 @@ if (/^fr/i.test(navigator.language || '')) {
   TEXT.rgVeil = 'Assombrissement'; TEXT.rgNextKey = 'Fond suivant'; TEXT.rgCollKey = 'Collections'; TEXT.rgKeysHelp = 'Retour : revenir · OK : choisir';
   TEXT.rgVersion = 'Version'; TEXT.rgPage = 'Page de réglages'; TEXT.rgReload = 'Redémarrer l\'accueil'; TEXT.rgQr = 'Ouvrir sur ton iPhone';
   TEXT.keyNone = 'Aucune'; TEXT.keyRed = 'Rouge'; TEXT.keyGreen = 'Verte'; TEXT.keyYellow = 'Jaune'; TEXT.keyBlue = 'Bleue';
+  TEXT.rgScroll = 'Défilement'; TEXT.rgCaptionIdle = 'Légende & veille'; TEXT.rgLibrary = 'Contenu'; TEXT.rgCity = 'Ville'; TEXT.rgWallpaper = 'Fond d\'écran';
+  TEXT.rgClockStyle = 'Style'; TEXT.rgRead = 'Dernière synchro'; TEXT.rgCache = 'Cache'; TEXT.rgState = 'Bibliothèque'; TEXT.rgSync = 'Synchroniser maintenant';
+  TEXT.rgHelpTab = 'Gauche et droite : onglet · Bas : entrer · Retour : fermer';
+  TEXT.rgHelpSub = 'Gauche et droite : rubrique · Bas : réglages · Haut : onglets · Retour : revenir';
+  TEXT.rgHelpVal = 'Gauche et droite : changer · Haut et bas : se déplacer · Retour : revenir';
+  TEXT.rgHelpTick = 'OK : cocher ou décocher · Haut et bas : se déplacer · Retour : revenir';
+  TEXT.rgHelpOk = 'OK : choisir · Haut et bas : se déplacer · Retour : revenir';
+  TEXT.rgHelpInfo = 'Haut et bas : se déplacer · Retour : revenir';
+  TEXT.rgHelpTile = 'Gauche ou droite : afficher ou masquer · OK : déplacer · Retour : revenir';
+  TEXT.rgHelpMoving = 'Haut et bas : déplacer la tuile · OK : la poser · Retour : annuler';
   TEXT.lgNetwork = 'Wi-Fi et réseau'; TEXT.lgDevice = 'Bluetooth et appareils'; TEXT.lgPicture = 'Réglages image'; TEXT.lgSound = 'Réglages son';
 }
 // The colour keys of the remote, as the TV's browser sends them.
@@ -471,9 +496,9 @@ function premi(i) {
 function lancia(i) {
   if (voci[i].aperte) return apriPannello();
   if (voci[i].id === 'lk.nextbg') return fondoSuccessivo();
-  if (voci[i].id === 'lk.control') return apriReglages(0, true);
+  if (voci[i].id === 'lk.control') return apriReglages(0, 0, true); // straight on Controls → Sources
   if (voci[i].id === 'lk.collections' || voci[i].id === 'lk.albums') return apriAlbum();
-  if (voci[i].gear) return apriReglages(0, false);
+  if (voci[i].gear) return apriReglages(null, 0, false); // the tab last used, Background the first time
   try { localStorage.setItem('ultimaId', voci[i].id); localStorage.setItem('ultima', String(i)); } catch (e) {}
   var a = apertura(voci[i], BROWSER);
   apri(a.id, a.params);

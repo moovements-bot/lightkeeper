@@ -1,4 +1,4 @@
-# Lightkeeper, personal version (1.0.9-perso.9)
+# Lightkeeper, personal version (1.0.9-perso.10)
 
 Branch `perso`, from Lightkeeper 1.0.9. Two additions, and the updates off.
 
@@ -70,5 +70,5 @@ Settings, *Background*, *Choice of background*: **Library**. Give the https addr
 
 ## Settings on the TV (perso.9)
 
-The gear and the tile *Controls* open the TV's own settings (`app/reglages.js`), all with the remote; the settings page stays for what needs text (System shows its address and a QR code). Changes go through `/api/home/config` (Home only; the fields in `HOME_FIELDS` of `server.js`). Tiles can be hidden on the Home (`"hidden": true`).
+The gear and the tile *Controls* open the TV's own settings (`app/reglages.js`), all with the remote, in tabs and sub-tabs like the Controls panel (perso.10); the settings page stays for what needs text (System shows its address and a QR code). Changes go through `/api/home/config` (Home only; the fields in `HOME_FIELDS` of `server.js`). Tiles can be hidden on the Home (`"hidden": true`).
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9-perso.10 (30 October 2026)
+
+- **The TV's settings in the look of the Controls panel**: a row of tabs at the top (Controls · Background · Home · Remote · System) with the same underline, under it a row of sub-tabs where a tab has some (Controls: Sources · Sound output · Picture · Sleep timer · LG settings, the very ones of the Controls panel; Background: Collections · Rotation · Caption & idle · Library; Home: Tiles · Clock · Weather · Background), then the list. Left and right move along the row in focus, down goes to the next row, up back; in the list, left and right change a value (‹ ›), OK ticks, opens or acts; Back goes up a row, then closes. The help line at the foot follows where the focus is.
+- The collections are ticked right in the list (under their category), crossed or not at its top. The gear opens on the tab last used (Background the first time); the tile Controls straight on Controls → Sources.
+- All of perso.9 kept: changes applied at once, hidden tiles, QR code of the settings page.
+
 ## 1.0.9-perso.9 (30 October 2026)
 
 - **Settings on the TV itself, with the remote.** The gear (and the tile *Controls*) opens a full-screen panel instead of the settings page in the TV's browser: headings on the left (Controls, Background, Home, Remote, System), their settings on the right. Up and down move, Right or OK goes in, Left and Right change a value, OK flips or opens, Back goes up a level and then closes.
