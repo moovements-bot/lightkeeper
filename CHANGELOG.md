@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9-perso.8 (30 October 2026)
+
+- **A key for the collections**: with the library, the **blue** key opens the collections on the Home (and closes them); yellow stays *Next background*. *Remote key for the collections* in the settings (red, green, yellow, blue or none), never the same as the next background's. The long press of the next background's key still opens them where the remote repeats a key held down: on the C1's remote it did not.
+- The Home keeps the last forty keys it got (`tastiVisti`, code, down/up, repeated, time), to see from the web inspector what a remote sends.
+- The tile *Collections* added at the end of the row on this TV.
+
 ## 1.0.9-perso.7 (30 October 2026)
 
 - **Collections instead of albums.** The library's pictures now carry tags (artist, type, period, style, subject, season, time of day), from a controlled vocabulary on the server, proposed automatically and never rewritten once written by hand. A **collection** is a tag of at least three pictures, shown by category (Artists, Periods, Styles, Subjects, Types). The settings list them under their category with a cover and a count; tick one to stay on it, several to mix them. *With several*: **any of them**, or **crossed** (one of each kind ticked, e.g. Van Gogh and Night; within one kind, either; nothing crossed: any of them).

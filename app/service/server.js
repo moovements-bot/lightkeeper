@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.7';
+var VERSION = '1.0.9-perso.8';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -153,6 +153,9 @@ var DEFAULTS = {
   libraryMatch: 'any',
   libraryOrder: 'shuffle',
   libraryRotate: 'power',
+  // A colour key that opens the library's collections on the Home (perso.8): the long press of the next
+  // background's key does it too, where the remote repeats keys held down.
+  collectionsKey: 'blue',
   // A colour key of the remote that moves on to the next background while the Home is in front.
   nextBgKey: 'none',
   // The painting's caption on the Home, from bgInfo: for each picture uploaded, {artist, title, year}.
@@ -511,6 +514,7 @@ function validate(body, keyNames) {
       out[k] = info;
     }
     else if (k === 'nextBgKey') { if (NEXT_BG_KEYS.indexOf(v) === -1) return 'nextBgKey'; out[k] = v; }
+    else if (k === 'collectionsKey') { if (NEXT_BG_KEYS.indexOf(v) === -1) return 'collectionsKey'; out[k] = v; }
     else if (k === 'key') {
       if (v !== 'none' && v !== 'home' && keyNames.indexOf(v) === -1) return 'key';
       out[k] = v;
@@ -546,6 +550,9 @@ function validate(body, keyNames) {
       return k;
     }
   }
+  // One key, one thing: the collections' key cannot be the next background's.
+  var nk = has(out, 'nextBgKey') ? out.nextBgKey : config && config.nextBgKey, ck = has(out, 'collectionsKey') ? out.collectionsKey : config && config.collectionsKey;
+  if ((has(out, 'nextBgKey') || has(out, 'collectionsKey')) && nk && nk !== 'none' && nk === ck) return has(out, 'collectionsKey') ? 'collectionsKey' : 'nextBgKey';
   // The mode decides: the random switch follows it.
   if (has(out, 'backgroundMode')) out.randomBackground = out.backgroundMode === 'random';
   return out;

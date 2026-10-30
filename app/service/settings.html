@@ -459,6 +459,10 @@ footer a { color: var(--muted); }
           <label for="next-key"><span data-t="nextKey">Remote key for the next background</span><span class="sub" data-t="nextKeyLede">While the Home is in front. The tile "Next background" does the same: add it under Tiles.</span></label>
           <select id="next-key"></select>
         </div>
+        <div class="row" id="coll-key-row" hidden>
+          <label for="coll-key"><span data-t="collKey">Remote key for the collections</span><span class="sub" data-t="collKeyLede">With the library: opens the collections on the Home. Not the same key as the next background.</span></label>
+          <select id="coll-key"></select>
+        </div>
         <div class="row">
           <label for="captions"><span data-t="captionsOn">Caption on the Home</span><span class="sub" data-t="captionsLede">Artist, title and year of the painting, small, in the corner.</span></label>
           <input type="checkbox" class="switch" id="captions" role="switch">
@@ -689,7 +693,7 @@ footer a { color: var(--muted); }
       idleTitle: 'Painting alone after', idleLede: 'Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.',
       idleNever: 'Never', idleMin: ' min', idleLg: 'LG\'s own screen saver keeps its timer: if it starts first, it covers the painting.',
       infosTitle: 'Captions of your paintings', infoArtist: 'Artist', infoTitle: 'Title', infoYear: 'Year',
-      controlTile: 'Controls', albumsTile: 'Collections', libMatch: 'With several', libMatchAny: 'Any of them', libMatchCross: 'Crossed',
+      controlTile: 'Controls', albumsTile: 'Collections', collKey: 'Remote key for the collections', collKeyLede: 'With the library: opens the collections on the Home. Not the same key as the next background.', libMatch: 'With several', libMatchAny: 'Any of them', libMatchCross: 'Crossed',
       libMatchLede: 'Crossed: one of each kind ticked, for example Van Gogh and Night. Within one kind (two artists), either.',
       bgLibrary: 'Library', libTitle: 'Library on your server', libUrlLede: 'The https address of its manifest.json', libSave: 'Save the address',
       libSync: 'Read the library now', libAlbumsTitle: 'Collections', libAlbumsLede: 'Made from the tags of the pictures (three pictures at least). Tick one to stay on it, several to mix them. None ticked: all of them.',
@@ -716,7 +720,7 @@ footer a { color: var(--muted); }
       idleTitle: 'Tableau seul après', idleLede: 'Sans touche sur l\'accueil : l\'heure, la météo et les tuiles disparaissent, et le tableau bouge très lentement. Une touche suffit pour revenir.',
       idleNever: 'Jamais', idleMin: ' min', idleLg: 'L\'économiseur d\'écran de LG garde sa propre minuterie : s\'il démarre avant, il recouvre le tableau.',
       infosTitle: 'Légendes de tes tableaux', infoArtist: 'Artiste', infoTitle: 'Titre', infoYear: 'Année',
-      controlTile: 'Contrôle', albumsTile: 'Collections', libMatch: 'Avec plusieurs', libMatchAny: 'L\'une ou l\'autre', libMatchCross: 'Croisées',
+      controlTile: 'Contrôle', albumsTile: 'Collections', collKey: 'Touche de la télécommande pour les collections', collKeyLede: 'Avec la bibliothèque : ouvre les collections sur l\'accueil. Pas la même touche que le fond suivant.', libMatch: 'Avec plusieurs', libMatchAny: 'L\'une ou l\'autre', libMatchCross: 'Croisées',
       libMatchLede: 'Croisées : une de chaque sorte cochée, par exemple Van Gogh et Nuit. Dans une même sorte (deux artistes), l\'un ou l\'autre.',
       bgLibrary: 'Bibliothèque', libTitle: 'Bibliothèque sur ton serveur', libUrlLede: 'L\'adresse https de son manifest.json', libSave: 'Enregistrer l\'adresse',
       libSync: 'Relire la bibliothèque', libAlbumsTitle: 'Collections', libAlbumsLede: 'Faites à partir des tags des images (au moins trois images). Coche une collection pour rester dessus, plusieurs pour les mélanger. Aucune cochée : tous les fonds.',
@@ -1350,6 +1354,7 @@ footer a { color: var(--muted); }
     $('time-box').hidden = cfg.backgroundMode !== 'time';
     $('lib-box').hidden = cfg.backgroundMode !== 'library';
     if (cfg.backgroundMode === 'library') renderLibrary();
+    if ($('coll-key-row')) $('coll-key-row').hidden = cfg.backgroundMode !== 'library';
     $('mode-note').textContent = random ? t.randomBgLede : cfg.backgroundMode === 'time' ? t.modeTime : cfg.backgroundMode === 'library' ? t.modeLibrary : '';
     $('mode-note').hidden = !$('mode-note').textContent;
     if (cfg.backgroundMode === 'time') renderTime(list);
@@ -1705,8 +1710,13 @@ footer a { color: var(--muted); }
       sel.appendChild(o);
     });
     sel.value = cfg.nextBgKey || 'none';
+    var ck = $('coll-key');
+    ck.innerHTML = sel.innerHTML;
+    ck.value = cfg.collectionsKey || 'none';
+    $('coll-key-row').hidden = cfg.backgroundMode !== 'library';
   }
-  $('next-key').onchange = function () { save({ nextBgKey: this.value }); };
+  $('coll-key').onchange = function () { save({ collectionsKey: this.value }, function () { renderNextKey(); }); };
+  $('next-key').onchange = function () { save({ nextBgKey: this.value }, function () { renderNextKey(); }); };
 
   /* ---------- captions and the painting alone ---------- */
 
