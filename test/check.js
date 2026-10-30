@@ -418,8 +418,8 @@ assert.deepEqual(s.validate({ bgInfo: {} }, keys), { bgInfo: {} });
 assert.equal(s.validate({ bgInfo: { night: { artist: new Array(200).join('a') } } }, keys).bgInfo.night.artist.length, 60); // cut, not refused, as a tile's name is
 assert.deepEqual(s.validate({ tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] }, keys), { tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] });
 // The personal version, said in the three places it is written.
-assert.equal(s.VERSION, '1.0.9-perso.15');
-assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.15');
+assert.equal(s.VERSION, '1.0.9-perso.16');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.16');
 
 // The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
@@ -664,6 +664,75 @@ assert.ok(/delete c\.libraryToken;/.test(fs.readFileSync(path.join(__dirname, '.
   assert.equal(L.state().difficult, 1);
   assert.equal(L.state().toReview, 1);
 })();
+// perso.16: the museum, the same picture made again, the cache kept clean and within its limit.
+(function () {
+  var MB = 1048576, m = JSON.parse(JSON.stringify(goodManifest));
+  m.items.forEach(function (it, n) { it.name = 'f' + n + '.jpg'; });
+  m.items[0].caption = { title: 'T', museum: 'Rijksmuseum, Amsterdam' + 'x'.repeat(100) };
+  var c = BIB.checkManifest(m);
+  assert.equal(c.items[0].caption.museum.length, 80);
+  assert.equal(c.items[1].name, 'f1.jpg');
+  var dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'lk-lib-')), cf = { libraryUrl: 'https://soqa.fr/x/manifest.json', libraryCollections: [], libraryOrder: 'order', backgroundMode: 'library' };
+  var free = 100 * MB;
+  var L = new BIB.Library({ data: dir, minFree: 64 * MB, freeSpace: function (cb) { cb(free); }, log: function () {}, config: function () { return cf; }, mark: function () { return ''; } });
+  L.manifest = { url: cf.libraryUrl, etag: '', categories: c.categories, collections: c.collections, items: c.items };
+  L.mkdirs();
+  assert.equal(L.now().id, 'aaaaaaaaaaaaaaaa');
+  // A new crop: a new id for the same file, which stays on the screen.
+  var items2 = JSON.parse(JSON.stringify(c.items));
+  items2[0].id = 'dddddddddddddddd';
+  L.remap(L.current(), items2);
+  L.manifest.items = items2;
+  assert.equal(L.now().id, 'dddddddddddddddd');
+  // The picture on the screen hidden: the one after it.
+  L.manifest.items[0].hidden = true;
+  assert.equal(L.now().id, 'bbbbbbbbbbbbbbbb');
+  // At each reading: the old version, a hidden one, a cut download, anything else, and their small copies go.
+  var cache = path.join(dir, 'library', 'cache'), thumbs = path.join(dir, 'library', 'thumbs');
+  ['aaaaaaaaaaaaaaaa.jpg', 'dddddddddddddddd.jpg', 'bbbbbbbbbbbbbbbb.jpg', 'cccccccccccccccc.jpg', 'cccccccccccccccc.jpg.tmp', 'x.part'].forEach(function (f) { fs.writeFileSync(path.join(cache, f), 'x'); });
+  ['aaaaaaaaaaaaaaaa.jpg', 'bbbbbbbbbbbbbbbb.jpg', 'ap-0123456789abcdef.jpg', 'ap-0123456789abcdef.jpg.tmp'].forEach(function (f) { fs.writeFileSync(path.join(thumbs, f), 'x'); });
+  L.uses = { aaaaaaaaaaaaaaaa: 1, bbbbbbbbbbbbbbbb: 2 };
+  L.cleanup();
+  assert.deepEqual(fs.readdirSync(cache).sort(), ['bbbbbbbbbbbbbbbb.jpg', 'cccccccccccccccc.jpg']);
+  assert.deepEqual(fs.readdirSync(thumbs).sort(), ['bbbbbbbbbbbbbbbb.jpg']);
+  assert.deepEqual(Object.keys(L.uses), ['bbbbbbbbbbbbbbbb']);
+  // The limit, before anything is written: a download under way counts; the TV's free room shrinking shrinks it.
+  var e = path.join(cache, 'eeeeeeeeeeeeeeee.jpg');
+  L.manifest.items.push(JSON.parse(JSON.stringify(L.manifest.items[2])));
+  L.manifest.items[3].id = 'eeeeeeeeeeeeeeee';
+  L.manifest.items[3].name = 'f3.jpg';
+  fs.writeFileSync(e, Buffer.alloc(20 * MB));
+  L.uses = { bbbbbbbbbbbbbbbb: 2, cccccccccccccccc: 1, eeeeeeeeeeeeeeee: 0 }; // b on the screen, c next: kept
+  free = 64 * MB + 8 * MB + 25 * MB; // 25 MB more than the reserve and the margin
+  L.reserved.zzzzzzzzzzzzzzzz = 20 * MB;
+  L.room(10 * MB, function (ok) {
+    assert.ok(ok);
+    assert.ok(!fs.existsSync(e), 'the least recently shown let go, the download under way counted');
+    assert.equal(L.state().capBytes, 3 + 25 * MB); // what is held (three bytes), plus the room free beyond the reserve and the margin
+    delete L.reserved.zzzzzzzzzzzzzzzz;
+    fs.writeFileSync(e, Buffer.alloc(20 * MB));
+    L.room(10 * MB, function (ok2) {
+      assert.ok(ok2 && fs.existsSync(e), 'room enough without it');
+      free = 64 * MB + 8 * MB - 5 * MB; // another app took room: the cache goes back within its limit
+      L.room(0, function () {
+        assert.deepEqual(fs.readdirSync(cache).sort(), ['bbbbbbbbbbbbbbbb.jpg', 'cccccccccccccccc.jpg']);
+        // "Empty the cache": all but the picture on the screen and those kept for when the server is away.
+        fs.writeFileSync(e, 'x');
+        free = 100 * MB;
+        L.clear(function (freed) {
+          assert.equal(freed, 2);
+          assert.deepEqual(fs.readdirSync(thumbs), []);
+          assert.deepEqual(fs.readdirSync(cache).sort(), ['bbbbbbbbbbbbbbbb.jpg', 'cccccccccccccccc.jpg']);
+        });
+      });
+    });
+  });
+})();
+assert.equal(s.DEFAULTS.captionMuseum, true);
+assert.ok(s.HOME_FIELDS.indexOf('captionMuseum') !== -1);
+assert.deepEqual(s.validate({ captionMuseum: false }, keys), { captionMuseum: false });
+assert.equal(s.validate({ captionMuseum: 'non' }, keys), 'captionMuseum');
+assert.ok(homeHtml.indexOf("if (i.museum && cfg.captionMuseum !== false) {") !== -1, 'the museum under the caption');
 // The Home falls back on the pictures kept on the TV, never on nothing.
 assert.ok(homeHtml.indexOf("if (!ok && /\\/lib\\//.test(url) && !sfondoMesso) return sfondo(soccorso());") !== -1, 'library fallback');
 
@@ -992,7 +1061,7 @@ function httpChecks() {
     },
     // The project's own updates are off in this version: nothing looked for, nothing installed.
     function (next) { req('GET', '/api/update', {}, function (st, j) {
-      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.15'); assert.equal(j.latest, undefined);
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.16'); assert.equal(j.latest, undefined);
       req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {

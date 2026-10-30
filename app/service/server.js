@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.15';
+var VERSION = '1.0.9-perso.16';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -119,7 +119,7 @@ var CONTROL_TILE = 'lk.control';
 // How long the Home may be left alone before only the painting shows, in minutes; 0 is never.
 var IDLE_MINUTES = [0, 1, 2, 5, 10, 15, 30, 60];
 // What the TV's own settings panel may change (perso.9); the rest needs text, and stays on the settings page.
-var HOME_FIELDS = ['libraryCollections', 'libraryOrder', 'libraryRotate', 'libraryMatch', 'captions', 'idleMinutes', 'backgroundMode',
+var HOME_FIELDS = ['libraryCollections', 'libraryOrder', 'libraryRotate', 'libraryMatch', 'captions', 'captionMuseum', 'idleMinutes', 'backgroundMode',
   'tiles', 'tileStyle', 'labels', 'clock', 'clockStyle', 'clockSize', 'weather', 'units', 'veil', 'collectionsKey', 'startTile'];
 
 var DEFAULTS = {
@@ -165,6 +165,8 @@ var DEFAULTS = {
   nextBgKey: 'none',
   // The painting's caption on the Home, from bgInfo: for each picture uploaded, {artist, title, year}.
   captions: false,
+  // Under the caption, the museum that keeps the painting (perso.16), smaller, when the library knows it.
+  captionMuseum: true,
   bgInfo: {},
   // The painting alone, slowly moving, after this many minutes without a key on the Home.
   idleMinutes: 5,
@@ -504,7 +506,7 @@ function validate(body, keyNames) {
       }
       out[k] = tags;
     }
-    else if (k === 'captions') { if (typeof v !== 'boolean') return 'captions'; out[k] = v; }
+    else if (k === 'captions' || k === 'captionMuseum') { if (typeof v !== 'boolean') return k; out[k] = v; }
     else if (k === 'idleMinutes') { if (IDLE_MINUTES.indexOf(v) === -1) return 'idleMinutes'; out[k] = v; }
     // The artist, the title and the year of each picture, as the caption writes them: texts, none required.
     else if (k === 'bgInfo') {
@@ -1300,7 +1302,7 @@ function handle(req, res) {
    * The TV's own settings panel (perso.9), from the Home only: the fields it shows, checked as the settings
    * page's (validate), applied at once; the library read again now; its state. Nothing else is taken here.
    */
-  if (p === '/api/home/config' || p === '/api/home/sync' || p === '/api/home/library') {
+  if (p === '/api/home/config' || p === '/api/home/sync' || p === '/api/home/library' || p === '/api/home/clear') {
     if (!fromHome(req)) {
       log('home settings refused: ' + req.socket.remoteAddress + ', origin ' + req.headers.origin);
       return send(res, 403, { ok: false, error: 'the Home only' });
@@ -1318,6 +1320,10 @@ function handle(req, res) {
     }
     if (m !== 'POST') return send(res, 405, { ok: false, error: 'not allowed' }, hsCors);
     if (String(req.headers['content-type'] || '').split(';')[0].toLowerCase() !== 'application/json') return send(res, 415, { ok: false, error: 'bad request' }, hsCors);
+    if (p === '/api/home/clear') {
+      if (!lib) return send(res, 503, { ok: false, error: 'not ready' }, hsCors);
+      return readBody(req, MAX_JSON, function () { lib.clear(function (freed) { send(res, 200, { ok: true, freed: freed, library: lib.state() }, hsCors); }); });
+    }
     if (p === '/api/home/sync') {
       if (!lib) return send(res, 503, { ok: false, error: 'not ready' }, hsCors);
       return readBody(req, MAX_JSON, function () { lib.sync(function () { send(res, 200, { ok: true, library: lib.state() }, hsCors); }); });
@@ -1464,6 +1470,16 @@ function handle(req, res) {
     if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
     return readBody(req, MAX_JSON, function () { lib.sync(function () { send(res, 200, { ok: true, library: lib.state(), config: publicConfig() }); }); });
   }
+  // "Empty the cache" (perso.16): all but the picture on the screen and those kept for when the server is away.
+  if (p === '/api/library/clear' && m === 'POST') {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return readBody(req, MAX_JSON, function () { lib.clear(function (freed) { send(res, 200, { ok: true, freed: freed, library: lib.state() }); }); });
+  }
+  // After a change on the server (perso.16): up to which one the TV has read the library again (the server's clock).
+  if (p === '/api/library/refreshed' && m === 'GET') {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return send(res, 200, { ok: true, doneFor: lib.doneFor || 0, waiting: !!lib.waiting, late: !!lib.late });
+  }
   // The library's captions (perso.11), for the settings page, behind the PIN: the list, and one corrected or
   // validated, relayed to the server with the token; the manifest is read again once the server has redone it.
   if (p === '/api/library/captions' && m === 'GET') {
@@ -1476,10 +1492,12 @@ function handle(req, res) {
   if (p === '/api/library/caption' && m === 'POST') {
     if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
     return readJson(req, res, function (body) {
-      if (!body || typeof body.name !== 'string' || body.name.length > 200 || typeof body.titre !== 'string') return send(res, 400, { ok: false, error: 'a caption expected' });
+      // A whole caption, or the museum alone (from the gallery).
+      var seul = body && Object.keys(body).sort().join() === 'musee,name' && typeof body.musee === 'string';
+      if (!body || typeof body.name !== 'string' || body.name.length > 200 || (typeof body.titre !== 'string' && !seul)) return send(res, 400, { ok: false, error: 'a caption expected' });
       lib.api('legende', body, function (err, status, r) {
         if (err || !r) return send(res, 502, { ok: false, error: err ? err.message : 'HTTP ' + status });
-        if (status === 200 && r.ok) setTimeout(function () { lib.sync(); }, 20000);
+        if (status === 200 && r.ok) lib.refresh(r.t); // read again as soon as the server has made the manifest again
         send(res, status === 200 ? 200 : 400, r);
       });
     });
@@ -1499,7 +1517,7 @@ function handle(req, res) {
       if (!body || typeof body.name !== 'string' || body.name.length > 200) return send(res, 400, { ok: false, error: 'a picture expected' });
       lib.api(p === '/api/library/image' ? 'image' : 'restaurer', body, function (err, status, r) {
         if (err || !r) return send(res, 502, { ok: false, error: err ? err.message : 'HTTP ' + status });
-        if (status === 200 && r.ok) setTimeout(function () { lib.sync(); }, 15000);
+        if (status === 200 && r.ok) lib.refresh(r.t);
         send(res, status === 200 ? 200 : 400, r);
       });
     });

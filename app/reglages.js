@@ -69,8 +69,26 @@ function statoLib(quale) {
   if (!rgLib) return '…';
   var mb = function (n) { return Math.round(n / 1048576) + ' Mo'; }, d = new Date(rgLib.lastOk || 0);
   if (quale === 'n') return (rgLib.error ? TEXT.rgLibAway + ' · ' : '') + rgLib.pictures + ' ' + TEXT.rgPictures + ' · ' + rgLib.collections.length + ' ' + TEXT.rgCollections;
-  if (quale === 'cache') return mb(rgLib.cacheBytes) + (rgLib.capBytes ? ' / ' + mb(rgLib.capBytes) : '');
+  // "77 Mo / plafond 99 Mo · 24 fonds": the pictures and the small copies, the limit, the pictures kept.
+  if (quale === 'cache') return mb(rgLib.cacheBytes) + (rgLib.capBytes !== null && rgLib.capBytes !== undefined ? ' / ' + TEXT.rgCap + ' ' + mb(rgLib.capBytes) : '') + ' · ' + (rgLib.cached || 0) + ' ' + TEXT.rgPictures;
   return rgLib.lastOk ? d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() : '—';
+}
+
+// "Empty the cache": all the pictures go but the one on the screen and those kept for when the server is away.
+function svuotaCache() {
+  var x = new XMLHttpRequest();
+  x.open('POST', server() + '/api/home/clear');
+  x.setRequestHeader('Content-Type', 'application/json');
+  x.timeout = 20000;
+  x.onload = function () {
+    var r = null;
+    try { r = JSON.parse(x.responseText); } catch (e) {}
+    if (r && r.library) rgLib = r.library;
+    rgAvviso(r && r.ok ? TEXT.rgCleared + ' · ' + Math.round(r.freed / 1048576) + ' Mo' : TEXT.rgFailed);
+    if (!reglages.hidden) disegnaReglages();
+  };
+  x.onerror = x.ontimeout = function () { rgAvviso(TEXT.rgFailed); };
+  x.send('{}');
 }
 
 // The TV's controls (sources, sound, picture, sleep timer), read as the Controls panel reads them.
@@ -160,11 +178,13 @@ function schede() {
         interruttore(TEXT.rgByTime, function () { return cfg.backgroundMode === 'time'; }, function (v) { salvaTv({ backgroundMode: v ? 'time' : cfg.libraryUrl ? 'library' : 'fixed' }); })] },
       { nome: TEXT.rgCaptionIdle, righe: [
         interruttore(TEXT.rgCaption, function () { return !!cfg.captions; }, function (v) { salvaTv({ captions: v }); }),
+        interruttore(TEXT.rgMuseum, function () { return cfg.captionMuseum !== false; }, function (v) { salvaTv({ captionMuseum: v }); }),
         scelta(TEXT.rgIdle, 'idleMinutes', idle, idleNames)] },
       { nome: TEXT.rgState, righe: [
         azione(TEXT.rgSync, function () { rgAvviso(TEXT.rgSyncing); leggiLib(true); }),
         info(TEXT.rgLibrary, function () { return statoLib('n'); }),
         info(TEXT.rgCache, function () { return statoLib('cache'); }),
+        azione(TEXT.rgClear, svuotaCache),
         info(TEXT.rgRead, function () { return statoLib('lue'); }),
         info(TEXT.rgToReview, function () { return rgLib && cfg.libraryUrl ? String(rgLib.toReview || 0) : '—'; }),
         info(TEXT.rgHiddenPics, function () { return rgLib && cfg.libraryUrl ? String(rgLib.hidden || 0) : '—'; }),

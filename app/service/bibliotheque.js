@@ -4,9 +4,12 @@
  * their tags, and the collections made of those tags (one tag of at least three pictures each). This TV
  * reads it at start, when it comes on and every 30 minutes, and keeps a copy for when the server cannot be
  * reached. Pictures are fetched only when needed, checked against their SHA-256, and kept in a cache whose
- * size follows the room really free (Lightkeeper's 64 MB reserve kept), the least recently shown let go first.
- * The picture on the screen, the next one and the last two shown of each collection in use are always kept, so
- * the Home still has pictures without the server.
+ * size follows the room really free (Lightkeeper's 64 MB reserve kept), the least recently shown let go first,
+ * before anything is written (perso.16): the small copies count in it, a download under way is counted from its
+ * start, and when the TV's free room shrinks the cache shrinks with it. The picture on the screen, the next one and
+ * the last two shown of each collection in use are always kept, so the Home still has pictures without the server.
+ * At each reading, what the manifest no longer names (an old version after a new crop, a picture taken away or
+ * hidden, a download cut short) goes.
  *
  * The only requests made: GET of that manifest, and GET of the files it names, beside it on the same server.
  * Strict ES5, for the TV's node (0.12 on webOS 4).
@@ -30,9 +33,11 @@ var MATCHES = ['any', 'cross'];     // any collection ticked, or one of each cat
 var ID = /^[0-9a-f]{16}$/;
 var TAG = /^[a-z]{1,12}:[a-z0-9][a-z0-9-]{0,39}$/;
 var MOMENTS = ['dawn', 'morning', 'noon', 'afternoon', 'sunset', 'dusk', 'night'];
-var CAPTION = { title: 90, artist: 60, year: 16, place: 60 };
+var CAPTION = { title: 90, artist: 60, year: 16, place: 60, museum: 80 };
+var WAIT_EVERY = 3000, WAIT_MAX = 4 * 60000; // after a change on the server: how often, and how long, it is asked if it is done
 var STATUSES = ['manuelle', 'auto', 'a-verifier', 'verifie', 'nom-de-fichier']; // of a caption, as the server tells
 var MAX_API = 1024 * 1024;
+var FORMAT = 16; // of the copy kept: an older one (read before the museum, the file names) is read again in full
 
 function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
 
@@ -76,6 +81,8 @@ function checkManifest(m) {
     var tags = (it.tags || []).filter(function (t, n) { return typeof t === 'string' && TAG.test(t) && it.tags.indexOf(t) === n; });
     seen[it.id] = true;
     var one = { id: it.id, bytes: it.bytes, sha256: it.sha256, caption: cap, tags: tags };
+    // The source file's name: the same picture after a new crop (a new id) keeps its place on the screen.
+    if (str(it.name, 200)) one.name = str(it.name, 200);
     if (STATUSES.indexOf(it.captionStatus) !== -1) one.status = it.captionStatus;
     // The review of the pictures (perso.13): hidden from the TV, a hard format, the uncropped preview.
     if (it.hidden === true) one.hidden = true;
@@ -134,7 +141,9 @@ function Library(o) {
   this.uses = this.read('uses.json', {});             // id → last shown (ms)
   this.play = this.read('play.json', {});             // {key, order, pos, at, mark}
   this.fetching = {};
+  this.reserved = {};                 // id → bytes of a download under way, counted in the cache from its start
   this.free = null;
+  this.waiters = [];                  // after a change on the server: those waiting for the new manifest
 }
 
 Library.prototype.read = function (name, dflt) {
@@ -195,7 +204,7 @@ function get(address, headers, max, cb, method, payload) {
 Library.prototype.api = function (what, body, cb) {
   var token = this.o.config().libraryToken;
   if (!this.url() || !token) return cb(new Error('no library token'));
-  var post = { legende: true, image: true, restaurer: true }, lire = { legendes: true, images: true };
+  var post = { legende: true, image: true, restaurer: true }, lire = { legendes: true, images: true, etat: true };
   if (!post[what] && !lire[what]) return cb(new Error('not allowed'));
   get(this.fileUrl('api/' + what), { 'X-TV-Fonds-Token': token }, MAX_API, function (err, status, b) {
     if (err) return cb(err);
@@ -215,7 +224,7 @@ Library.prototype.sync = function (cb) {
   cb = cb || function () {};
   if (!u) return cb();
   var cur = this.current(), headers = {};
-  if (cur && cur.etag) headers['If-None-Match'] = cur.etag;
+  if (cur && cur.etag && cur.format === FORMAT) headers['If-None-Match'] = cur.etag;
   this.status.lastTry = Date.now();
   get(u, headers, MAX_MANIFEST, function (err, status, body, h) {
     if (u !== self.url()) return cb(); // the address changed meanwhile
@@ -226,7 +235,8 @@ Library.prototype.sync = function (cb) {
       var ok = checkManifest(m);
       if (typeof ok === 'string') why = 'manifest: ' + ok;
       else {
-        self.manifest = { url: u, etag: h && h.etag ? String(h.etag).slice(0, 120) : '', categories: ok.categories, collections: ok.collections, items: ok.items };
+        self.remap(cur, ok.items);
+        self.manifest = { format: FORMAT, url: u, etag: h && h.etag ? String(h.etag).slice(0, 120) : '', categories: ok.categories, collections: ok.collections, items: ok.items };
         self.write('manifest.json', self.manifest);
         self.o.log('library: ' + ok.items.length + ' pictures, ' + ok.collections.length + ' collections');
       }
@@ -239,6 +249,63 @@ Library.prototype.sync = function (cb) {
     self.cleanup();
     cb();
   });
+};
+
+/*
+ * A picture made again on the server (a new crop: a new file, a new id) keeps its place in the order and in
+ * what was last shown, so the Home fades to its new version instead of moving on.
+ */
+Library.prototype.remap = function (old, items) {
+  if (!old) return;
+  var byName = {}, map = {}, self = this, n = 0;
+  items.forEach(function (it) { if (it.name) byName[it.name] = it.id; });
+  old.items.forEach(function (it) { if (it.name && byName[it.name] && byName[it.name] !== it.id) { map[it.id] = byName[it.name]; n++; } });
+  if (!n) return;
+  if (Array.isArray(this.play.order)) this.play.order = this.play.order.map(function (id) { return map[id] || id; });
+  Object.keys(map).forEach(function (id) {
+    if (self.uses[id]) { self.uses[map[id]] = self.uses[id]; delete self.uses[id]; }
+    self.o.log('library: ' + id + ' made again as ' + map[id]);
+  });
+  this.write('play.json', this.play);
+  this.saveUses();
+};
+
+/*
+ * After a change made from the settings page (a crop, a picture hidden, kept, taken away or back, a caption):
+ * the server is asked every 3 s whether it has made the manifest again since `t` (its clock), then the manifest is
+ * read and the picture on the screen fetched, so that the Home shows the change at once; 4 minutes at most, then
+ * it is read anyway. `doneFor` tells the page up to which change the TV is up to date. cb() once done.
+ */
+Library.prototype.refresh = function (t, cb) {
+  var self = this;
+  if (typeof t === 'number' && isFinite(t)) this.waitFor = Math.max(this.waitFor || 0, t);
+  if (cb) this.waiters.push(cb);
+  if (this.waiting) return;
+  this.waiting = true;
+  var start = Date.now(), target = this.waitFor || 0;
+  var done = function (late) {
+    self.sync(function () {
+      var now = self.o.config().backgroundMode === 'library' && self.now();
+      var end = function () {
+        self.waiting = false;
+        self.doneFor = Math.max(self.doneFor || 0, target);
+        self.late = late;
+        if (self.waitFor > target) return self.refresh(); // another change came meanwhile
+        var w = self.waiters;
+        self.waiters = [];
+        w.forEach(function (f) { f(); });
+      };
+      if (now) self.ensure(now.id, end); else end();
+    });
+  };
+  var ask = function () {
+    self.api('etat', null, function (err, status, r) {
+      if (!err && status === 200 && r && typeof r.fini === 'number' && r.fini >= target) return done(false);
+      if (Date.now() - start >= WAIT_MAX) return done(true);
+      setTimeout(ask, WAIT_EVERY);
+    });
+  };
+  ask();
 };
 
 /* ---------- what is shown ---------- */
@@ -284,7 +351,13 @@ Library.prototype.arrangeIfNeeded = function () {
   var cfg = this.o.config(), ids = this.list().map(function (i) { return i.id; });
   var key = crypto.createHash('sha1').update(cfg.libraryOrder + ':' + ids.join(',')).digest('hex').slice(0, 16);
   if (this.play.key === key && Array.isArray(this.play.order)) return;
-  var now = this.play.order && this.play.order[this.play.pos];
+  var old = this.play.order || [], now = old[this.play.pos];
+  // The picture on the screen hidden or taken away: the one after it in the old order that is still there.
+  if (now && ids.indexOf(now) === -1) {
+    var still = null;
+    for (var k = 1; k < old.length && !still; k++) if (ids.indexOf(old[(this.play.pos + k) % old.length]) !== -1) still = old[(this.play.pos + k) % old.length];
+    now = still;
+  }
   var order = arrange(ids, cfg.libraryOrder === 'order' ? 'order' : 'shuffle');
   if (now && order.indexOf(now) !== -1) {
     if (cfg.libraryOrder !== 'order') { order.splice(order.indexOf(now), 1); order.unshift(now); }
@@ -357,7 +430,7 @@ Library.prototype.now = function () {
 Library.prototype.tick = function () {
   var cfg = this.o.config(), self = this;
   if (!this.url()) return;
-  this.o.freeSpace(function (f) { self.free = f; }); // for the cache's limit shown in the settings
+  this.room(0, function () {}); // the free room measured again: a cache over its new limit goes back within it
   var mark = this.o.mark(), came = mark !== this.play.mark;
   if (came) { this.play.mark = mark; this.write('play.json', this.play); }
   if (came || !this.status.lastTry || Date.now() - this.status.lastTry >= SYNC_EVERY) this.sync();
@@ -380,6 +453,13 @@ Library.prototype.entries = function () {
   return out;
 };
 
+// Bytes of the small copies (the settings page's thumbnails and previews), which count in the cache too.
+Library.prototype.thumbBytes = function () {
+  var self = this, n = 0;
+  try { fs.readdirSync(this.thumbDir).forEach(function (f) { try { n += fs.statSync(path.join(self.thumbDir, f)).size; } catch (e) {} }); } catch (e) {}
+  return n;
+};
+
 // Never let go: the picture on the screen, the next one, and the last two shown of each collection in use.
 Library.prototype.keepSet = function () {
   var keep = {}, now = this.now(), per = {}, cfg = this.o.config(), m = this.current();
@@ -398,16 +478,25 @@ Library.prototype.keepSet = function () {
   return keep;
 };
 
-// Room for `bytes` more, letting the oldest go if needed. cb(ok).
-Library.prototype.room = function (bytes, cb) {
+/*
+ * The cache's limit: what it holds, plus the room free, less the reserve and the margin (the free room is
+ * measured again each time, so another app filling the TV makes it smaller).
+ */
+Library.prototype.cap = function (held, free) { return Math.max(0, held + free - this.o.minFree - MARGIN); };
+
+/*
+ * Room for `bytes` more (0: only back within the limit), letting the least recently shown go first, before
+ * anything is written; the downloads under way of other pictures count as already there. cb(ok).
+ */
+Library.prototype.room = function (bytes, cb, own) {
   var self = this;
   this.o.freeSpace(function (free) {
     self.free = free;
     if (free === null) return cb(false);
-    var entries = self.entries(), size = 0;
+    var entries = self.entries(), size = 0, thumbs = self.thumbBytes(), pending = 0;
     entries.forEach(function (e) { size += e.bytes; });
-    var allowed = size + free - self.o.minFree - MARGIN;
-    var gone = toEvict(entries, bytes, allowed, self.keepSet());
+    Object.keys(self.reserved).forEach(function (id) { if (id !== own) pending += self.reserved[id]; });
+    var gone = toEvict(entries, bytes + thumbs + pending, self.cap(size + thumbs, free), self.keepSet());
     if (!gone) return cb(false);
     gone.forEach(function (id) {
       try { fs.unlinkSync(path.join(self.cacheDir, id + '.jpg')); } catch (e) {}
@@ -426,9 +515,11 @@ Library.prototype.ensure = function (id, cb) {
   var waiting = this.fetching[id] = [cb];
   var end = function (err) {
     delete self.fetching[id];
+    delete self.reserved[id];
     if (!err) { self.uses[id] = Date.now(); self.saveUses(); }
     waiting.forEach(function (w) { w(err, err ? null : file); });
   };
+  this.reserved[id] = it.bytes; // counted in the cache from now on, before a byte is written
   this.room(it.bytes, function (ok) {
     if (!ok) return end(new Error('no room'));
     get(self.fileUrl('fonds/' + id + '.jpg'), {}, MAX_PICTURE, function (err, status, body) {
@@ -444,7 +535,7 @@ Library.prototype.ensure = function (id, cb) {
       self.o.log('library: ' + id + ' fetched (' + body.length + ' bytes)');
       end(null);
     });
-  });
+  }, id);
 };
 
 // The uncropped preview of a picture, or its whole original (small), for the gallery on the settings page. cb(err, file).
@@ -456,8 +547,7 @@ Library.prototype.ensureVue = function (kind, key, cb) {
   if (!m || !m.items.some(function (i) { return i[kind] === key; })) return cb(new Error('not in the library'));
   get(this.fileUrl((kind === 'original' ? 'originaux/' : 'apercus/') + key + '.jpg'), {}, kind === 'original' ? 3 * MAX_THUMB : MAX_THUMB, function (err, status, body) {
     if (err || status !== 200) return cb(err || new Error('HTTP ' + status));
-    try { self.mkdirs(); fs.writeFileSync(file + '.tmp', body, { mode: 420 }); fs.renameSync(file + '.tmp', file); } catch (e) { return cb(e); }
-    cb(null, file);
+    self.keepSmall(file, body, cb);
   });
 };
 
@@ -468,6 +558,15 @@ Library.prototype.ensureThumb = function (id, cb) {
   if (!this.item(id)) return cb(new Error('not in the library'));
   get(this.fileUrl('vignettes/' + id + '.jpg'), {}, MAX_THUMB, function (err, status, body) {
     if (err || status !== 200) return cb(err || new Error('HTTP ' + status));
+    self.keepSmall(file, body, cb);
+  });
+};
+
+// A small copy written once there is room for it in the cache. cb(err, file).
+Library.prototype.keepSmall = function (file, body, cb) {
+  var self = this;
+  this.room(body.length, function (ok) {
+    if (!ok) return cb(new Error('no room'));
     try { self.mkdirs(); fs.writeFileSync(file + '.tmp', body, { mode: 420 }); fs.renameSync(file + '.tmp', file); } catch (e) { return cb(e); }
     cb(null, file);
   });
@@ -486,24 +585,55 @@ Library.prototype.prefetch = function () {
   this.ensure(now.id, function () { if (now.next) self.ensure(now.next, function () {}); });
 };
 
-// Pictures no longer in the library, and small copies of them, let go.
+/*
+ * At each reading: what the manifest no longer names goes from the cache (an old version after a new crop, a
+ * picture taken away), with the pictures hidden, what a cut download or an older version left (any other
+ * name), the small copies of all those, and their dates of last showing; then the cache back within its limit.
+ */
 Library.prototype.cleanup = function () {
-  var self = this;
-  if (!this.current()) return;
+  var self = this, m = this.current();
+  if (!m) return;
+  var shown = {}, ap = {}, or = {};
+  m.items.forEach(function (i) { if (!i.hidden) shown[i.id] = true; if (i.apercu) ap[i.apercu] = true; if (i.original) or[i.original] = true; });
   [this.cacheDir, this.thumbDir].forEach(function (d) {
     try {
       fs.readdirSync(d).forEach(function (f) {
-        var m = /^([0-9a-f]{16})\.jpg(\.tmp)?$/.exec(f), a = /^(ap|or)-([0-9a-f]{16})\.jpg$/.exec(f);
-        var gone = m ? (m[2] || !self.item(m[1])) : a ? !self.current().items.some(function (i) { return i[a[1] === 'or' ? 'original' : 'apercu'] === a[2]; }) : false;
-        if (gone) { try { fs.unlinkSync(path.join(d, f)); } catch (e) {} }
+        var p = /^([0-9a-f]{16})\.jpg$/.exec(f), a = d === self.thumbDir && /^(ap|or)-([0-9a-f]{16})\.jpg$/.exec(f);
+        var keep = p ? shown[p[1]] || (d === self.cacheDir && self.reserved[p[1]] !== undefined) : a ? (a[1] === 'or' ? or : ap)[a[2]] : false;
+        if (keep) return;
+        try { fs.unlinkSync(path.join(d, f)); self.o.log('library: ' + f + ' let go (no longer in the library)'); } catch (e) {}
       });
     } catch (e) {}
   });
+  var n = 0;
+  Object.keys(this.uses).forEach(function (id) { if (!shown[id]) { delete self.uses[id]; n++; } });
+  if (n) this.saveUses();
+  this.room(0, function () {});
+};
+
+/*
+ * "Empty the cache" on the settings pages: every picture goes but the one on the screen and those kept for when
+ * the server is away (keepSet), and all the small copies; they come back when needed. cb(bytes freed).
+ */
+Library.prototype.clear = function (cb) {
+  var self = this, keep = this.keepSet(), freed = 0;
+  this.entries().forEach(function (e) {
+    if (keep[e.id] || self.reserved[e.id] !== undefined) return;
+    try { fs.unlinkSync(path.join(self.cacheDir, e.id + '.jpg')); freed += e.bytes; } catch (er) {}
+  });
+  try {
+    fs.readdirSync(this.thumbDir).forEach(function (f) {
+      var p = path.join(self.thumbDir, f);
+      try { freed += fs.statSync(p).size; fs.unlinkSync(p); } catch (er) {}
+    });
+  } catch (e) {}
+  this.o.log('library: cache emptied, ' + freed + ' bytes freed');
+  this.o.freeSpace(function (f) { self.free = f; cb(freed); });
 };
 
 // For the settings page: the collections, the cache, the last reading and what went wrong.
 Library.prototype.state = function () {
-  var m = this.current(), size = 0, entries = this.entries();
+  var m = this.current(), size = 0, entries = this.entries(), thumbs = this.thumbBytes();
   entries.forEach(function (e) { size += e.bytes; });
   return {
     url: !!this.url(), categories: m ? m.categories : [], collections: m ? m.collections : [], pictures: m ? m.items.length : 0, inUse: this.list().length,
@@ -512,7 +642,7 @@ Library.prototype.state = function () {
     hidden: m ? m.items.filter(function (i) { return i.hidden; }).length : 0,
     difficult: m ? m.items.filter(function (i) { return i.format === 'difficile' && !i.hidden; }).length : 0,
     toReview: m ? m.items.filter(function (i) { return i.aRevoir && !i.hidden; }).length : 0,
-    cached: entries.length, cacheBytes: size, capBytes: this.free === null ? null : Math.max(0, size + this.free - this.o.minFree - MARGIN),
+    cached: entries.length, cacheBytes: size + thumbs, picturesBytes: size, thumbBytes: thumbs, capBytes: this.free === null ? null : this.cap(size + thumbs, this.free),
     lastOk: this.status.lastOk || 0, lastTry: this.status.lastTry || 0, error: this.status.error || ''
   };
 };

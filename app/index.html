@@ -238,6 +238,9 @@ body.pannello .freccia { visibility: hidden; }
   background: radial-gradient(closest-side, rgba(18, 13, 8, .5), rgba(18, 13, 8, .44) 45%, rgba(18, 13, 8, .2) 75%, rgba(18, 13, 8, 0));
 }
 #legenda b { font-weight: 500; font-weight: 520; }
+/* The museum, on a line of its own under the caption: the same letters, smaller and a little fainter. */
+#legenda .museo { display: block; margin-top: 4px; font-size: 26px; font-weight: 300; opacity: .78; letter-spacing: .02em; }
+body.arte #legenda .museo { font-size: 30px; }
 #legenda:empty { display: none; }
 /*
  * The painting alone, after a while without a key: the time, the weather, the tiles and the shade give way,
@@ -289,7 +292,7 @@ header { transition: opacity .4s; }
 <script src="fondi.js"></script>
 <script src="qr.js"></script>
 <script>
-var APP_VERSION = '1.0.9-perso.15';
+var APP_VERSION = '1.0.9-perso.16';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -319,6 +322,7 @@ var TEXT = { settings: 'Settings', phone: 'or on your phone: ', empty: 'Choose y
   rgFailed: 'The TV did not take that', rgTicked: 'ticked', rgOrder: 'Order', rgShuffle: 'Shuffled', rgInOrder: 'In order', rgRotate: 'New background',
   rgPower: 'At power on', rgManual: 'On demand', rgCross: 'Crossed collections', rgCaption: 'Caption', rgIdle: 'Painting alone after', rgNever: 'Never',
   rgByTime: 'Background by time of day', rgSync: 'Read the library now', rgSyncing: 'Reading the library…', rgSynced: 'Library read', rgState: 'Library',
+  rgMuseum: 'Museum under the caption', rgCap: 'limit', rgClear: 'Empty the cache', rgCleared: 'Cache emptied',
   rgNoLib: 'No library: set its address on the settings page', rgLibAway: 'not answering', rgPictures: 'backgrounds', rgCollections: 'collections', rgCache: 'Cache', rgRead: 'Last read',
   rgTiles: 'Tiles', rgShown: 'shown', rgHidden: 'hidden', rgShownOne: 'Shown', rgHiddenOne: 'Hidden', rgMoving: 'Up or down, then OK',
   rgTileStyle: 'Show', rgNames: 'Names', rgLogos: 'Logos', rgIcons: 'App icons', rgLabels: 'Names under logos', rgLabelsAll: 'All', rgLabelsSel: 'Selected', rgLabelsNone: 'None',
@@ -353,6 +357,7 @@ if (/^fr/i.test(navigator.language || '')) {
   TEXT.rgRotate = 'Nouveau fond'; TEXT.rgPower = 'À l\'allumage'; TEXT.rgManual = 'À la demande'; TEXT.rgCross = 'Collections croisées'; TEXT.rgCaption = 'Légende';
   TEXT.rgIdle = 'Tableau seul après'; TEXT.rgNever = 'Jamais'; TEXT.rgByTime = 'Fond selon l\'heure'; TEXT.rgSync = 'Synchroniser la bibliothèque';
   TEXT.rgSyncing = 'Lecture de la bibliothèque…'; TEXT.rgSynced = 'Bibliothèque relue'; TEXT.rgState = 'Bibliothèque';
+  TEXT.rgMuseum = 'Musée sous la légende'; TEXT.rgCap = 'plafond'; TEXT.rgClear = 'Vider le cache'; TEXT.rgCleared = 'Cache vidé';
   TEXT.rgNoLib = 'Pas de bibliothèque : son adresse se règle sur la page'; TEXT.rgLibAway = 'ne répond pas'; TEXT.rgPictures = 'fonds'; TEXT.rgCollections = 'collections';
   TEXT.rgCache = 'cache'; TEXT.rgRead = 'lue à'; TEXT.rgTiles = 'Tuiles'; TEXT.rgShown = 'affichées'; TEXT.rgHidden = 'masquées'; TEXT.rgShownOne = 'Affichée';
   TEXT.rgHiddenOne = 'Masquée'; TEXT.rgMoving = 'Haut ou bas, puis OK'; TEXT.rgTileStyle = 'Affichage'; TEXT.rgNames = 'Noms'; TEXT.rgLogos = 'Logos';
@@ -1070,7 +1075,7 @@ document.addEventListener('keyup', function (e) {
 
 /*
  * The caption of the painting on the screen: "Artist — Title, year" from the config's bgInfo, when the
- * captions are on in the settings and the picture has some.
+ * captions are on in the settings and the picture has some; the museum under it (perso.16).
  */
 var legendaEl = document.getElementById('legenda');
 function idFondo(url) {
@@ -1090,12 +1095,19 @@ function legenda() {
     bp.textContent = i.title || i.place;
     legendaEl.appendChild(bp);
     legendaEl.appendChild(document.createTextNode((i.title ? ', ' + i.place : '') + (i.artist ? ' \u2014 ' + i.artist : '') + (i.year ? ', ' + i.year : '')));
-    return;
+  } else {
+    // "Artist — Title, year", the title bolder.
+    if (i.artist) legendaEl.appendChild(document.createTextNode(i.artist + (i.title ? ' \u2014 ' : '')));
+    if (i.title) { var b = document.createElement('b'); b.textContent = i.title; legendaEl.appendChild(b); }
+    if (i.year) legendaEl.appendChild(document.createTextNode(', ' + i.year));
   }
-  // "Artist — Title, year", the title bolder.
-  if (i.artist) legendaEl.appendChild(document.createTextNode(i.artist + (i.title ? ' \u2014 ' : '')));
-  if (i.title) { var b = document.createElement('b'); b.textContent = i.title; legendaEl.appendChild(b); }
-  if (i.year) legendaEl.appendChild(document.createTextNode(', ' + i.year));
+  // Under it, the museum that keeps the painting, unless turned off in the settings.
+  if (i.museum && cfg.captionMuseum !== false) {
+    var mu = document.createElement('span');
+    mu.className = 'museo';
+    mu.textContent = i.museum;
+    legendaEl.appendChild(mu);
+  }
 }
 
 /*

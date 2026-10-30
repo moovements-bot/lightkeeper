@@ -277,6 +277,7 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rev .ov .t { position: absolute; left: 6%; bottom: 9%; letter-spacing: .3em; opacity: .9; }
 .rev .info { padding: 8px 10px; font-size: 14px; }
 .rev .info .nm { display: block; color: var(--muted); font-size: 12px; word-break: break-all; }
+.rev .info input.musee { display: block; width: 100%; margin-top: 6px; font-size: 14px; }
 .rev .badge { display: inline-block; margin: 4px 4px 0 0; padding: 1px 7px; border-radius: 10px; font-size: 12px; border: 1px solid var(--line-strong); }
 .rev .badge.diff { border-color: #ffb070; color: #ffb070; }
 .rev .badge.cache { border-color: #9aa4ff; color: #9aa4ff; }
@@ -294,8 +295,8 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ed .scene { position: relative; overflow: hidden; border-radius: 4px; }
 .ed .scene img { display: block; width: 100%; height: auto; pointer-events: none; }
 .ed .rect { position: absolute; border: 2px solid #ff3b30; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .55); cursor: move; }
-.ed .rect .rep { position: absolute; border: 1px dashed rgba(255, 255, 255, .75); border-radius: 3px; display: none; }
-.ed.reperes .rect .rep { display: block; }
+.ed .tvprev .rep { position: absolute; border: 1px dashed rgba(255, 255, 255, .8); border-radius: 3px; display: none; }
+.ed.reperes .tvprev .rep { display: block; }
 .ed .poignee { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; background: #fff; border: 3px solid #ff3b30;
   box-shadow: 0 1px 6px rgba(0, 0, 0, .5); touch-action: none; }
 .ed .poignee.nw, .ed .poignee.se { cursor: nwse-resize; }
@@ -482,7 +483,7 @@ footer a { color: var(--muted); }
           <h3 class="sub-h" data-t="libTitle">Library on your server</h3>
           <label for="lib-url" class="note" data-t="libUrlLede">The https address of its manifest.json</label>
           <input type="url" id="lib-url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…/manifest.json">
-          <div class="actions"><button class="btn" type="button" id="lib-save" data-t="libSave">Save the address</button><button class="btn" type="button" id="lib-sync" data-t="libSync">Read the library now</button></div>
+          <div class="actions"><button class="btn" type="button" id="lib-save" data-t="libSave">Save the address</button><button class="btn" type="button" id="lib-sync" data-t="libSync">Read the library now</button><button class="btn" type="button" id="lib-clear" data-t="libClear">Empty the cache</button></div>
           <p class="note" id="lib-state" aria-live="polite"></p>
           <h3 class="sub-h" data-t="libAlbumsTitle">Collections</h3>
           <p class="note" data-t="libAlbumsLede">Made from the tags of the pictures (three pictures at least). Tick one to stay on it, several to mix them. None ticked: all of them.</p>
@@ -538,6 +539,10 @@ footer a { color: var(--muted); }
         <div class="row">
           <label for="captions"><span data-t="captionsOn">Caption on the Home</span><span class="sub" data-t="captionsLede">Artist, title and year of the painting, small, in the corner.</span></label>
           <input type="checkbox" class="switch" id="captions" role="switch">
+        </div>
+        <div class="row">
+          <label for="caption-museum"><span data-t="museumOn">Museum under the caption</span><span class="sub" data-t="museumLede">The museum that keeps the painting, and its city, on a small line under the caption.</span></label>
+          <input type="checkbox" class="switch" id="caption-museum" role="switch">
         </div>
         <div class="row">
           <label for="idle"><span data-t="idleTitle">Painting alone after</span><span class="sub" data-t="idleLede">Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.</span></label>
@@ -773,7 +778,9 @@ footer a { color: var(--muted); }
       revApply: 'Apply', revCancel: 'Cancel', revX: 'Across', revY: 'Down', revZoom: 'Zoom', revLeft: 'Left', revCentre: 'Centre', revRight: 'Right',
       revTop: 'Top', revMiddle: 'Middle', revBottom: 'Bottom', revRedoing: 'The server makes the picture again…', revNone: 'No pictures here.',
       revCount: ' pictures · ', revHardN: ' hard format · ', revHiddenN: ' hidden · ', revBinN: ' in the bin',
-      edGuides: 'Show where the clock, caption and tiles go', edPreview: 'The TV version', edSave: 'Save', edReset: 'Reset',
+      edGuides: 'Show the guides', tvWaiting: 'Updating the TV…', tvUpdated: 'Updated on the TV', tvLate: 'The server is slow: the TV will catch up',
+      capMuseum: 'Museum, city', museumOn: 'Museum under the caption', museumLede: 'The museum that keeps the painting, and its city, on a small line under the caption.',
+      mo: ' MB', libClear: 'Empty the cache', libCleared: 'Cache emptied: freed ', libCached: ' backgrounds', edPreview: 'The TV version', edSave: 'Save', edReset: 'Reset',
       edSharp: 'Sharp 4K', edUp: 'Enlarged ×', edEffective: 'real resolution ', capTitle: 'Captions to check', capLoad: 'Show the captions', capAll: 'Also the checked ones',
       capToCheck: ' to check', capAuto: ' automatic', capNone: 'All the captions are checked.', capNoToken: 'The library\'s token is not set on this TV.',
       capTitleF: 'Title', capArtist: 'Artist or author', capYear: 'Year', capPlace: 'Place (photo)', capTags: 'Tags, one line per kind: artiste, type, periode, style, sujet, saison, moment',
@@ -783,7 +790,7 @@ footer a { color: var(--muted); }
       libSync: 'Read the library now', libAlbumsTitle: 'Collections', libAlbumsLede: 'Made from the tags of the pictures (three pictures at least). Tick one to stay on it, several to mix them. None ticked: all of them.',
       libOrder: 'Order', libShuffle: 'Shuffled', libInOrder: 'In order', libRotate: 'New picture', rotPower: 'Each time the TV comes on',
       rotManual: 'Only with Next background', rotEvery: 'Every ', libNone: 'No library yet: give the address of its manifest.json.',
-      libPictures: ' pictures, ', libAlbumsN: ' collections', libInUse: ' in use', libCache: 'cache ', libOf: ' of ', libLast: 'read at ',
+      libPictures: ' pictures, ', libAlbumsN: ' collections', libInUse: ' in use', libCache: 'Cache: ', libOf: ' / limit ', libLast: 'read at ',
       libErr: 'The library does not answer: ', libErrKeep: ' The TV keeps showing the pictures it has.', libBadUrl: 'An https address ending with /manifest.json.',
       libNever: 'not read yet', libCount: ' pictures', modeLibrary: 'The pictures come from the collections of your library, with their captions. The key or the tile Next background goes to the next one; a long press of the key, or the tile Collections, chooses the collections on the TV.',
       updOff: 'This is a personal version, so the project\'s updates are turned off: one would put the official version over it.', updOffState: 'Updates are off in this version.'
@@ -812,7 +819,9 @@ footer a { color: var(--muted); }
       revApply: 'Appliquer', revCancel: 'Annuler', revX: 'Largeur', revY: 'Hauteur', revZoom: 'Zoom', revLeft: 'Gauche', revCentre: 'Centre', revRight: 'Droite',
       revTop: 'Haut', revMiddle: 'Milieu', revBottom: 'Bas', revRedoing: 'Le serveur refait l\'image…', revNone: 'Aucune image ici.',
       revCount: ' images · ', revHardN: ' format difficile · ', revHiddenN: ' masquées · ', revBinN: ' à la corbeille',
-      edGuides: 'Repères : horloge, légende, tuiles', edPreview: 'La version TV', edSave: 'Enregistrer', edReset: 'Réinitialiser',
+      edGuides: 'Afficher les repères', tvWaiting: 'Mise à jour de la TV…', tvUpdated: 'Mis à jour sur la TV', tvLate: 'Serveur lent : la TV suivra',
+      capMuseum: 'Musée, ville', museumOn: 'Musée sous la légende', museumLede: 'Le musée qui conserve le tableau, et sa ville, en petite ligne sous la légende.',
+      mo: ' Mo', libClear: 'Vider le cache', libCleared: 'Cache vidé : libéré ', libCached: ' fonds', edPreview: 'La version TV', edSave: 'Enregistrer', edReset: 'Réinitialiser',
       edSharp: '4K nette', edUp: 'Agrandie ×', edEffective: 'résolution réelle ', capTitle: 'Légendes à vérifier', capLoad: 'Afficher les légendes', capAll: 'Voir aussi les vérifiées',
       capToCheck: ' à vérifier', capAuto: ' automatiques', capNone: 'Toutes les légendes sont vérifiées.', capNoToken: 'Le jeton de la bibliothèque n\'est pas réglé sur cette TV.',
       capTitleF: 'Titre', capArtist: 'Artiste ou auteur', capYear: 'Année', capPlace: 'Lieu (photo)', capTags: 'Tags, une ligne par sorte : artiste, type, periode, style, sujet, saison, moment',
@@ -822,7 +831,7 @@ footer a { color: var(--muted); }
       libSync: 'Relire la bibliothèque', libAlbumsTitle: 'Collections', libAlbumsLede: 'Faites à partir des tags des images (au moins trois images). Coche une collection pour rester dessus, plusieurs pour les mélanger. Aucune cochée : tous les fonds.',
       libOrder: 'Ordre', libShuffle: 'Mélanger', libInOrder: 'Dans l\'ordre', libRotate: 'Nouveau fond', rotPower: 'À chaque allumage',
       rotManual: 'Seulement à la demande', rotEvery: 'Toutes les ', libNone: 'Pas encore de bibliothèque : donne l\'adresse de son manifest.json.',
-      libPictures: ' fonds, ', libAlbumsN: ' collections', libInUse: ' en service', libCache: 'cache ', libOf: ' sur ', libLast: 'lue à ',
+      libPictures: ' fonds, ', libAlbumsN: ' collections', libInUse: ' en service', libCache: 'Cache : ', libOf: ' / plafond ', libLast: 'lue à ',
       libErr: 'La bibliothèque ne répond pas : ', libErrKeep: ' La TV continue avec les fonds qu\'elle a déjà.', libBadUrl: 'Une adresse https qui finit par /manifest.json.',
       libNever: 'pas encore lue', libCount: ' fonds', modeLibrary: 'Les fonds viennent des collections de ta bibliothèque, avec leur légende. La touche ou la tuile Fond suivant passe au suivant ; un appui long sur la touche, ou la tuile Collections, choisit les collections depuis la TV.',
       updOff: 'Version perso : les mises à jour du projet sont désactivées, car une mise à jour officielle écraserait cette version.', updOffState: 'Mises à jour désactivées dans cette version.'
@@ -880,7 +889,7 @@ footer a { color: var(--muted); }
     s.className = err ? 'err' : '';
     s.style.opacity = 1;
     clearTimeout(statusTimer);
-    if (text && !err && text !== t.saving && text.indexOf(t.sending) !== 0) statusTimer = setTimeout(function () { s.style.opacity = 0; }, 1800);
+    if (text && !err && text !== t.saving && text !== t.tvWaiting && text.indexOf(t.sending) !== 0) statusTimer = setTimeout(function () { s.style.opacity = 0; }, 1800);
   }
 
   function save(change, done) {
@@ -1708,7 +1717,7 @@ footer a { color: var(--muted); }
   /* ---------- the library (perso.6) ---------- */
 
   var lib = null; // what the TV says of it: albums, cache, last reading
-  function mb(n) { return (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB'; }
+  function mb(n) { return (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + t.mo; }
   function hhmm(ms) { var d = new Date(ms); return d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes(); }
   function renderLibrary() {
     if (document.activeElement !== $('lib-url')) $('lib-url').value = cfg.libraryUrl || '';
@@ -1731,7 +1740,7 @@ footer a { color: var(--muted); }
     revState();
     var parts = [];
     if (lib.pictures) parts.push(lib.pictures + t.libPictures + lib.collections.length + t.libAlbumsN + ' (' + lib.inUse + t.libInUse + ')');
-    parts.push(t.libCache + mb(lib.cacheBytes) + (lib.capBytes !== null ? t.libOf + mb(lib.capBytes) : '') + ' (' + lib.cached + ')');
+    parts.push(t.libCache + mb(lib.cacheBytes) + (lib.capBytes !== null ? t.libOf + mb(lib.capBytes) : '') + ' · ' + lib.cached + t.libCached);
     parts.push(lib.lastOk ? t.libLast + hhmm(lib.lastOk) : t.libNever);
     st.textContent = (lib.error ? t.libErr + lib.error + '.' + t.libErrKeep + ' ' : '') + parts.join(' · ');
     if (lib.error) st.className = 'note err-note';
@@ -1820,13 +1829,13 @@ footer a { color: var(--muted); }
       f.appendChild(badge);
       f.appendChild(nm);
       var champs = {};
-      [['titre', t.capTitleF], ['artiste', t.capArtist], ['annee', t.capYear], ['lieu', t.capPlace]].forEach(function (x) {
+      [['titre', t.capTitleF], ['artiste', t.capArtist], ['annee', t.capYear], ['lieu', t.capPlace], ['musee', t.capMuseum]].forEach(function (x) {
         var i = document.createElement('input');
         i.type = 'text';
         i.value = c[x[0]] || '';
         i.placeholder = x[1];
         i.setAttribute('aria-label', x[1]);
-        i.maxLength = x[0] === 'titre' ? 90 : x[0] === 'annee' ? 16 : 60;
+        i.maxLength = x[0] === 'titre' ? 90 : x[0] === 'annee' ? 16 : x[0] === 'musee' ? 80 : 60;
         champs[x[0]] = i;
         f.appendChild(i);
       });
@@ -1842,7 +1851,7 @@ footer a { color: var(--muted); }
       btn.textContent = t.capOk;
       msg.className = 'note';
       btn.onclick = function () {
-        var body = { name: c.name, titre: champs.titre.value, artiste: champs.artiste.value, annee: champs.annee.value, lieu: champs.lieu.value, tags: tagsParse(ta.value) };
+        var body = { name: c.name, titre: champs.titre.value, artiste: champs.artiste.value, annee: champs.annee.value, lieu: champs.lieu.value, musee: champs.musee.value, tags: tagsParse(ta.value) };
         btn.disabled = true;
         api('POST', '/api/library/caption', body, function (r, raw) {
           btn.disabled = false;
@@ -1852,8 +1861,7 @@ footer a { color: var(--muted); }
           ta.value = tagsText(r.tags); // as the server kept them (the vocabulary's names)
           badge.className = 'badge verifie';
           badge.textContent = t.st_verifie;
-          msg.textContent = ' ' + t.capSaved;
-          msg.className = 'note';
+          attendsTv(r.t, null, msg);
         });
       };
       act.appendChild(btn);
@@ -1914,10 +1922,31 @@ footer a { color: var(--muted); }
     corpo.name = i.name;
     api('POST', i.corbeille ? '/api/library/restore' : '/api/library/image', corpo, function (r, raw) {
       if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
-      status(corpo.action === 'recadrer' ? t.revRedoing : t.saved);
       if (dopo) dopo();
-      chargeRev(corpo.action === 'recadrer' ? 6000 : 2500);
+      attendsTv(r.t, function () { chargeRev(0); });
     });
+  }
+  /*
+   * After a change on the server (perso.16): the TV waits until the server has made its pictures and manifest
+   * again, then reads them (and fades to the new version if the picture is on the screen); here, "Updating the
+   * TV…" until it says it is done, then "Updated on the TV". cb once done.
+   */
+  var attente = null;
+  function attendsTv(quando, cb, msg) {
+    var debut = Date.now(), dire = function (txt, err) { if (msg) { msg.textContent = ' ' + txt; msg.className = 'note' + (err ? ' err-note' : ''); } else status(txt, err); };
+    dire(t.tvWaiting);
+    clearTimeout(attente);
+    (function chiedi() {
+      api('GET', '/api/library/refreshed', null, function (r) {
+        if (r && typeof quando === 'number' && r.doneFor >= quando) {
+          dire(r.late ? t.tvLate : t.tvUpdated);
+          loadLibrary();
+          return cb && cb();
+        }
+        if (Date.now() - debut > 5 * 60000) { dire(t.tvLate, true); return cb && cb(); }
+        attente = setTimeout(chiedi, 2500);
+      });
+    })();
   }
   function renderRev() {
     var box = $('rev-list');
@@ -1945,6 +1974,25 @@ footer a { color: var(--muted); }
       nm.className = 'nm';
       nm.textContent = i.corbeille ? i.raison : i.name;
       info.appendChild(nm);
+      // The museum under the caption (perso.16): changed here, saved when the field is left.
+      if (!i.corbeille) {
+        var mu = document.createElement('input');
+        mu.type = 'text';
+        mu.className = 'musee';
+        mu.value = i.musee || '';
+        mu.placeholder = t.capMuseum;
+        mu.setAttribute('aria-label', t.capMuseum);
+        mu.maxLength = 80;
+        mu.onchange = function () {
+          status(t.saving);
+          api('POST', '/api/library/caption', { name: i.name, musee: mu.value }, function (r, raw) {
+            if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
+            i.musee = mu.value;
+            attendsTv(r.t);
+          });
+        };
+        info.appendChild(mu);
+      }
       [[i.aRevoir, 'diff', t.revIsToReview], [i.format, 'diff', t.revIsHard], [i.hidden, 'cache', t.revIsHidden], [i.revue === 'ok', '', t.revKept]].forEach(function (b) {
         if (!b[0]) return;
         var s = document.createElement('span');
@@ -1982,13 +2030,15 @@ footer a { color: var(--muted); }
     var wmax = Math.min(1, 1 / hw), wmin = Math.min(wmax, MIN_PX / ow);
     var st = { x: i.cadre[0], y: i.cadre[1], w: Math.min(wmax, i.cadre[2]) };
     var ed = document.createElement('div');
-    ed.className = 'ed';
-    ed.innerHTML = '<div class="cadre-ed"><div class="scene"><img alt=""><div class="rect">' +
-      '<div class="rep" style="left:6%;top:6%;width:17%;height:16%"></div><div class="rep" style="right:6%;top:7%;width:32%;height:6%"></div>' +
-      '<div class="rep" style="left:6%;bottom:8%;width:72%;height:14%"></div></div></div>' +
+    // On the original, only the frame, its corners and the darkened rest; where the clock, the caption and the
+    // tiles go is shown on the TV version below (ticked at first).
+    ed.className = 'ed reperes';
+    ed.innerHTML = '<div class="cadre-ed"><div class="scene"><img alt=""><div class="rect"></div></div>' +
       '<i class="poignee nw"></i><i class="poignee ne"></i><i class="poignee sw"></i><i class="poignee se"></i></div>' +
-      '<p class="res"></p><div class="ligne"><label><input type="checkbox" class="g"> ' + t.edGuides + '</label></div>' +
-      '<div class="tvprev" aria-label="' + t.edPreview + '"></div><div class="ligne act"></div>';
+      '<p class="res"></p><div class="tvprev" aria-label="' + t.edPreview + '">' +
+      '<div class="rep" style="left:6%;top:6%;width:17%;height:16%"></div><div class="rep" style="right:6%;top:7%;width:32%;height:8%"></div>' +
+      '<div class="rep" style="left:6%;bottom:8%;width:72%;height:14%"></div></div>' +
+      '<div class="ligne"><label><input type="checkbox" class="g" checked> ' + t.edGuides + '</label></div><div class="ligne act"></div>';
     var cadre = ed.querySelector('.cadre-ed'), scene = ed.querySelector('.scene'), img = ed.querySelector('img'), rect = ed.querySelector('.rect');
     var prev = ed.querySelector('.tvprev'), res = ed.querySelector('.res'), maniglie = ed.querySelectorAll('.poignee');
     var src = '/lib/original/' + i.original.slice(10, 26) + '.jpg';
@@ -2096,6 +2146,16 @@ footer a { color: var(--muted); }
     if (u && !/^https:\/\/[^\s\/]+\/\S*manifest\.json$/.test(u)) { $('lib-state').textContent = t.libBadUrl; $('lib-state').className = 'note err-note'; return; }
     save({ libraryUrl: u }, function (ok) { if (ok) { lib = null; renderLibrary(); } });
   };
+  // All the pictures go but the one on the screen and those kept for when the server is away; they come back when needed.
+  $('lib-clear').onclick = function () {
+    status(t.saving);
+    api('POST', '/api/library/clear', {}, function (r) {
+      if (!r) return status(t.notSaved + t.offline, true);
+      lib = r.library;
+      status(t.libCleared + mb(r.freed));
+      renderLibrary();
+    });
+  };
   $('lib-sync').onclick = function () {
     status(t.saving);
     api('POST', '/api/library/sync', {}, function (r) {
@@ -2129,6 +2189,7 @@ footer a { color: var(--muted); }
   /* ---------- captions and the painting alone ---------- */
 
   $('captions').onchange = function () { save({ captions: this.checked }); };
+  $('caption-museum').onchange = function () { save({ captionMuseum: this.checked }); };
   $('idle').onchange = function () { save({ idleMinutes: +this.value }); };
 
   function renderIdle() {
@@ -2142,6 +2203,7 @@ footer a { color: var(--muted); }
     });
     sel.value = typeof cfg.idleMinutes === 'number' ? cfg.idleMinutes : 5;
     $('captions').checked = !!cfg.captions;
+    $('caption-museum').checked = cfg.captionMuseum !== false;
   }
 
   // The artist, title and year of each of your pictures, saved a moment after the last key.
