@@ -398,8 +398,8 @@ assert.deepEqual(s.validate({ bgInfo: {} }, keys), { bgInfo: {} });
 assert.equal(s.validate({ bgInfo: { night: { artist: new Array(200).join('a') } } }, keys).bgInfo.night.artist.length, 60); // cut, not refused, as a tile's name is
 assert.deepEqual(s.validate({ tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] }, keys), { tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] });
 // The personal version, said in the three places it is written.
-assert.equal(s.VERSION, '1.0.9-perso.6');
-assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.6');
+assert.equal(s.VERSION, '1.0.9-perso.7');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.7');
 
 // The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
@@ -516,28 +516,33 @@ var BIB = require('../app/service/bibliotheque.js');
 ['http://soqa.fr/manifest.json', 'https://1.2.3.4/manifest.json', 'https://soqa.fr/../manifest.json', 'https://u:p@soqa.fr/manifest.json',
  'https://soqa.fr:8443/manifest.json', 'https://soqa.fr/manifest.json?x=1', 'https://soqa.fr/a b/manifest.json', 'https://soqa.fr/manifest.json.exe',
  'https://localhost/manifest.json', null, 42].forEach(function (u) { assert.ok(!BIB.validUrl(u), String(u)); });
-assert.deepEqual(s.validate({ backgroundMode: 'library', libraryUrl: 'https://soqa.fr/x/manifest.json', libraryAlbums: ['van-gogh'], libraryOrder: 'order', libraryRotate: 30 }, keys),
-  { backgroundMode: 'library', libraryUrl: 'https://soqa.fr/x/manifest.json', libraryAlbums: ['van-gogh'], libraryOrder: 'order', libraryRotate: 30, randomBackground: false });
-[{ libraryUrl: 'http://soqa.fr/manifest.json' }, { libraryAlbums: ['Van Gogh'] }, { libraryAlbums: ['a', 'a'] }, { libraryAlbums: 'a' },
- { libraryOrder: 'random' }, { libraryRotate: 45 }, { libraryRotate: '30' }, { backgroundMode: 'albums' }].forEach(function (c) {
+assert.deepEqual(s.validate({ backgroundMode: 'library', libraryUrl: 'https://soqa.fr/x/manifest.json', libraryCollections: ['artiste:van-gogh', 'moment:nuit'], libraryMatch: 'cross', libraryOrder: 'order', libraryRotate: 30 }, keys),
+  { backgroundMode: 'library', libraryUrl: 'https://soqa.fr/x/manifest.json', libraryCollections: ['artiste:van-gogh', 'moment:nuit'], libraryMatch: 'cross', libraryOrder: 'order', libraryRotate: 30, randomBackground: false });
+[{ libraryUrl: 'http://soqa.fr/manifest.json' }, { libraryCollections: ['Van Gogh'] }, { libraryCollections: ['artiste:a', 'artiste:a'] }, { libraryCollections: 'artiste:a' },
+ { libraryCollections: ['van-gogh'] }, { libraryAlbums: ['monet'] }, { libraryMatch: 'all' }, { libraryOrder: 'random' }, { libraryRotate: 45 }, { libraryRotate: '30' },
+ { backgroundMode: 'albums' }].forEach(function (c) {
   assert.equal(typeof s.validate(c, keys), 'string', JSON.stringify(c));
 });
-function pic(id, album, extra) {
+function pic(id, tags, extra) {
   var sha = id + '0123456789abcdef0123456789abcdef0123456789abcdef'.slice(0, 48);
-  var it = { id: id, album: album, file: 'fonds/' + id + '.jpg', thumb: 'vignettes/' + id + '.jpg', bytes: 1000, sha256: sha, caption: { title: 'T ' + id, artist: 'A' } };
+  var it = { id: id, name: id + '.jpg', file: 'fonds/' + id + '.jpg', thumb: 'vignettes/' + id + '.jpg', bytes: 1000, sha256: sha, caption: { title: 'T ' + id, artist: 'A' }, tags: tags };
   Object.keys(extra || {}).forEach(function (k) { it[k] = extra[k]; });
   return it;
 }
-var goodManifest = { version: 1, albums: [{ id: 'van-gogh', name: 'Van Gogh', count: 2, cover: 'x' }, { id: 'monet', name: 'Monet' }, { id: 'vide', name: 'Vide' }],
-  items: [pic('aaaaaaaaaaaaaaaa', 'van-gogh', { moments: ['night', 'night', 'teatime'] }), pic('bbbbbbbbbbbbbbbb', 'van-gogh'), pic('cccccccccccccccc', 'monet', { caption: { title: 'x'.repeat(200), place: 'Giverny', evil: '<b>' } })] };
+var goodManifest = { version: 2, categories: [{ id: 'artiste', name: 'Artistes' }, { id: 'moment', name: 'Moments' }],
+  collections: [{ id: 'artiste:van-gogh', cat: 'artiste', name: 'Van Gogh', count: 9, cover: 'aaaaaaaaaaaaaaaa' }, { id: 'artiste:monet', cat: 'artiste', name: 'Monet' },
+    { id: 'moment:nuit', cat: 'moment', name: 'nuit' }, { id: 'sujet:vide', cat: 'sujet', name: 'Vide' }],
+  items: [pic('aaaaaaaaaaaaaaaa', ['artiste:van-gogh', 'moment:nuit', 'moment:nuit', 'Bad Tag']), pic('bbbbbbbbbbbbbbbb', ['artiste:van-gogh']),
+    pic('cccccccccccccccc', ['artiste:monet'], { caption: { title: 'x'.repeat(200), place: 'Giverny', evil: '<b>' } })] };
 var checked = BIB.checkManifest(goodManifest);
-assert.deepEqual(checked.albums.map(function (a) { return [a.id, a.count, a.cover]; }), [['van-gogh', 2, 'aaaaaaaaaaaaaaaa'], ['monet', 1, 'cccccccccccccccc']]); // an empty album is left out
-assert.deepEqual(checked.items[0].moments, ['night']);
+assert.deepEqual(checked.collections.map(function (a) { return [a.id, a.count, a.cover, a.catName]; }),
+  [['artiste:van-gogh', 2, 'aaaaaaaaaaaaaaaa', 'Artistes'], ['artiste:monet', 1, 'cccccccccccccccc', 'Artistes'], ['moment:nuit', 1, 'aaaaaaaaaaaaaaaa', 'Moments']]); // counted here; an empty one left out
+assert.deepEqual(checked.items[0].tags, ['artiste:van-gogh', 'moment:nuit']);
 assert.deepEqual(Object.keys(checked.items[2].caption).sort(), ['place', 'title']);
 assert.equal(checked.items[2].caption.title.length, 90);
-[function (m) { m.version = 2; }, function (m) { m.items[0].sha256 = 'f'.repeat(64); }, function (m) { m.items[0].file = '../etc/passwd'; },
- function (m) { m.items[0].album = 'autre'; }, function (m) { m.items[1].id = m.items[0].id; }, function (m) { m.items[0].bytes = 99e6; },
- function (m) { m.albums[0].id = 'Van Gogh'; }, function (m) { m.items[0].thumb = 'vignettes/x.jpg'; }].forEach(function (spoil, n) {
+[function (m) { m.version = 1; }, function (m) { m.items[0].sha256 = 'f'.repeat(64); }, function (m) { m.items[0].file = '../etc/passwd'; },
+ function (m) { m.items[1].id = m.items[0].id; }, function (m) { m.items[0].bytes = 99e6; }, function (m) { m.collections[0].id = 'Van Gogh'; },
+ function (m) { m.collections[0].cat = 'moment'; }, function (m) { m.items[0].thumb = 'vignettes/x.jpg'; }, function (m) { m.items[0].tags = 'artiste:monet'; }].forEach(function (spoil, n) {
   var m = JSON.parse(JSON.stringify(goodManifest));
   spoil(m);
   assert.equal(typeof BIB.checkManifest(m), 'string', 'spoilt manifest ' + n);
@@ -550,16 +555,31 @@ assert.deepEqual(BIB.toEvict(cacheList, 30, 120, { old: true }), ['mid']);
 assert.deepEqual(BIB.toEvict(cacheList, 10, 200, {}), []);
 assert.equal(BIB.toEvict(cacheList, 100, 120, { old: true, mid: true, 'new': true }), null);
 (function () {
-  var dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'lk-lib-')), cfgL = { libraryUrl: 'https://soqa.fr/x/manifest.json', libraryAlbums: ['monet'], libraryOrder: 'order', libraryRotate: 'power', backgroundMode: 'library' };
+  var dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'lk-lib-')), cfgL = { libraryUrl: 'https://soqa.fr/x/manifest.json', libraryCollections: ['artiste:monet'], libraryMatch: 'any', libraryOrder: 'order', libraryRotate: 'power', backgroundMode: 'library' };
   var markL = 'a', logs = [];
   var L = new BIB.Library({ data: dir, minFree: 64, freeSpace: function (cb) { cb(1000); }, log: function (x) { logs.push(x); }, config: function () { return cfgL; }, mark: function () { return markL; } });
   L.sync = function (cb) { if (cb) cb(); };
   L.prefetch = function () {};
-  L.manifest = { url: cfgL.libraryUrl, etag: '', albums: checked.albums, items: checked.items };
-  assert.deepEqual(L.list().map(function (i) { return i.id; }), ['cccccccccccccccc']);
-  cfgL.libraryAlbums = [];
-  assert.equal(L.list().length, 3); // none ticked: all of them
-  cfgL.libraryAlbums = ['van-gogh'];
+  var ids = function () { return L.list().map(function (i) { return i.id.charAt(0); }).join(''); };
+  // A copy kept by perso.6 (albums) does not count.
+  L.manifest = { url: cfgL.libraryUrl, etag: '', albums: [], items: checked.items };
+  assert.equal(L.current(), null);
+  L.manifest = { url: cfgL.libraryUrl, etag: '', categories: checked.categories, collections: checked.collections, items: checked.items };
+  assert.equal(ids(), 'c');
+  cfgL.libraryCollections = [];
+  assert.equal(ids(), 'abc'); // none ticked: all of them
+  cfgL.libraryCollections = ['artiste:van-gogh', 'artiste:monet'];
+  assert.equal(ids(), 'abc'); // either artist
+  cfgL.libraryCollections = ['artiste:van-gogh', 'moment:nuit'];
+  assert.equal(ids(), 'ab'); // any of them
+  cfgL.libraryMatch = 'cross';
+  assert.equal(ids(), 'a'); // Van Gogh and night
+  cfgL.libraryCollections = ['artiste:monet', 'moment:nuit'];
+  assert.equal(ids(), 'ac'); // nothing crossed: any of them
+  cfgL.libraryCollections = ['sujet:parti'];
+  assert.equal(ids(), 'abc'); // gone from the library: all
+  cfgL.libraryMatch = 'any';
+  cfgL.libraryCollections = ['artiste:van-gogh'];
   assert.equal(L.now().id, 'aaaaaaaaaaaaaaaa');
   assert.equal(L.now().next, 'bbbbbbbbbbbbbbbb');
   assert.equal(L.now().captions.aaaaaaaaaaaaaaaa.title, 'T aaaaaaaaaaaaaaaa');
@@ -568,17 +588,22 @@ assert.equal(BIB.toEvict(cacheList, 100, 120, { old: true, mid: true, 'new': tru
   // The TV come on again: one step, as chosen; the same mark: none.
   L.tick(); var first = L.now().id; L.tick(); assert.equal(L.now().id, first);
   markL = 'b'; L.tick(); assert.notEqual(L.now().id, first);
-  // Server away: only the pictures in the cache are shown, and the next goes to one of them.
+  // Server away: only the pictures in the cache are shown, and the next goes to one of them; none: nothing (the Home's own then).
   L.mkdirs();
   fs.writeFileSync(path.join(dir, 'library', 'cache', 'bbbbbbbbbbbbbbbb.jpg'), 'x');
   L.status.error = 'ENOTFOUND';
   assert.equal(L.now().id, 'bbbbbbbbbbbbbbbb');
   assert.equal(L.next(), 'bbbbbbbbbbbbbbbb');
+  fs.unlinkSync(path.join(dir, 'library', 'cache', 'bbbbbbbbbbbbbbbb.jpg'));
+  assert.equal(L.now(), null);
   // Another address: the old copy does not count, nothing is shown from it.
+  L.status.error = '';
   cfgL.libraryUrl = 'https://autre.example.org/manifest.json';
   assert.equal(L.now(), null);
-  assert.deepEqual(L.state().albums, []);
+  assert.deepEqual(L.state().collections, []);
 })();
+// The Home falls back on the pictures kept on the TV, never on nothing.
+assert.ok(homeHtml.indexOf("if (!ok && /\\/lib\\//.test(url) && !sfondoMesso) return sfondo(soccorso());") !== -1, 'library fallback');
 
 // Guards.
 assert.ok(s.isLocal('192.168.0.20') && s.isLocal('::ffff:10.1.2.3') && s.isLocal('127.0.0.1') && s.isLocal('fe80::1'));
@@ -905,7 +930,7 @@ function httpChecks() {
     },
     // The project's own updates are off in this version: nothing looked for, nothing installed.
     function (next) { req('GET', '/api/update', {}, function (st, j) {
-      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.6'); assert.equal(j.latest, undefined);
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.7'); assert.equal(j.latest, undefined);
       req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {

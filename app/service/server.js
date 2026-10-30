@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.6';
+var VERSION = '1.0.9-perso.7';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -145,10 +145,12 @@ var DEFAULTS = {
   timeSlots: copy(FONDI.FASCE_INIZI),
   bgTags: {},
   // The library of backgrounds on a server (perso.6, backgroundMode 'library'): the manifest's https
-  // address ('' = off), the albums in use (none = all), shuffled or in order, and when it moves on:
-  // each time the TV comes on, every 15/30/60/120 minutes, or only with "next background".
+  // address ('' = off), the collections in use (none = all; any of them, or crossed: one of each category),
+  // shuffled or in order, and when it moves on: each time the TV comes on, every 15/30/60/120 minutes, or
+  // only with "next background".
   libraryUrl: '',
-  libraryAlbums: [],
+  libraryCollections: [],
+  libraryMatch: 'any',
   libraryOrder: 'shuffle',
   libraryRotate: 'power',
   // A colour key of the remote that moves on to the next background while the Home is in front.
@@ -256,9 +258,9 @@ function publicConfig() {
   c.backgroundNow = sessionBackground();
   // Every picture there is, in the order the Home and the page draw from, for the time of day.
   c.backgroundIds = PRESETS.concat(mineIds());
-  // The library: what the Home shows (null: the usual background), and the albums for its picker.
+  // The library: what the Home shows (null: the usual background), and the collections for its picker.
   c.libraryNow = lib && config.backgroundMode === 'library' ? lib.now() : null;
-  c.libraryAlbumList = lib && lib.current() ? lib.current().albums.map(function (a) { return { id: a.id, name: a.name, count: a.count }; }) : [];
+  c.libraryCollectionList = lib && lib.current() ? lib.current().collections.map(function (a) { return { id: a.id, cat: a.catName, name: a.name, count: a.count }; }) : [];
   return c;
 }
 
@@ -462,11 +464,13 @@ function validate(body, keyNames) {
     else if (k === 'backgroundMode') { if (['fixed', 'random', 'time', 'library'].indexOf(v) === -1) return 'backgroundMode'; out[k] = v; }
     // The library: an https address of a manifest.json, or '' for none.
     else if (k === 'libraryUrl') { if (!BIB.validUrl(v)) return 'libraryUrl'; out[k] = v; }
-    // Album ids as the manifest has them, each once; whether they are still there is the library's business.
-    else if (k === 'libraryAlbums') {
-      if (!Array.isArray(v) || v.length > 500 || v.some(function (a, j) { return typeof a !== 'string' || !BIB.ALBUM.test(a) || v.indexOf(a) !== j; })) return 'libraryAlbums';
+    // Collection ids as the manifest has them ("artiste:van-gogh"), each once; whether they are still there is
+    // the library's business.
+    else if (k === 'libraryCollections') {
+      if (!Array.isArray(v) || v.length > 200 || v.some(function (a, j) { return typeof a !== 'string' || !BIB.TAG.test(a) || v.indexOf(a) !== j; })) return 'libraryCollections';
       out[k] = v.slice();
     }
+    else if (k === 'libraryMatch') { if (BIB.MATCHES.indexOf(v) === -1) return 'libraryMatch'; out[k] = v; }
     else if (k === 'libraryOrder') { if (BIB.ORDERS.indexOf(v) === -1) return 'libraryOrder'; out[k] = v; }
     else if (k === 'libraryRotate') { if (BIB.ROTATE.indexOf(v) === -1) return 'libraryRotate'; out[k] = v; }
     // The start hour of each of the seven slots of the day, all given.
@@ -1245,10 +1249,10 @@ function handle(req, res) {
       send(res, next ? 200 : 409, { ok: !!next, now: next }, nbCors);
     });
   }
-  // The albums in use, chosen on the Home with the remote: from the Home only, as the next background.
-  if (p === '/api/library/albums') {
+  // The collections in use, chosen on the Home with the remote: from the Home only, as the next background.
+  if (p === '/api/library/collections') {
     if (!fromHome(req)) {
-      log('albums refused: ' + req.socket.remoteAddress + ', origin ' + req.headers.origin);
+      log('collections refused: ' + req.socket.remoteAddress + ', origin ' + req.headers.origin);
       return send(res, 403, { ok: false, error: 'the Home only' });
     }
     var alCors = req.headers.origin ? { 'Access-Control-Allow-Origin': req.headers.origin, 'Vary': 'Origin' } : {};
@@ -1263,12 +1267,12 @@ function handle(req, res) {
     return readBody(req, MAX_JSON, function (b) {
       var body = null;
       try { body = JSON.parse(String(b)); } catch (e) {}
-      var change = body && typeof body === 'object' && Object.keys(body).join() === 'albums' ? validate({ libraryAlbums: body.albums }, []) : 'albums';
-      if (typeof change === 'string') return send(res, 400, { ok: false, error: 'albums expected' }, alCors);
-      config.libraryAlbums = change.libraryAlbums;
+      var change = body && typeof body === 'object' && Object.keys(body).join() === 'collections' ? validate({ libraryCollections: body.collections }, []) : 'collections';
+      if (typeof change === 'string') return send(res, 400, { ok: false, error: 'collections expected' }, alCors);
+      config.libraryCollections = change.libraryCollections;
       try { saveConfig(); } catch (e) { return send(res, 500, { ok: false, error: e.message }, alCors); }
       if (lib) { lib.arrangeIfNeeded(); lib.prefetch(); }
-      log('albums in use: ' + (config.libraryAlbums.join(', ') || 'all'));
+      log('collections in use: ' + (config.libraryCollections.join(', ') || 'all'));
       send(res, 200, { ok: true, now: lib ? lib.now() : null }, alCors);
     });
   }
@@ -1324,7 +1328,7 @@ function handle(req, res) {
         if (mine) config.background = { custom: true, id: mine, rev: (config.background.rev || 0) + 1 };
         else if (has(change, 'preset') && config.background.custom) config.background = { custom: false, rev: (config.background.rev || 0) + 1 };
         try { saveConfig(); } catch (e) { return send(res, 500, { ok: false, error: e.message }); }
-        if (lib && (has(change, 'libraryAlbums') || has(change, 'libraryOrder') || has(change, 'backgroundMode'))) { lib.arrangeIfNeeded(); lib.prefetch(); }
+        if (lib && (has(change, 'libraryCollections') || has(change, 'libraryMatch') || has(change, 'libraryOrder') || has(change, 'backgroundMode'))) { lib.arrangeIfNeeded(); lib.prefetch(); }
         if (lib && has(change, 'libraryUrl')) {
           return lib.sync(function () { send(res, 200, { ok: true, config: publicConfig(), keyStatus: keyStatus, library: lib.state() }); });
         }
@@ -1393,7 +1397,7 @@ function handle(req, res) {
     saveConfig();
     return send(res, 200, { ok: true, config: publicConfig() });
   }
-  // The library, for the settings page: albums, cache, last reading; and reading it again now.
+  // The library, for the settings page: collections, cache, last reading; and reading it again now.
   if (p === '/api/library' && m === 'GET') return send(res, 200, { ok: true, library: lib ? lib.state() : null });
   if (p === '/api/library/sync' && m === 'POST') {
     if (!lib) return send(res, 503, { ok: false, error: 'not ready' });

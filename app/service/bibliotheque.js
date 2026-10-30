@@ -1,10 +1,11 @@
 /*
- * The library of backgrounds on a server of yours (perso.6): a manifest.json at an https address set in the
- * settings, which lists albums and their pictures (3840 × 2160 JPEGs, each named by its SHA-256). This TV
+ * The library of backgrounds on a server of yours (perso.6, collections since perso.7): a manifest.json at an
+ * https address set in the settings, which lists pictures (3840 × 2160 JPEGs, each named by its SHA-256) with
+ * their tags, and the collections made of those tags (one tag of at least three pictures each). This TV
  * reads it at start, when it comes on and every 30 minutes, and keeps a copy for when the server cannot be
  * reached. Pictures are fetched only when needed, checked against their SHA-256, and kept in a cache whose
  * size follows the room really free (Lightkeeper's 64 MB reserve kept), the least recently shown let go first.
- * The picture on the screen, the next one and the last two shown of each album in use are always kept, so
+ * The picture on the screen, the next one and the last two shown of each collection in use are always kept, so
  * the Home still has pictures without the server.
  *
  * The only requests made: GET of that manifest, and GET of the files it names, beside it on the same server.
@@ -22,11 +23,12 @@ var MAX_MANIFEST = 2 * 1024 * 1024;
 var MAX_PICTURE = 12 * 1024 * 1024;
 var MAX_THUMB = 512 * 1024;
 var MARGIN = 8 * 1024 * 1024;      // beyond the reserve, room left for the rest of Lightkeeper
-var KEEP_PER_ALBUM = 2;            // pictures of each album in use kept for when the server is away
+var KEEP_PER_ALBUM = 2;            // pictures of each collection in use kept for when the server is away
 var ROTATE = ['power', 'manual', 15, 30, 60, 120];
 var ORDERS = ['shuffle', 'order'];
+var MATCHES = ['any', 'cross'];     // any collection ticked, or one of each category ticked (Van Gogh and night)
 var ID = /^[0-9a-f]{16}$/;
-var ALBUM = /^[a-z0-9][a-z0-9-]{0,39}$/;
+var TAG = /^[a-z]{1,12}:[a-z0-9][a-z0-9-]{0,39}$/;
 var MOMENTS = ['dawn', 'morning', 'noon', 'afternoon', 'sunset', 'dusk', 'night'];
 var CAPTION = { title: 90, artist: 60, year: 16, place: 60 };
 
@@ -49,39 +51,40 @@ function validUrl(u) {
 }
 
 /*
- * The manifest, checked field by field and cleaned: albums {id, name, count, cover} and pictures
- * {id, album, file, thumb, bytes, sha256, caption, moments}. Anything else is left out; a manifest that
- * does not hold together is refused whole (a string says why).
+ * The manifest (version 2), checked field by field and cleaned: categories {id, name}, collections
+ * {id, cat, name, count, cover} and pictures {id, file, thumb, bytes, sha256, caption, tags}. Anything else is
+ * left out; a manifest that does not hold together is refused whole (a string says why).
  */
 function checkManifest(m) {
-  if (!m || typeof m !== 'object' || m.version !== 1 || !Array.isArray(m.albums) || !Array.isArray(m.items)) return 'format';
-  if (m.albums.length > 500 || m.items.length > 10000) return 'too large';
-  var albums = [], known = {}, items = [], seen = {};
-  for (var i = 0; i < m.albums.length; i++) {
-    var a = m.albums[i];
-    if (!a || !ALBUM.test(a.id) || known[a.id] || !str(a.name, 60)) return 'album ' + i;
-    known[a.id] = { id: a.id, name: str(a.name, 60), count: 0, cover: null };
-    albums.push(known[a.id]);
-  }
+  if (!m || typeof m !== 'object' || m.version !== 2 || !Array.isArray(m.collections) || !Array.isArray(m.items)) return 'format';
+  if (m.collections.length > 2000 || m.items.length > 10000) return 'too large';
+  var cats = [], catNames = {}, items = [], seen = {}, cols = [], known = {};
+  (Array.isArray(m.categories) ? m.categories : []).forEach(function (c) {
+    if (c && /^[a-z]{1,12}$/.test(c.id) && str(c.name, 30) && !catNames[c.id]) { catNames[c.id] = str(c.name, 30); cats.push({ id: c.id, name: catNames[c.id] }); }
+  });
   for (var j = 0; j < m.items.length; j++) {
     var it = m.items[j];
-    if (!it || !ID.test(it.id) || seen[it.id] || !has(known, it.album)) return 'picture ' + j;
+    if (!it || !ID.test(it.id) || seen[it.id]) return 'picture ' + j;
     if (it.file !== 'fonds/' + it.id + '.jpg' || it.thumb !== 'vignettes/' + it.id + '.jpg') return 'picture ' + j;
     if (typeof it.bytes !== 'number' || it.bytes % 1 || it.bytes < 1 || it.bytes > MAX_PICTURE) return 'picture ' + j;
     if (typeof it.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(it.sha256) || it.sha256.slice(0, 16) !== it.id) return 'picture ' + j;
+    if (it.tags !== undefined && (!Array.isArray(it.tags) || it.tags.length > 60)) return 'picture ' + j;
     var cap = {}, c = it.caption && typeof it.caption === 'object' ? it.caption : {};
     Object.keys(CAPTION).forEach(function (k) { if (str(c[k], CAPTION[k])) cap[k] = str(c[k], CAPTION[k]); });
-    var one = { id: it.id, album: it.album, bytes: it.bytes, sha256: it.sha256, caption: cap };
-    if (Array.isArray(it.moments)) {
-      var mo = it.moments.filter(function (x, n) { return MOMENTS.indexOf(x) !== -1 && it.moments.indexOf(x) === n; });
-      if (mo.length) one.moments = mo;
-    }
+    var tags = (it.tags || []).filter(function (t, n) { return typeof t === 'string' && TAG.test(t) && it.tags.indexOf(t) === n; });
     seen[it.id] = true;
-    known[it.album].count++;
-    if (!known[it.album].cover) known[it.album].cover = it.id;
-    items.push(one);
+    items.push({ id: it.id, bytes: it.bytes, sha256: it.sha256, caption: cap, tags: tags });
   }
-  return { albums: albums.filter(function (a) { return a.count; }), items: items };
+  for (var i = 0; i < m.collections.length; i++) {
+    var col = m.collections[i];
+    if (!col || !TAG.test(col.id) || known[col.id] || col.id.split(':')[0] !== col.cat || !str(col.name, 40)) return 'collection ' + i;
+    var count = items.filter(function (x) { return x.tags.indexOf(col.id) !== -1; }).length;
+    if (!count) continue;
+    var cover = ID.test(col.cover) && seen[col.cover] ? col.cover : items.filter(function (x) { return x.tags.indexOf(col.id) !== -1; })[0].id;
+    known[col.id] = true;
+    cols.push({ id: col.id, cat: col.cat, catName: catNames[col.cat] || col.cat, name: str(col.name, 40), count: count, cover: cover });
+  }
+  return { categories: cats, collections: cols, items: items };
 }
 
 // A new order of the pictures: shuffled (Fisher–Yates) or as the manifest has them.
@@ -116,7 +119,7 @@ function Library(o) {
   this.dir = path.join(o.data, 'library');
   this.cacheDir = path.join(this.dir, 'cache');
   this.thumbDir = path.join(this.dir, 'thumbs');
-  this.manifest = this.read('manifest.json', null);   // {url, etag, albums, items}
+  this.manifest = this.read('manifest.json', null);   // {url, etag, categories, collections, items}
   this.status = this.read('status.json', {});         // {lastTry, lastOk, error}
   this.uses = this.read('uses.json', {});             // id → last shown (ms)
   this.play = this.read('play.json', {});             // {key, order, pos, at, mark}
@@ -145,7 +148,9 @@ Library.prototype.url = function () { var u = this.o.config().libraryUrl; return
 
 // The manifest for the address set now (another address's copy does not count).
 Library.prototype.current = function () {
-  return this.manifest && this.manifest.url === this.url() ? this.manifest : null;
+  var m = this.manifest;
+  // A copy kept by perso.6 (albums, no collections) does not count: the manifest is read again.
+  return m && m.url === this.url() && Array.isArray(m.collections) ? m : null;
 };
 
 /* ---------- requests ---------- */
@@ -193,9 +198,9 @@ Library.prototype.sync = function (cb) {
       var ok = checkManifest(m);
       if (typeof ok === 'string') why = 'manifest: ' + ok;
       else {
-        self.manifest = { url: u, etag: h && h.etag ? String(h.etag).slice(0, 120) : '', albums: ok.albums, items: ok.items };
+        self.manifest = { url: u, etag: h && h.etag ? String(h.etag).slice(0, 120) : '', categories: ok.categories, collections: ok.collections, items: ok.items };
         self.write('manifest.json', self.manifest);
-        self.o.log('library: ' + ok.items.length + ' pictures in ' + ok.albums.length + ' albums');
+        self.o.log('library: ' + ok.items.length + ' pictures, ' + ok.collections.length + ' collections');
       }
     }
     self.status.error = why;
@@ -210,13 +215,32 @@ Library.prototype.sync = function (cb) {
 
 /* ---------- what is shown ---------- */
 
-// The pictures of the albums ticked (all of them when none is), in the manifest's order.
-Library.prototype.list = function () {
-  var m = this.current(), chosen = this.o.config().libraryAlbums || [];
+/*
+ * The pictures of the collections ticked (all of them when none is), in the manifest's order: in any of them,
+ * or, crossed, in one of each category ticked (Van Gogh or Monet, and night). Nothing matching: the pictures of
+ * any of them; still nothing (collections gone from the library): all.
+ */
+Library.prototype.select = function (chosen, how) {
+  var m = this.current();
   if (!m) return [];
-  var albums = m.albums.map(function (a) { return a.id; }).filter(function (a) { return !chosen.length || chosen.indexOf(a) !== -1; });
-  if (!albums.length) albums = m.albums.map(function (a) { return a.id; }); // only unknown albums ticked
-  return m.items.filter(function (it) { return albums.indexOf(it.album) !== -1; });
+  var have = {};
+  m.collections.forEach(function (c) { have[c.id] = c.cat; });
+  chosen = (chosen || []).filter(function (c) { return has(have, c); });
+  if (!chosen.length) return m.items.slice();
+  var groups = {};
+  chosen.forEach(function (c) { (groups[have[c]] = groups[have[c]] || []).push(c); });
+  var inAny = function (it, list) { return list.some(function (c) { return it.tags.indexOf(c) !== -1; }); };
+  if (how === 'cross') {
+    var crossed = m.items.filter(function (it) { return Object.keys(groups).every(function (g) { return inAny(it, groups[g]); }); });
+    if (crossed.length) return crossed;
+  }
+  var any = m.items.filter(function (it) { return inAny(it, chosen); });
+  return any.length ? any : m.items.slice();
+};
+
+Library.prototype.list = function () {
+  var cfg = this.o.config();
+  return this.select(cfg.libraryCollections, cfg.libraryMatch);
 };
 
 Library.prototype.item = function (id) {
@@ -226,7 +250,7 @@ Library.prototype.item = function (id) {
   return null;
 };
 
-// A new order when the albums, the pictures or the order changed; the picture on the screen stays.
+// A new order when the collections, the pictures or the order changed; the picture on the screen stays.
 Library.prototype.arrangeIfNeeded = function () {
   var cfg = this.o.config(), ids = this.list().map(function (i) { return i.id; });
   var key = crypto.createHash('sha1').update(cfg.libraryOrder + ':' + ids.join(',')).digest('hex').slice(0, 16);
@@ -302,8 +326,9 @@ Library.prototype.now = function () {
  * the manifest is read again every 30 minutes and when the TV comes on.
  */
 Library.prototype.tick = function () {
-  var cfg = this.o.config();
+  var cfg = this.o.config(), self = this;
   if (!this.url()) return;
+  this.o.freeSpace(function (f) { self.free = f; }); // for the cache's limit shown in the settings
   var mark = this.o.mark(), came = mark !== this.play.mark;
   if (came) { this.play.mark = mark; this.write('play.json', this.play); }
   if (came || !this.status.lastTry || Date.now() - this.status.lastTry >= SYNC_EVERY) this.sync();
@@ -326,15 +351,20 @@ Library.prototype.entries = function () {
   return out;
 };
 
-// Never let go: the picture on the screen, the next one, and the last two shown of each album in use.
+// Never let go: the picture on the screen, the next one, and the last two shown of each collection in use.
 Library.prototype.keepSet = function () {
-  var keep = {}, now = this.now(), per = {};
+  var keep = {}, now = this.now(), per = {}, cfg = this.o.config(), m = this.current();
   if (now) { keep[now.id] = true; if (now.next) keep[now.next] = true; }
+  if (!m) return keep;
   var inUse = {};
-  this.list().forEach(function (it) { inUse[it.id] = it.album; });
+  this.list().forEach(function (it) { inUse[it.id] = it; });
+  var cols = (cfg.libraryCollections || []).length ? cfg.libraryCollections : ['*'];
   this.entries().filter(function (e) { return inUse[e.id]; }).sort(function (a, b) { return b.used - a.used; }).forEach(function (e) {
-    per[inUse[e.id]] = (per[inUse[e.id]] || 0) + 1;
-    if (per[inUse[e.id]] <= KEEP_PER_ALBUM) keep[e.id] = true;
+    cols.forEach(function (c) {
+      if (c !== '*' && inUse[e.id].tags.indexOf(c) === -1) return;
+      per[c] = (per[c] || 0) + 1;
+      if (per[c] <= KEEP_PER_ALBUM) keep[e.id] = true;
+    });
   });
   return keep;
 };
@@ -373,6 +403,8 @@ Library.prototype.ensure = function (id, cb) {
   this.room(it.bytes, function (ok) {
     if (!ok) return end(new Error('no room'));
     get(self.fileUrl('fonds/' + id + '.jpg'), {}, MAX_PICTURE, function (err, status, body) {
+      // The server or the internet away: from now on, only what is in the cache, until the manifest is read again.
+      if (err) { self.status.error = 'download: ' + (err.code || err.message); self.write('status.json', self.status); }
       if (err || status !== 200) return end(err || new Error('HTTP ' + status));
       if (crypto.createHash('sha256').update(body).digest('hex') !== it.sha256) return end(new Error('checksum'));
       try {
@@ -425,16 +457,16 @@ Library.prototype.cleanup = function () {
   });
 };
 
-// For the settings page: the albums, the cache, the last reading and what went wrong.
+// For the settings page: the collections, the cache, the last reading and what went wrong.
 Library.prototype.state = function () {
   var m = this.current(), size = 0, entries = this.entries();
   entries.forEach(function (e) { size += e.bytes; });
   return {
-    url: !!this.url(), albums: m ? m.albums : [], pictures: m ? m.items.length : 0, inUse: this.list().length,
+    url: !!this.url(), categories: m ? m.categories : [], collections: m ? m.collections : [], pictures: m ? m.items.length : 0, inUse: this.list().length,
     cached: entries.length, cacheBytes: size, capBytes: this.free === null ? null : Math.max(0, size + this.free - this.o.minFree - MARGIN),
     lastOk: this.status.lastOk || 0, lastTry: this.status.lastTry || 0, error: this.status.error || ''
   };
 };
 
 module.exports = { Library: Library, validUrl: validUrl, checkManifest: checkManifest, arrange: arrange, toEvict: toEvict,
-  ROTATE: ROTATE, ORDERS: ORDERS, ALBUM: ALBUM, ID: ID };
+  ROTATE: ROTATE, ORDERS: ORDERS, MATCHES: MATCHES, TAG: TAG, ID: ID };

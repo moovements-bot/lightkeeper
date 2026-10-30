@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.9-perso.7 (30 October 2026)
+
+- **Collections instead of albums.** The library's pictures now carry tags (artist, type, period, style, subject, season, time of day), from a controlled vocabulary on the server, proposed automatically and never rewritten once written by hand. A **collection** is a tag of at least three pictures, shown by category (Artists, Periods, Styles, Subjects, Types). The settings list them under their category with a cover and a count; tick one to stay on it, several to mix them. *With several*: **any of them**, or **crossed** (one of each kind ticked, e.g. Van Gogh and Night; within one kind, either; nothing crossed: any of them).
+- The Home's picker (long press of the next background's key, or the tile, now **Collections**) shows them under their category; up and down pass over the category lines.
+- **Never an empty screen**: when a picture of the library cannot come (server or internet away, nothing in the cache), the Home shows one of the pictures kept on the TV, the one ticked for this time of day among them. A failed download makes the library stay on what is in the cache until the manifest is read again.
+- Manifest version 2 (`categories`, `collections`, `items[].tags`); a copy kept by perso.6 is read again.
+
 ## 1.0.9-perso.6 (30 October 2026)
 
 - **A library of backgrounds on your server, in albums.** *Choice of background*: **Library**, with the https address of a `manifest.json` (a folder per album on the server, each picture 3840 × 2160, named by its SHA-256, with its caption). Tick one album to stay on it, several to mix them, none for all; *Shuffled* or *In order*; a new picture each time the TV comes on, every 15, 30, 60 or 120 minutes, or only on demand. The page shows the albums with their cover and count, the cache, the last reading, and a clear line when the library does not answer.
