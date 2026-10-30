@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.9-perso.14 (30 October 2026)
+
+- **Gallery** (Background → Library → *Gallery*, on the iPhone or a Mac): filters *All · To review · Validated · Bin*; for each picture *OK* (validated), *Crop*, *Hide from the TV*, *Remove* (the original and the TV version into the server's bin, restorable). A picture whose edges the server took off, or in a hard format, is *to review* until OK. The TV's settings, Background → Library: how many pictures are to review.
+
 ## 1.0.9-perso.13 (30 October 2026)
 
 - **Review of the pictures, on the settings page** (Background → Library → *Review of the pictures*): the final 16:9 versions as the TV shows them, the Home over them if wanted (clock, caption, tiles), filters (all, hard format, hidden, bin), and for each: *Keep*, *Hide from the TV* (and back), *Crop* (across left / centre / right, down top / middle / bottom, zoom, previewed as the server makes it), *Delete* (to the server's bin, restorable). Relayed to the library's server with its token, as the captions.

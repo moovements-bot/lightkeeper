@@ -166,6 +166,7 @@ function schede() {
         info(TEXT.rgLibrary, function () { return statoLib('n'); }),
         info(TEXT.rgCache, function () { return statoLib('cache'); }),
         info(TEXT.rgRead, function () { return statoLib('lue'); }),
+        info(TEXT.rgToReview, function () { return rgLib && cfg.libraryUrl ? String(rgLib.toReview || 0) : '—'; }),
         info(TEXT.rgHiddenPics, function () { return rgLib && cfg.libraryUrl ? String(rgLib.hidden || 0) : '—'; }),
         info(TEXT.rgHardPics, function () { return rgLib && cfg.libraryUrl ? String(rgLib.difficult || 0) : '—'; }),
         info(TEXT.rgToVerify, function () { return rgLib && cfg.libraryUrl ? String(rgLib.toVerify || 0) + (rgLib.auto ? ' · ' + rgLib.auto + ' ' + TEXT.rgAutoN : '') : '—'; })] }] },

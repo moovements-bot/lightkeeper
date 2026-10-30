@@ -80,6 +80,7 @@ function checkManifest(m) {
     // The review of the pictures (perso.13): hidden from the TV, a hard format, the uncropped preview.
     if (it.hidden === true) one.hidden = true;
     if (it.format === 'difficile') one.format = 'difficile';
+    if (it.aRevoir === true) one.aRevoir = true; // edges taken off or a hard format, until someone says OK
     if (typeof it.apercu === 'string' && /^apercus\/[0-9a-f]{16}\.jpg$/.test(it.apercu)) one.apercu = it.apercu.slice(8, 24);
     items.push(one);
   }
@@ -507,6 +508,7 @@ Library.prototype.state = function () {
     auto: m ? m.items.filter(function (i) { return i.status === 'auto'; }).length : 0, token: !!this.o.config().libraryToken,
     hidden: m ? m.items.filter(function (i) { return i.hidden; }).length : 0,
     difficult: m ? m.items.filter(function (i) { return i.format === 'difficile' && !i.hidden; }).length : 0,
+    toReview: m ? m.items.filter(function (i) { return i.aRevoir && !i.hidden; }).length : 0,
     cached: entries.length, cacheBytes: size, capBytes: this.free === null ? null : Math.max(0, size + this.free - this.o.minFree - MARGIN),
     lastOk: this.status.lastOk || 0, lastTry: this.status.lastTry || 0, error: this.status.error || ''
   };

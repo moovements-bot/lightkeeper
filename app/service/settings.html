@@ -481,14 +481,14 @@ footer a { color: var(--muted); }
           <p class="note" id="cap-state" aria-live="polite"></p>
           <div class="actions"><button class="btn" type="button" id="cap-load" data-t="capLoad">Show the captions</button><button class="btn" type="button" id="cap-all" data-t="capAll" hidden>Also the checked ones</button></div>
           <div class="caps" id="cap-list"></div>
-          <h3 class="sub-h" data-t="revTitle">Review of the pictures</h3>
+          <h3 class="sub-h" data-t="revTitle">Gallery</h3>
           <p class="note" id="rev-state" aria-live="polite"></p>
-          <div class="actions"><button class="btn" type="button" id="rev-load" data-t="revLoad">Show the pictures</button></div>
+          <div class="actions"><button class="btn" type="button" id="rev-load" data-t="revLoad">Open the gallery</button></div>
           <div id="rev-tools" hidden>
             <div class="seg wide" role="radiogroup" aria-label="Filtre">
               <label><input type="radio" name="revFiltre" value="tout"><span data-t="revAll">All</span></label>
-              <label><input type="radio" name="revFiltre" value="difficile"><span data-t="revHard">Hard format</span></label>
-              <label><input type="radio" name="revFiltre" value="masquees"><span data-t="revHidden">Hidden</span></label>
+              <label><input type="radio" name="revFiltre" value="arevoir"><span data-t="revToReview">To review</span></label>
+              <label><input type="radio" name="revFiltre" value="validees"><span data-t="revValid">Validated</span></label>
               <label><input type="radio" name="revFiltre" value="corbeille"><span data-t="revBin">Bin</span></label>
             </div>
             <div class="row">
@@ -747,9 +747,10 @@ footer a { color: var(--muted); }
       idleTitle: 'Painting alone after', idleLede: 'Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.',
       idleNever: 'Never', idleMin: ' min', idleLg: 'LG\'s own screen saver keeps its timer: if it starts first, it covers the painting.',
       infosTitle: 'Captions of your paintings', infoArtist: 'Artist', infoTitle: 'Title', infoYear: 'Year',
-      controlTile: 'Controls', albumsTile: 'Collections', revTitle: 'Review of the pictures', revLoad: 'Show the pictures', revAll: 'All', revHard: 'Hard format',
+      controlTile: 'Controls', albumsTile: 'Collections', revTitle: 'Gallery', revLoad: 'Open the gallery', revAll: 'All', revHard: 'Hard format', revToReview: 'To review', revValid: 'Validated',
+      revIsToReview: 'to review', revToReviewN: ' to review · ',
       revHidden: 'Hidden', revBin: 'Bin', revOverlay: 'The Home over the pictures', revOverlayLede: 'Where the clock, the caption and the tiles go.',
-      revKeep: 'Keep', revHide: 'Hide from the TV', revShow: 'Show on the TV', revCrop: 'Crop', revDelete: 'Delete', revRestore: 'Restore',
+      revKeep: 'OK', revHide: 'Hide from the TV', revShow: 'Show on the TV', revCrop: 'Crop', revDelete: 'Remove', revRestore: 'Restore',
       revDeleteAsk: 'Put this picture in the bin? It can be restored.', revKept: 'kept', revIsHidden: 'hidden', revIsHard: 'hard format',
       revApply: 'Apply', revCancel: 'Cancel', revX: 'Across', revY: 'Down', revZoom: 'Zoom', revLeft: 'Left', revCentre: 'Centre', revRight: 'Right',
       revTop: 'Top', revMiddle: 'Middle', revBottom: 'Bottom', revRedoing: 'The server makes the picture again…', revNone: 'No pictures here.',
@@ -783,10 +784,11 @@ footer a { color: var(--muted); }
       idleTitle: 'Tableau seul après', idleLede: 'Sans touche sur l\'accueil : l\'heure, la météo et les tuiles disparaissent, et le tableau bouge très lentement. Une touche suffit pour revenir.',
       idleNever: 'Jamais', idleMin: ' min', idleLg: 'L\'économiseur d\'écran de LG garde sa propre minuterie : s\'il démarre avant, il recouvre le tableau.',
       infosTitle: 'Légendes de tes tableaux', infoArtist: 'Artiste', infoTitle: 'Titre', infoYear: 'Année',
-      controlTile: 'Contrôle', albumsTile: 'Collections', revTitle: 'Revue des images', revLoad: 'Afficher les images', revAll: 'Toutes', revHard: 'Format difficile',
+      controlTile: 'Contrôle', albumsTile: 'Collections', revTitle: 'Galerie', revLoad: 'Ouvrir la galerie', revAll: 'Toutes', revHard: 'Format difficile', revToReview: 'À revoir', revValid: 'Validées',
+      revIsToReview: 'à revoir', revToReviewN: ' à revoir · ',
       revHidden: 'Masquées', revBin: 'Corbeille', revOverlay: 'L\'accueil par-dessus', revOverlayLede: 'Où vont l\'horloge, la légende et les tuiles.',
-      revKeep: 'Garder', revHide: 'Masquer de la TV', revShow: 'Remettre sur la TV', revCrop: 'Recadrer', revDelete: 'Supprimer', revRestore: 'Restaurer',
-      revDeleteAsk: 'Mettre cette image à la corbeille ? Elle pourra être restaurée.', revKept: 'gardée', revIsHidden: 'masquée', revIsHard: 'format difficile',
+      revKeep: 'OK', revHide: 'Masquer de la TV', revShow: 'Remettre sur la TV', revCrop: 'Recadrer', revDelete: 'Retirer', revRestore: 'Restaurer',
+      revDeleteAsk: 'Retirer cette image (original et version TV) dans la corbeille du serveur ? Elle pourra être restaurée.', revKept: 'gardée', revIsHidden: 'masquée', revIsHard: 'format difficile',
       revApply: 'Appliquer', revCancel: 'Annuler', revX: 'Largeur', revY: 'Hauteur', revZoom: 'Zoom', revLeft: 'Gauche', revCentre: 'Centre', revRight: 'Droite',
       revTop: 'Haut', revMiddle: 'Milieu', revBottom: 'Bas', revRedoing: 'Le serveur refait l\'image…', revNone: 'Aucune image ici.',
       revCount: ' images · ', revHardN: ' format difficile · ', revHiddenN: ' masquées · ', revBinN: ' à la corbeille', capTitle: 'Légendes à vérifier', capLoad: 'Afficher les légendes', capAll: 'Voir aussi les vérifiées',
@@ -1858,7 +1860,8 @@ footer a { color: var(--muted); }
   var POSX = { gauche: 0, centre: 50, droite: 100 }, POSY = { haut: 0, milieu: 50, bas: 100 };
   function revState() {
     if (!cfg.libraryTokenSet) { $('rev-load').hidden = true; return; }
-    $('rev-state').textContent = rev ? rev.items.length + t.revCount + rev.items.filter(function (i) { return i.format; }).length + t.revHardN +
+    $('rev-state').textContent = rev ? rev.items.length + t.revCount + rev.items.filter(function (i) { return i.aRevoir; }).length + t.revToReviewN +
+      rev.items.filter(function (i) { return i.format; }).length + t.revHardN +
       rev.items.filter(function (i) { return i.hidden; }).length + t.revHiddenN + rev.corbeille.length + t.revBinN : '';
   }
   function chargeRev(quand) {
@@ -1900,7 +1903,7 @@ footer a { color: var(--muted); }
     if (!rev) return;
     var ov = $('rev-ov').checked, list;
     if (revFiltre === 'corbeille') list = rev.corbeille.map(function (c) { return { name: c.name, corbeille: true, raison: c.raison }; });
-    else list = rev.items.filter(function (i) { return revFiltre === 'tout' || (revFiltre === 'difficile' ? i.format : i.hidden); });
+    else list = rev.items.filter(function (i) { return revFiltre === 'tout' || (revFiltre === 'arevoir' ? i.aRevoir : i.revue === 'ok'); });
     if (!list.length) { box.textContent = t.revNone; return; }
     list.forEach(function (i) {
       var card = document.createElement('div'), vue = document.createElement('div'), info = document.createElement('div'), bt = document.createElement('div');
@@ -1920,7 +1923,7 @@ footer a { color: var(--muted); }
       nm.className = 'nm';
       nm.textContent = i.corbeille ? i.raison : i.name;
       info.appendChild(nm);
-      [[i.format, 'diff', t.revIsHard], [i.hidden, 'cache', t.revIsHidden], [i.revue === 'ok', '', t.revKept]].forEach(function (b) {
+      [[i.aRevoir, 'diff', t.revIsToReview], [i.format, 'diff', t.revIsHard], [i.hidden, 'cache', t.revIsHidden], [i.revue === 'ok', '', t.revKept]].forEach(function (b) {
         if (!b[0]) return;
         var s = document.createElement('span');
         s.className = 'badge ' + b[1];
