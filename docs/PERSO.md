@@ -1,4 +1,4 @@
-# Lightkeeper, personal version (1.0.9-perso.8)
+# Lightkeeper, personal version (1.0.9-perso.9)
 
 Branch `perso`, from Lightkeeper 1.0.9. Two additions, and the updates off.
 
@@ -67,3 +67,8 @@ Settings, *Background*, *Choice of background*: **Library**. Give the https addr
 - On the Home: the next background's key or tile goes to the next picture; a long press of the key, or the tile *Collections*, chooses the collections. Code: `app/service/bibliotheque.js`.
 - Offline: the Home shows the pictures kept on the TV (four, with their slots for the time of day).
 - **Back**: *Choice of background* → *By time of day* (or another). Removing the library: empty the address.
+
+## Settings on the TV (perso.9)
+
+The gear and the tile *Controls* open the TV's own settings (`app/reglages.js`), all with the remote; the settings page stays for what needs text (System shows its address and a QR code). Changes go through `/api/home/config` (Home only; the fields in `HOME_FIELDS` of `server.js`). Tiles can be hidden on the Home (`"hidden": true`).
+

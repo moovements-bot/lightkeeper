@@ -162,6 +162,26 @@ function globals(file) {
   return names;
 }
 var logosGlobals = globals('logos.js'), homeGlobals = globals('index.html');
+// The Home's other scripts (perso.9): the settings panel and the QR code, no name shared with the rest.
+['reglages.js', 'qr.js'].forEach(function (f) {
+  var g = globals(f), others = [globals('index.html'), globals('logos.js'), globals('fondi.js'), globals(f === 'qr.js' ? 'reglages.js' : 'qr.js')];
+  assert.deepEqual(Object.keys(g).filter(function (n) { return others.some(function (o) { return o[n]; }); }), [], 'names of ' + f + ' declared elsewhere');
+});
+(function () {
+  var ctx = {};
+  require('vm').runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'qr.js'), 'utf8'), ctx);
+  var q = ctx.qrMatrice('http://192.168.1.48:8090/');
+  assert.equal(q.length, 25); // version 2
+  assert.ok(q[0][0] && q[0][6] && !q[7][7] && q[6][8] === true && q[q.length - 8][8] === true); // finder, timing, dark module
+  assert.equal(ctx.qrMatrice('http://' + 'x'.repeat(120)), null);
+  assert.ok(/^<svg[^>]+viewBox="0 0 33 33"/.test(ctx.qrSvg('http://192.168.1.48:8090/', 300)));
+})();
+// The TV's settings panel may change only these, and each is a field the server knows.
+assert.deepEqual(s.HOME_FIELDS.filter(function (k) { return !Object.prototype.hasOwnProperty.call(s.DEFAULTS, k); }), []);
+assert.ok(fs.readFileSync(path.join(__dirname, '..', 'app', 'index.html'), 'utf8').indexOf("if (voci[i].gear) return apriReglages(0, false);") !== -1, 'the gear opens the TV settings, not the browser');
+assert.deepEqual(s.validate({ tiles: [{ id: 'netflix', title: 'Netflix', hidden: true }] }, keys), { tiles: [{ id: 'netflix', title: 'Netflix', hidden: true }] });
+assert.equal(s.validate({ tiles: [{ id: 'netflix', title: 'Netflix', hidden: 'yes' }] }, keys), 'tiles');
+
 assert.deepEqual(Object.keys(homeGlobals).filter(function (n) { return logosGlobals[n]; }), [], 'names declared by both logos.js and the Home');
 
 // A TV without LG's key filters, as webOS 3 (issue #3): the key is reported as
@@ -398,8 +418,8 @@ assert.deepEqual(s.validate({ bgInfo: {} }, keys), { bgInfo: {} });
 assert.equal(s.validate({ bgInfo: { night: { artist: new Array(200).join('a') } } }, keys).bgInfo.night.artist.length, 60); // cut, not refused, as a tile's name is
 assert.deepEqual(s.validate({ tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] }, keys), { tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] });
 // The personal version, said in the three places it is written.
-assert.equal(s.VERSION, '1.0.9-perso.8');
-assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.8');
+assert.equal(s.VERSION, '1.0.9-perso.9');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.9');
 
 // The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
@@ -937,7 +957,7 @@ function httpChecks() {
     },
     // The project's own updates are off in this version: nothing looked for, nothing installed.
     function (next) { req('GET', '/api/update', {}, function (st, j) {
-      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.8'); assert.equal(j.latest, undefined);
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.9'); assert.equal(j.latest, undefined);
       req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {

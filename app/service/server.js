@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.8';
+var VERSION = '1.0.9-perso.9';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -118,6 +118,9 @@ var NEXT_BG_TILE = 'lk.nextbg';
 var CONTROL_TILE = 'lk.control';
 // How long the Home may be left alone before only the painting shows, in minutes; 0 is never.
 var IDLE_MINUTES = [0, 1, 2, 5, 10, 15, 30, 60];
+// What the TV's own settings panel may change (perso.9); the rest needs text, and stays on the settings page.
+var HOME_FIELDS = ['libraryCollections', 'libraryOrder', 'libraryRotate', 'libraryMatch', 'captions', 'idleMinutes', 'backgroundMode',
+  'tiles', 'tileStyle', 'labels', 'clock', 'clockStyle', 'clockSize', 'weather', 'units', 'veil', 'collectionsKey', 'startTile'];
 
 var DEFAULTS = {
   clock: '24',
@@ -537,6 +540,11 @@ function validate(body, keyNames) {
         if (isWeb(t.id) || t.url !== undefined) {
           if (!isWeb(t.id) || !webUrl(t.url)) return 'tiles';
           tile.url = t.url;
+        }
+        // Hidden on the Home from the TV's own settings (perso.9), kept in the list.
+        if (t.hidden !== undefined) {
+          if (t.hidden !== true) return 'tiles';
+          tile.hidden = true;
         }
         // A logo or icon chosen for the tile; without one, Lightkeeper picks it.
         if (t.logo !== undefined) {
@@ -1283,6 +1291,47 @@ function handle(req, res) {
       send(res, 200, { ok: true, now: lib ? lib.now() : null }, alCors);
     });
   }
+  /*
+   * The TV's own settings panel (perso.9), from the Home only: the fields it shows, checked as the settings
+   * page's (validate), applied at once; the library read again now; its state. Nothing else is taken here.
+   */
+  if (p === '/api/home/config' || p === '/api/home/sync' || p === '/api/home/library') {
+    if (!fromHome(req)) {
+      log('home settings refused: ' + req.socket.remoteAddress + ', origin ' + req.headers.origin);
+      return send(res, 403, { ok: false, error: 'the Home only' });
+    }
+    var hsCors = req.headers.origin ? { 'Access-Control-Allow-Origin': req.headers.origin, 'Vary': 'Origin' } : {};
+    if (m === 'OPTIONS') {
+      hsCors['Access-Control-Allow-Methods'] = 'GET, POST';
+      hsCors['Access-Control-Allow-Headers'] = 'Content-Type';
+      hsCors['Access-Control-Max-Age'] = '600';
+      return send(res, 204, '', hsCors);
+    }
+    if (p === '/api/home/library') {
+      if (m !== 'GET') return send(res, 405, { ok: false, error: 'not allowed' }, hsCors);
+      return send(res, 200, { ok: true, library: lib ? lib.state() : null }, hsCors);
+    }
+    if (m !== 'POST') return send(res, 405, { ok: false, error: 'not allowed' }, hsCors);
+    if (String(req.headers['content-type'] || '').split(';')[0].toLowerCase() !== 'application/json') return send(res, 415, { ok: false, error: 'bad request' }, hsCors);
+    if (p === '/api/home/sync') {
+      if (!lib) return send(res, 503, { ok: false, error: 'not ready' }, hsCors);
+      return readBody(req, MAX_JSON, function () { lib.sync(function () { send(res, 200, { ok: true, library: lib.state() }, hsCors); }); });
+    }
+    return readBody(req, MAX_JSON, function (b) {
+      var body = null;
+      try { body = JSON.parse(String(b)); } catch (e) {}
+      if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(function (k) { return HOME_FIELDS.indexOf(k) === -1; })) {
+        return send(res, 400, { ok: false, error: 'not a setting of the TV panel' }, hsCors);
+      }
+      var change = validate(body, keyNames());
+      if (typeof change === 'string') return send(res, 400, { ok: false, error: 'invalid: ' + change }, hsCors);
+      Object.keys(withMode(change)).forEach(function (k) { config[k] = change[k]; });
+      try { saveConfig(); } catch (e) { return send(res, 500, { ok: false, error: e.message }, hsCors); }
+      if (lib && (has(change, 'libraryCollections') || has(change, 'libraryMatch') || has(change, 'libraryOrder') || has(change, 'backgroundMode'))) { lib.arrangeIfNeeded(); lib.prefetch(); }
+      log('set from the TV: ' + Object.keys(change).join(', '));
+      send(res, 200, { ok: true, config: publicConfig() }, hsCors);
+    });
+  }
   // The panel of controls, for the Home only (as the open apps and the next background are).
   if (p === '/api/control') {
     if (!fromHome(req)) {
@@ -1557,7 +1606,7 @@ function start() {
   process.on('exit', function () { if (saverChild) saverChild.kill(); });
 }
 
-module.exports = { DEVICES: DEVICES, DEFAULTS: DEFAULTS, CATALOG: CATALOG, webUrl: webUrl, newer: newer, readManifest: readManifest, verifyIpk: verifyIpk, validate: validate, jpegSize: jpegSize, isLocal: isLocal, hostOk: hostOk,
+module.exports = { HOME_FIELDS: HOME_FIELDS, DEVICES: DEVICES, DEFAULTS: DEFAULTS, CATALOG: CATALOG, webUrl: webUrl, newer: newer, readManifest: readManifest, verifyIpk: verifyIpk, validate: validate, jpegSize: jpegSize, isLocal: isLocal, hostOk: hostOk,
   applyKey: applyKey, VERSION: VERSION, CONTROLS: CONTROLS, IDLE_MINUTES: IDLE_MINUTES, FONDI: FONDI, iconFile: iconFile, pickBackground: pickBackground, appChoices: appChoices, openApps: openApps, fromHome: fromHome, keysOnTv: keysOnTv,
   pinHash: pinHash, same: same };
 

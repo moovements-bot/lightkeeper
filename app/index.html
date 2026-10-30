@@ -158,6 +158,34 @@ body.pannello header, body.pannello nav, body.pannello #hint, body.pannello #leg
 #controllo li .logo svg, #controllo li .logo img { display: block; }
 #controllo li.assente { opacity: .35; }
 #controllo p { position: absolute; left: 112px; bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .8; }
+/* The TV's own settings (perso.9, reglages.js): headings on the left, their settings on the right. */
+#reglages { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(18, 13, 8, .9); }
+#reglages[hidden] { display: none; }
+#reglages .menu { position: absolute; left: 112px; top: 110px; width: 460px; }
+#reglages h2, #reglages h3 { height: 41px; font-size: 34px; font-weight: 300; opacity: .8; margin-bottom: 40px; }
+#reglages .rub { list-style: none; }
+#reglages .rub li { position: relative; height: 84px; line-height: 84px; font-size: 44px; font-weight: 400; font-weight: 380; opacity: .5; transition: opacity .12s; }
+#reglages .rub li.sel, #reglages .rub li.scelta { opacity: 1; font-weight: 500; font-weight: 450; }
+#reglages .rub li.scelta { opacity: .85; }
+#reglages .rub li.sel::after { content: ""; position: absolute; left: 0; bottom: 12px; width: 36px; height: 3px; border-radius: 2px; background: currentColor; }
+#reglages .det { position: absolute; left: 640px; top: 110px; right: 112px; }
+#reglages .vista { position: relative; height: 736px; overflow: hidden; }
+#reglages .voci { list-style: none; transition: -webkit-transform .18s, transform .18s; }
+#reglages .voci li { display: flex; justify-content: space-between; align-items: center; height: 92px; padding: 0 32px; border-radius: 20px;
+  font-size: 38px; font-weight: 400; font-weight: 380; opacity: .62; transition: opacity .12s, background-color .12s; }
+#reglages .voci li b { font-size: 32px; font-weight: 300; opacity: .85; white-space: nowrap; }
+#reglages .voci li.sel { opacity: 1; background: rgba(244, 241, 236, .12); }
+#reglages .voci li.val.sel b::before { content: "\2039\00a0\00a0"; opacity: .6; }
+#reglages .voci li.val.sel b::after { content: "\00a0\00a0\203a"; opacity: .6; }
+#reglages .voci li.apre b::after { content: "\00a0\00a0\203a"; opacity: .5; }
+#reglages .voci li.info { opacity: .42; }
+#reglages .voci li.info.sel { opacity: .8; }
+#reglages .voci li.sposta { background: rgba(244, 241, 236, .24); opacity: 1; }
+#reglages .voci li.spenta span { opacity: .5; }
+#reglages .qr { position: absolute; right: 112px; bottom: 120px; width: 300px; text-align: center; }
+#reglages .qr svg { display: block; border-radius: 16px; }
+#reglages .qr p { margin-top: 18px; font-size: 24px; font-weight: 300; font-weight: 350; opacity: .8; }
+#reglages .nota { position: absolute; left: 112px; bottom: 50px; font-size: 26px; font-weight: 300; font-weight: 350; opacity: .8; }
 /* The albums of the library, ticked with the remote (perso.6): all of them, or the ones ticked mixed. */
 #albumi { position: absolute; top: 0; right: 0; bottom: 0; left: 0; padding: 120px 0 0 112px; background: rgba(18, 13, 8, .86); }
 #albumi[hidden] { display: none; }
@@ -243,13 +271,15 @@ header { transition: opacity .4s; }
 <a class="freccia" id="fr-sx" aria-label="Back along the row"></a><a class="freccia" id="fr-dx" aria-label="On along the row"></a>
 <div id="hint"></div>
 <div id="legenda"></div>
+<div id="reglages" hidden><div class="menu"><h2></h2><ul class="rub"></ul></div><div class="det"><h3></h3><div class="vista"><ul class="voci"></ul></div></div><div class="qr"></div><p class="nota"></p></div>
 <div id="controllo" hidden><h2></h2><div class="onglets"></div><div class="righe"><ul></ul></div><p></p></div>
 <div id="aperte" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
 <div id="albumi" hidden><h2></h2><div class="righe"><ul></ul></div><p></p></div>
 <script src="logos.js"></script>
 <script src="fondi.js"></script>
+<script src="qr.js"></script>
 <script>
-var APP_VERSION = '1.0.9-perso.8';
+var APP_VERSION = '1.0.9-perso.9';
 var LG_HOME = 'com.webos.app.home';
 var BROWSER = 'com.webos.app.browser';
 var EXEC = 'luna://org.webosbrew.hbchannel.service/exec';
@@ -273,7 +303,20 @@ var TEXT = { settings: 'Settings', phone: 'or on your phone: ', empty: 'Choose y
   picture_filmMaker: 'Filmmaker', picture_expert1: 'Expert (bright room)', picture_expert2: 'Expert (dark room)',
   lgNetwork: 'Wi-Fi and network', lgDevice: 'Bluetooth and devices', lgPicture: 'Picture settings', lgSound: 'Sound settings',
   albums: 'Collections', allAlbums: 'All backgrounds', albumsNote: 'OK: tick or untick · Back: close', noAlbums: 'No collections: set the library in the settings',
-  oneLib: 'Only one background in these collections' };
+  oneLib: 'Only one background in these collections',
+  rgTitle: 'Settings', rgBackground: 'Background', rgHome: 'Home', rgRemote: 'Remote', rgSystem: 'System', rgYes: 'On', rgNo: 'Off',
+  rgNote: 'Up and down: move · Left and right: change · OK: choose · Back: return', rgTilesNote: 'Left or right: show or hide · OK: move it with up and down, OK again to drop · Back: return',
+  rgFailed: 'The TV did not take that', rgTicked: 'ticked', rgOrder: 'Order', rgShuffle: 'Shuffled', rgInOrder: 'In order', rgRotate: 'New background',
+  rgPower: 'At power on', rgManual: 'On demand', rgCross: 'Crossed collections', rgCaption: 'Caption', rgIdle: 'Painting alone after', rgNever: 'Never',
+  rgByTime: 'Background by time of day', rgSync: 'Read the library now', rgSyncing: 'Reading the library…', rgSynced: 'Library read', rgState: 'Library',
+  rgNoLib: 'No library: set its address on the settings page', rgLibAway: 'not answering', rgPictures: 'backgrounds', rgCollections: 'collections', rgCache: 'cache', rgRead: 'read at',
+  rgTiles: 'Tiles', rgShown: 'shown', rgHidden: 'hidden', rgShownOne: 'Shown', rgHiddenOne: 'Hidden', rgMoving: 'Up or down, then OK',
+  rgTileStyle: 'Show', rgNames: 'Names', rgLogos: 'Logos', rgIcons: 'App icons', rgLabels: 'Names under logos', rgLabelsAll: 'All', rgLabelsSel: 'Selected', rgLabelsNone: 'None',
+  rgClock: 'Clock', rgThin: 'Thin', rgClassic: 'Classic', rgBold: 'Bold', rgMono: 'Mono', rgRounded: 'Rounded', rgDigital: 'Digital',
+  rgClockSize: 'Clock size', rgSmall: 'Small', rgMedium: 'Medium', rgLarge: 'Large', rgClockFormat: 'Clock format', rgWeather: 'Weather', rgUnits: 'Units',
+  rgWeatherPhone: 'Choose the city on the settings page (System)', rgVeil: 'Shade', rgNextKey: 'Next background', rgCollKey: 'Collections',
+  rgKeysHelp: 'Back: return · OK: choose', rgVersion: 'Version', rgPage: 'Settings page', rgReload: 'Restart the Home', rgQr: 'Open on your phone',
+  keyNone: 'None', keyRed: 'Red', keyGreen: 'Green', keyYellow: 'Yellow', keyBlue: 'Blue' };
 // The Home's new lines in French when the TV's menus are (the rest is English, as it was).
 if (/^fr/i.test(navigator.language || '')) {
   TEXT.oneBg = 'Un seul fond pour ce moment de la journée';
@@ -287,6 +330,24 @@ if (/^fr/i.test(navigator.language || '')) {
   TEXT.picture_expert1 = 'Expert (pièce claire)'; TEXT.picture_expert2 = 'Expert (pièce sombre)';
   TEXT.albums = 'Collections'; TEXT.allAlbums = 'Tous les fonds'; TEXT.albumsNote = 'OK : cocher ou décocher · Retour : fermer';
   TEXT.noAlbums = 'Aucune collection : règle la bibliothèque dans les réglages'; TEXT.oneLib = 'Un seul fond dans ces collections';
+  TEXT.rgTitle = 'Réglages'; TEXT.rgBackground = 'Fond'; TEXT.rgHome = 'Accueil'; TEXT.rgRemote = 'Télécommande'; TEXT.rgSystem = 'Système';
+  TEXT.rgYes = 'Oui'; TEXT.rgNo = 'Non';
+  TEXT.rgNote = 'Haut et bas : se déplacer · Gauche et droite : changer · OK : choisir · Retour : revenir';
+  TEXT.rgTilesNote = 'Gauche ou droite : afficher ou masquer · OK : déplacer avec haut et bas, OK pour poser · Retour : revenir';
+  TEXT.rgFailed = 'La TV n\'a pas pris ce réglage'; TEXT.rgTicked = 'cochées'; TEXT.rgOrder = 'Ordre'; TEXT.rgShuffle = 'Mélanger'; TEXT.rgInOrder = 'Dans l\'ordre';
+  TEXT.rgRotate = 'Nouveau fond'; TEXT.rgPower = 'À l\'allumage'; TEXT.rgManual = 'À la demande'; TEXT.rgCross = 'Collections croisées'; TEXT.rgCaption = 'Légende';
+  TEXT.rgIdle = 'Tableau seul après'; TEXT.rgNever = 'Jamais'; TEXT.rgByTime = 'Fond selon l\'heure'; TEXT.rgSync = 'Synchroniser la bibliothèque';
+  TEXT.rgSyncing = 'Lecture de la bibliothèque…'; TEXT.rgSynced = 'Bibliothèque relue'; TEXT.rgState = 'Bibliothèque';
+  TEXT.rgNoLib = 'Pas de bibliothèque : son adresse se règle sur la page'; TEXT.rgLibAway = 'ne répond pas'; TEXT.rgPictures = 'fonds'; TEXT.rgCollections = 'collections';
+  TEXT.rgCache = 'cache'; TEXT.rgRead = 'lue à'; TEXT.rgTiles = 'Tuiles'; TEXT.rgShown = 'affichées'; TEXT.rgHidden = 'masquées'; TEXT.rgShownOne = 'Affichée';
+  TEXT.rgHiddenOne = 'Masquée'; TEXT.rgMoving = 'Haut ou bas, puis OK'; TEXT.rgTileStyle = 'Affichage'; TEXT.rgNames = 'Noms'; TEXT.rgLogos = 'Logos';
+  TEXT.rgIcons = 'Icônes'; TEXT.rgLabels = 'Noms sous les logos'; TEXT.rgLabelsAll = 'Tous'; TEXT.rgLabelsSel = 'Sélection'; TEXT.rgLabelsNone = 'Aucun';
+  TEXT.rgClock = 'Horloge'; TEXT.rgThin = 'Fine'; TEXT.rgClassic = 'Classique'; TEXT.rgBold = 'Grasse'; TEXT.rgMono = 'Mono'; TEXT.rgRounded = 'Arrondie';
+  TEXT.rgDigital = 'Digitale'; TEXT.rgClockSize = 'Taille de l\'horloge'; TEXT.rgSmall = 'Petite'; TEXT.rgMedium = 'Moyenne'; TEXT.rgLarge = 'Grande';
+  TEXT.rgClockFormat = 'Format'; TEXT.rgWeather = 'Météo'; TEXT.rgUnits = 'Unités'; TEXT.rgWeatherPhone = 'Choisis la ville sur la page de réglages (Système)';
+  TEXT.rgVeil = 'Assombrissement'; TEXT.rgNextKey = 'Fond suivant'; TEXT.rgCollKey = 'Collections'; TEXT.rgKeysHelp = 'Retour : revenir · OK : choisir';
+  TEXT.rgVersion = 'Version'; TEXT.rgPage = 'Page de réglages'; TEXT.rgReload = 'Redémarrer l\'accueil'; TEXT.rgQr = 'Ouvrir sur ton iPhone';
+  TEXT.keyNone = 'Aucune'; TEXT.keyRed = 'Rouge'; TEXT.keyGreen = 'Verte'; TEXT.keyYellow = 'Jaune'; TEXT.keyBlue = 'Bleue';
   TEXT.lgNetwork = 'Wi-Fi et réseau'; TEXT.lgDevice = 'Bluetooth et appareils'; TEXT.lgPicture = 'Réglages image'; TEXT.lgSound = 'Réglages son';
 }
 // The colour keys of the remote, as the TV's browser sends them.
@@ -410,9 +471,9 @@ function premi(i) {
 function lancia(i) {
   if (voci[i].aperte) return apriPannello();
   if (voci[i].id === 'lk.nextbg') return fondoSuccessivo();
-  if (voci[i].id === 'lk.control') return apriControllo();
+  if (voci[i].id === 'lk.control') return apriReglages(0, true);
   if (voci[i].id === 'lk.collections' || voci[i].id === 'lk.albums') return apriAlbum();
-  if (voci[i].gear) return apri(BROWSER, { target: server() + '/' });
+  if (voci[i].gear) return apriReglages(0, false);
   try { localStorage.setItem('ultimaId', voci[i].id); localStorage.setItem('ultima', String(i)); } catch (e) {}
   var a = apertura(voci[i], BROWSER);
   apri(a.id, a.params);
@@ -669,10 +730,10 @@ function disegna() {
   caricatori = [];
   misura = null;
   selMostrata = -1;
-  voci = (cfg.tiles || []).slice();
+  voci = (cfg.tiles || []).filter(function (t) { return !t.hidden; }); // hidden from the TV's own settings
   if (cfg.openApps) voci.push({ aperte: true });
   // Without tiles the gear stays, as the Home would have nothing to choose.
-  if (!cfg.hideGear || !(cfg.tiles || []).length) voci.push({ gear: true });
+  if (!cfg.hideGear || !voci.length) voci.push({ gear: true }); // all hidden: the gear stays, for the settings
   voci.forEach(function (v, i) {
     var a = document.createElement('a');
     if (v.gear) {
@@ -723,6 +784,7 @@ document.addEventListener('keydown', function (e) {
   if (!pannello.hidden) return tastoPannello(e);
   if (!controllo.hidden) return tastoControllo(e);
   if (!albumi.hidden) return tastoAlbum(e);
+  if (!reglages.hidden) return tastoReglages(e);
   if (cfg.collectionsKey && TOUCHES[cfg.collectionsKey] === e.keyCode && cfg.backgroundMode === 'library') { if (!e.repeat) apriAlbum(); }
   else if (cfg.nextBgKey && TOUCHES[cfg.nextBgKey] === e.keyCode) tastoColore(e);
   else if (e.keyCode === 37) seleziona(sel - 1);
@@ -880,6 +942,7 @@ function apriAlbum() {
 function chiudiAlbum() {
   albumi.hidden = true;
   document.body.classList.remove('pannello');
+  if (tornaReglages()) return;
   seleziona(sel, true);
 }
 function disegnaAlbum() {
@@ -1058,7 +1121,7 @@ document.addEventListener('mousemove', function (e) {
 document.addEventListener('cursorStateChange', function () { esciArte(); attivita(); });
 setInterval(function () {
   var minuti = typeof cfg.idleMinutes === 'number' ? cfg.idleMinutes : 0;
-  if (!minuti || arteAttiva || document.hidden || !sfondoMesso || !pannello.hidden || !controllo.hidden || !albumi.hidden) return;
+  if (!minuti || arteAttiva || document.hidden || !sfondoMesso || !pannello.hidden || !controllo.hidden || !albumi.hidden || !reglages.hidden) return;
   if (Date.now() - ultimoTasto >= minuti * 60000) entraArte();
 }, 5000);
 
@@ -1074,9 +1137,9 @@ var ctRighe = controllo.querySelector('.righe'), ctLista = controllo.querySelect
 var ctDati = null, ctVoci = [], ctCat = 0, ctSel = [0, 0, 0, 0, 0], ctOcc = false;
 controllo.onclick = function (e) { if (e.target === controllo) chiudiControllo(); };
 
-function apriControllo() {
+function apriControllo(cat) {
   ctDati = null;
-  ctCat = 0;
+  ctCat = cat || 0;
   ctSel = [0, 0, 0, 0, 0];
   controllo.hidden = false;
   document.body.classList.add('pannello');
@@ -1087,6 +1150,7 @@ function apriControllo() {
 function chiudiControllo() {
   controllo.hidden = true;
   document.body.classList.remove('pannello');
+  if (tornaReglages()) return;
   seleziona(ultimaVoce());
 }
 
@@ -1404,7 +1468,7 @@ function trovaPorta(cb) {
 }
 
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) { clearTimeout(battitoTimer); pannello.hidden = true; controllo.hidden = true; albumi.hidden = true; document.body.classList.remove('pannello'); esciArte(); }
+  if (document.hidden) { clearTimeout(battitoTimer); pannello.hidden = true; controllo.hidden = true; albumi.hidden = true; reglages.hidden = true; document.body.classList.remove('pannello'); esciArte(); }
   else { attivita(); battito(); leggi(); chiediAperte(); }
 });
 
@@ -1422,6 +1486,7 @@ document.addEventListener('webOSRelaunch', function () {
     pannello.hidden = true;
     controllo.hidden = true;
     albumi.hidden = true;
+    reglages.hidden = true;
     document.body.classList.remove('pannello');
     seleziona(iniziale());
     aggiorna();
@@ -1450,5 +1515,6 @@ setInterval(function () {
   });
 }, 4000);
 </script>
+<script src="reglages.js"></script>
 </body>
 </html>

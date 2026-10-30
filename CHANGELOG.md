@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.9-perso.9 (30 October 2026)
+
+- **Settings on the TV itself, with the remote.** The gear (and the tile *Controls*) opens a full-screen panel instead of the settings page in the TV's browser: headings on the left (Controls, Background, Home, Remote, System), their settings on the right. Up and down move, Right or OK goes in, Left and Right change a value, OK flips or opens, Back goes up a level and then closes.
+  - *Controls*: sources, sound output, picture, sleep timer, LG's pages (the existing panel, Back returns here).
+  - *Background*: collections (the same picker), shuffled or in order, how often, crossed or not, caption, painting alone after, background by time of day, *Read the library now*, and the library's state (backgrounds, collections, cache, last reading).
+  - *Home*: tiles shown or hidden, and their order (OK, then up and down, OK again); names, logos or icons; names under logos; clock style, size and 12/24 h; weather on or off, °C/°F; the shade, with left and right.
+  - *Remote*: the keys (yellow next background, blue collections) and the collections' key.
+  - *System*: version, the settings page's address and a QR code to open it on a phone (for what needs text: the weather's city, a tile's name, the library's address, the PIN), restart the Home.
+- Each change goes at once to the server (`/api/home/config`, from the Home only, the fields of the panel only, the settings page's own checks) and the Home is drawn again from its answer; the settings page shows the same. Rows of one height: moving asks for no layout.
+- Tiles can be hidden on the Home (`hidden: true`), kept in the list; the settings page shows them dimmed. With every tile hidden, the gear stays.
+- `app/qr.js`: a small QR encoder (byte mode, level M, versions 1–6), checked with a QR reader.
+
 ## 1.0.9-perso.8 (30 October 2026)
 
 - **A key for the collections**: with the library, the **blue** key opens the collections on the Home (and closes them); yellow stays *Next background*. *Remote key for the collections* in the settings (red, green, yellow, blue or none), never the same as the next background's. The long press of the next background's key still opens them where the remote repeats a key held down: on the C1's remote it did not.
