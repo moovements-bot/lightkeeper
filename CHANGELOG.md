@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9-perso.11 (30 October 2026)
+
+- **Captions to check, on the settings page**: under the library, *Captions to check* lists the pictures with their caption (to check, automatic, checked), each with its title, artist or author, year, place and tags to correct, and *Validate*. The TV relays to the library's server (`/api/library/caption(s)`, behind the PIN), with a token kept in the config (`libraryToken`) and never shown; the server writes only its `legendes.json`, checked field by field, with the tags of its vocabulary, and marks the caption checked.
+- The TV's settings, Background → Library: how many captions are to check.
+- The library's manifest gives each picture's caption status, kept by the TV.
+
 ## 1.0.9-perso.10 (30 October 2026)
 
 - **The TV's settings in the look of the Controls panel**: a row of tabs at the top (Controls · Background · Home · Remote · System) with the same underline, under it a row of sub-tabs where a tab has some (Controls: Sources · Sound output · Picture · Sleep timer · LG settings, the very ones of the Controls panel; Background: Collections · Rotation · Caption & idle · Library; Home: Tiles · Clock · Weather · Background), then the list. Left and right move along the row in focus, down goes to the next row, up back; in the list, left and right change a value (‹ ›), OK ticks, opens or acts; Back goes up a row, then closes. The help line at the foot follows where the focus is.

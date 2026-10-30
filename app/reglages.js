@@ -165,7 +165,8 @@ function schede() {
         azione(TEXT.rgSync, function () { rgAvviso(TEXT.rgSyncing); leggiLib(true); }),
         info(TEXT.rgLibrary, function () { return statoLib('n'); }),
         info(TEXT.rgCache, function () { return statoLib('cache'); }),
-        info(TEXT.rgRead, function () { return statoLib('lue'); })] }] },
+        info(TEXT.rgRead, function () { return statoLib('lue'); }),
+        info(TEXT.rgToVerify, function () { return rgLib && cfg.libraryUrl ? String(rgLib.toVerify || 0) + (rgLib.auto ? ' · ' + rgLib.auto + ' ' + TEXT.rgAutoN : '') : '—'; })] }] },
     { nome: TEXT.rgHome, subs: [
       { nome: TEXT.rgTiles, righe: tiles },
       { nome: TEXT.rgClock, righe: [

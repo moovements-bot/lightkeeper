@@ -31,6 +31,8 @@ var ID = /^[0-9a-f]{16}$/;
 var TAG = /^[a-z]{1,12}:[a-z0-9][a-z0-9-]{0,39}$/;
 var MOMENTS = ['dawn', 'morning', 'noon', 'afternoon', 'sunset', 'dusk', 'night'];
 var CAPTION = { title: 90, artist: 60, year: 16, place: 60 };
+var STATUSES = ['manuelle', 'auto', 'a-verifier', 'verifie', 'nom-de-fichier']; // of a caption, as the server tells
+var MAX_API = 1024 * 1024;
 
 function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
 
@@ -73,7 +75,9 @@ function checkManifest(m) {
     Object.keys(CAPTION).forEach(function (k) { if (str(c[k], CAPTION[k])) cap[k] = str(c[k], CAPTION[k]); });
     var tags = (it.tags || []).filter(function (t, n) { return typeof t === 'string' && TAG.test(t) && it.tags.indexOf(t) === n; });
     seen[it.id] = true;
-    items.push({ id: it.id, bytes: it.bytes, sha256: it.sha256, caption: cap, tags: tags });
+    var one = { id: it.id, bytes: it.bytes, sha256: it.sha256, caption: cap, tags: tags };
+    if (STATUSES.indexOf(it.captionStatus) !== -1) one.status = it.captionStatus;
+    items.push(one);
   }
   for (var i = 0; i < m.collections.length; i++) {
     var col = m.collections[i];
@@ -155,15 +159,16 @@ Library.prototype.current = function () {
 
 /* ---------- requests ---------- */
 
-// GET of an https address, at most `max` bytes, no redirect followed. cb(err, status, body, headers).
-function get(address, headers, max, cb) {
+// GET (or POST with a body) of an https address, at most `max` bytes, no redirect followed. cb(err, status, body, headers).
+function get(address, headers, max, cb, method, payload) {
   var done = false, finish = function (e, s, b, h) { if (!done) { done = true; cb(e, s, b, h); } };
   var opt = urlMod.parse(address);
-  opt.method = 'GET';
+  opt.method = method || 'GET';
   opt.headers = headers || {};
+  if (payload) { opt.headers['Content-Type'] = 'application/json'; opt.headers['Content-Length'] = Buffer.byteLength(payload); }
   var req = https.request(opt, function (res) {
     var parts = [], n = 0;
-    if (res.statusCode !== 200) { res.resume(); return finish(null, res.statusCode, null, res.headers); }
+    if (res.statusCode !== 200 && !method) { res.resume(); return finish(null, res.statusCode, null, res.headers); }
     res.on('data', function (d) {
       n += d.length;
       if (n > max) { req.abort(); return finish(new Error('too large')); }
@@ -174,8 +179,24 @@ function get(address, headers, max, cb) {
   });
   req.setTimeout(60000, function () { req.abort(); finish(new Error('timeout')); });
   req.on('error', finish);
-  req.end();
+  req.end(payload || undefined);
 }
+
+/*
+ * The library's captions, on the server beside the manifest (api/legendes, api/legende), with the token of the
+ * config: the two fixed calls the settings page relays. cb(err, status, answer).
+ */
+Library.prototype.api = function (what, body, cb) {
+  var token = this.o.config().libraryToken;
+  if (!this.url() || !token) return cb(new Error('no library token'));
+  if (what !== 'legendes' && what !== 'legende') return cb(new Error('not allowed'));
+  get(this.fileUrl('api/' + what), { 'X-TV-Fonds-Token': token }, MAX_API, function (err, status, b) {
+    if (err) return cb(err);
+    var r = null;
+    try { r = JSON.parse(String(b || '')); } catch (e) {}
+    cb(null, status, r);
+  }, what === 'legende' ? 'POST' : 'GET', what === 'legende' ? JSON.stringify(body) : null);
+};
 
 // Beside the manifest: the address of one of the files it names.
 Library.prototype.fileUrl = function (file) { return this.url().replace(/manifest\.json$/, '') + file; };
@@ -463,6 +484,8 @@ Library.prototype.state = function () {
   entries.forEach(function (e) { size += e.bytes; });
   return {
     url: !!this.url(), categories: m ? m.categories : [], collections: m ? m.collections : [], pictures: m ? m.items.length : 0, inUse: this.list().length,
+    toVerify: m ? m.items.filter(function (i) { return i.status === 'a-verifier' || i.status === 'nom-de-fichier'; }).length : 0,
+    auto: m ? m.items.filter(function (i) { return i.status === 'auto'; }).length : 0, token: !!this.o.config().libraryToken,
     cached: entries.length, cacheBytes: size, capBytes: this.free === null ? null : Math.max(0, size + this.free - this.o.minFree - MARGIN),
     lastOk: this.status.lastOk || 0, lastTry: this.status.lastTry || 0, error: this.status.error || ''
   };

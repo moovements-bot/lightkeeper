@@ -418,8 +418,8 @@ assert.deepEqual(s.validate({ bgInfo: {} }, keys), { bgInfo: {} });
 assert.equal(s.validate({ bgInfo: { night: { artist: new Array(200).join('a') } } }, keys).bgInfo.night.artist.length, 60); // cut, not refused, as a tile's name is
 assert.deepEqual(s.validate({ tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] }, keys), { tiles: [{ id: 'lk.control', title: 'Contrôle', logo: 'apps' }] });
 // The personal version, said in the three places it is written.
-assert.equal(s.VERSION, '1.0.9-perso.10');
-assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.10');
+assert.equal(s.VERSION, '1.0.9-perso.11');
+assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'app', 'appinfo.json'), 'utf8')).version, '1.0.9-perso.11');
 
 // The device an HDMI label names (logos.js runs in the page; here only its pure part).
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'logos.js'), 'utf8'), logos);
@@ -629,6 +629,18 @@ assert.equal(s.validate({ collectionsKey: 'blue', nextBgKey: 'blue' }, keys), 'c
 assert.equal(s.validate({ collectionsKey: 'purple' }, keys), 'collectionsKey');
 assert.equal(s.DEFAULTS.collectionsKey, 'blue');
 assert.ok(homeHtml.indexOf("TOUCHES[cfg.collectionsKey] === e.keyCode && cfg.backgroundMode === 'library'") !== -1, 'the collections key on the Home');
+// The captions API's token (perso.11): checked, and never shown by the server.
+assert.deepEqual(s.validate({ libraryToken: 'Ab_c-' + 'x'.repeat(40) }, keys), { libraryToken: 'Ab_c-' + 'x'.repeat(40) });
+['short', 'a b'.repeat(20), 42, 'é'.repeat(40)].forEach(function (v) { assert.equal(s.validate({ libraryToken: v }, keys), 'libraryToken', String(v)); });
+assert.ok(s.HOME_FIELDS.indexOf('libraryToken') === -1);
+assert.ok(/delete c\.libraryToken;/.test(fs.readFileSync(path.join(__dirname, '..', 'app', 'service', 'server.js'), 'utf8')), 'the token is not in the public config');
+(function () {
+  var m = JSON.parse(JSON.stringify(goodManifest));
+  m.items[0].captionStatus = 'a-verifier'; m.items[1].captionStatus = 'nimporte';
+  var c = BIB.checkManifest(m);
+  assert.equal(c.items[0].status, 'a-verifier');
+  assert.equal(c.items[1].status, undefined);
+})();
 // The Home falls back on the pictures kept on the TV, never on nothing.
 assert.ok(homeHtml.indexOf("if (!ok && /\\/lib\\//.test(url) && !sfondoMesso) return sfondo(soccorso());") !== -1, 'library fallback');
 
@@ -957,7 +969,7 @@ function httpChecks() {
     },
     // The project's own updates are off in this version: nothing looked for, nothing installed.
     function (next) { req('GET', '/api/update', {}, function (st, j) {
-      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.10'); assert.equal(j.latest, undefined);
+      assert.equal(st, 200); assert.equal(j.disabled, true); assert.equal(j.current, '1.0.9-perso.11'); assert.equal(j.latest, undefined);
       req('POST', '/api/update', json({}), function (st2, j2) { assert.equal(st2, 403); assert.ok(/off/.test(j2.error)); next(); }); }); },
     // Open apps: off by default, and then the TV is not even asked.
     function (next) {

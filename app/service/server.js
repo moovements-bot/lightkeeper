@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.10';
+var VERSION = '1.0.9-perso.11';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -152,6 +152,8 @@ var DEFAULTS = {
   // shuffled or in order, and when it moves on: each time the TV comes on, every 15/30/60/120 minutes, or
   // only with "next background".
   libraryUrl: '',
+  // The token of the library's captions API (perso.11), never shown by the server; '' = none.
+  libraryToken: '',
   libraryCollections: [],
   libraryMatch: 'any',
   libraryOrder: 'shuffle',
@@ -254,6 +256,8 @@ function saveConfig() {
 function publicConfig() {
   var c = copy(config);
   delete c.pin;
+  delete c.libraryToken; // known by the server only
+  c.libraryTokenSet = !!config.libraryToken;
   c.pinSet = !!config.pin;
   c.version = VERSION;
   c.address = lanAddress();
@@ -470,6 +474,7 @@ function validate(body, keyNames) {
     else if (k === 'backgroundMode') { if (['fixed', 'random', 'time', 'library'].indexOf(v) === -1) return 'backgroundMode'; out[k] = v; }
     // The library: an https address of a manifest.json, or '' for none.
     else if (k === 'libraryUrl') { if (!BIB.validUrl(v)) return 'libraryUrl'; out[k] = v; }
+    else if (k === 'libraryToken') { if (typeof v !== 'string' || !(v === '' || /^[A-Za-z0-9_-]{32,128}$/.test(v))) return 'libraryToken'; out[k] = v; }
     // Collection ids as the manifest has them ("artiste:van-gogh"), each once; whether they are still there is
     // the library's business.
     else if (k === 'libraryCollections') {
@@ -1458,6 +1463,26 @@ function handle(req, res) {
   if (p === '/api/library/sync' && m === 'POST') {
     if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
     return readBody(req, MAX_JSON, function () { lib.sync(function () { send(res, 200, { ok: true, library: lib.state(), config: publicConfig() }); }); });
+  }
+  // The library's captions (perso.11), for the settings page, behind the PIN: the list, and one corrected or
+  // validated, relayed to the server with the token; the manifest is read again once the server has redone it.
+  if (p === '/api/library/captions' && m === 'GET') {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return lib.api('legendes', null, function (err, status, r) {
+      if (err || status !== 200 || !r) return send(res, 502, { ok: false, error: err ? err.message : 'HTTP ' + status });
+      send(res, 200, r);
+    });
+  }
+  if (p === '/api/library/caption' && m === 'POST') {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return readJson(req, res, function (body) {
+      if (!body || typeof body.name !== 'string' || body.name.length > 200 || typeof body.titre !== 'string') return send(res, 400, { ok: false, error: 'a caption expected' });
+      lib.api('legende', body, function (err, status, r) {
+        if (err || !r) return send(res, 502, { ok: false, error: err ? err.message : 'HTTP ' + status });
+        if (status === 200 && r.ok) setTimeout(function () { lib.sync(); }, 20000);
+        send(res, status === 200 ? 200 : 400, r);
+      });
+    });
   }
   if (m === 'POST' && p === '/api/screensaver') {
     return readJson(req, res, function (body) {

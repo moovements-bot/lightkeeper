@@ -254,6 +254,18 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .libalbums .sub { display: block; font-size: 14px; color: var(--muted); }
 #lib-url { width: 100%; margin-top: 10px; }
 .err-note { color: #ff8f80; }
+/* The library's captions to check (perso.11): the picture, its caption to correct, Validate. */
+.caps { margin-top: 12px; border-top: 1px solid var(--line); }
+.cap { display: flex; -webkit-align-items: flex-start; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.cap img { display: block; width: 128px; height: 72px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.cap .f { -webkit-flex: 1; flex: 1; min-width: 0; }
+.cap .f input, .cap .f textarea { display: block; width: 100%; margin-top: 6px; }
+.cap .f textarea { min-height: 96px; font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-strong); background: transparent; color: inherit; }
+.cap .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 13px; border: 1px solid var(--line-strong); }
+.cap .badge.a-verifier { border-color: #ffb070; color: #ffb070; }
+.cap .badge.verifie { border-color: #8fd18f; color: #8fd18f; }
+.cap .nm { margin-left: 8px; font-size: 13px; color: var(--muted); word-break: break-all; }
+.cap .actions { margin-top: 8px; }
 .chips { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 10px; }
 .chips label { position: relative; cursor: pointer; margin: 0 6px 6px 0; }
 .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -443,6 +455,10 @@ footer a { color: var(--muted); }
           </div>
           <p class="note" id="lib-match-note" data-t="libMatchLede">Crossed: one of each kind ticked, for example Van Gogh and Night. Within one kind (two artists), either.</p>
           <div id="lib-albums"></div>
+          <h3 class="sub-h" data-t="capTitle">Captions to check</h3>
+          <p class="note" id="cap-state" aria-live="polite"></p>
+          <div class="actions"><button class="btn" type="button" id="cap-load" data-t="capLoad">Show the captions</button><button class="btn" type="button" id="cap-all" data-t="capAll" hidden>Also the checked ones</button></div>
+          <div class="caps" id="cap-list"></div>
           <div class="row">
             <span class="label" id="l-libord" data-t="libOrder">Order</span>
             <div class="seg" role="radiogroup" aria-labelledby="l-libord">
@@ -693,7 +709,10 @@ footer a { color: var(--muted); }
       idleTitle: 'Painting alone after', idleLede: 'Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.',
       idleNever: 'Never', idleMin: ' min', idleLg: 'LG\'s own screen saver keeps its timer: if it starts first, it covers the painting.',
       infosTitle: 'Captions of your paintings', infoArtist: 'Artist', infoTitle: 'Title', infoYear: 'Year',
-      controlTile: 'Controls', albumsTile: 'Collections', hiddenOnTv: 'Hidden on the Home (TV settings)', collKey: 'Remote key for the collections', collKeyLede: 'With the library: opens the collections on the Home. Not the same key as the next background.', libMatch: 'With several', libMatchAny: 'Any of them', libMatchCross: 'Crossed',
+      controlTile: 'Controls', albumsTile: 'Collections', capTitle: 'Captions to check', capLoad: 'Show the captions', capAll: 'Also the checked ones',
+      capToCheck: ' to check', capAuto: ' automatic', capNone: 'All the captions are checked.', capNoToken: 'The library\'s token is not set on this TV.',
+      capTitleF: 'Title', capArtist: 'Artist or author', capYear: 'Year', capPlace: 'Place (photo)', capTags: 'Tags, one line per kind: artiste, type, periode, style, sujet, saison, moment',
+      capOk: 'Validate', capSaved: 'Validated', st_a_verifier: 'to check', st_auto: 'automatic', st_verifie: 'checked', st_manuelle: 'by hand', st_nom: 'from the file name', hiddenOnTv: 'Hidden on the Home (TV settings)', collKey: 'Remote key for the collections', collKeyLede: 'With the library: opens the collections on the Home. Not the same key as the next background.', libMatch: 'With several', libMatchAny: 'Any of them', libMatchCross: 'Crossed',
       libMatchLede: 'Crossed: one of each kind ticked, for example Van Gogh and Night. Within one kind (two artists), either.',
       bgLibrary: 'Library', libTitle: 'Library on your server', libUrlLede: 'The https address of its manifest.json', libSave: 'Save the address',
       libSync: 'Read the library now', libAlbumsTitle: 'Collections', libAlbumsLede: 'Made from the tags of the pictures (three pictures at least). Tick one to stay on it, several to mix them. None ticked: all of them.',
@@ -720,7 +739,10 @@ footer a { color: var(--muted); }
       idleTitle: 'Tableau seul après', idleLede: 'Sans touche sur l\'accueil : l\'heure, la météo et les tuiles disparaissent, et le tableau bouge très lentement. Une touche suffit pour revenir.',
       idleNever: 'Jamais', idleMin: ' min', idleLg: 'L\'économiseur d\'écran de LG garde sa propre minuterie : s\'il démarre avant, il recouvre le tableau.',
       infosTitle: 'Légendes de tes tableaux', infoArtist: 'Artiste', infoTitle: 'Titre', infoYear: 'Année',
-      controlTile: 'Contrôle', albumsTile: 'Collections', hiddenOnTv: 'Masquée sur l\'accueil (réglages de la TV)', collKey: 'Touche de la télécommande pour les collections', collKeyLede: 'Avec la bibliothèque : ouvre les collections sur l\'accueil. Pas la même touche que le fond suivant.', libMatch: 'Avec plusieurs', libMatchAny: 'L\'une ou l\'autre', libMatchCross: 'Croisées',
+      controlTile: 'Contrôle', albumsTile: 'Collections', capTitle: 'Légendes à vérifier', capLoad: 'Afficher les légendes', capAll: 'Voir aussi les vérifiées',
+      capToCheck: ' à vérifier', capAuto: ' automatiques', capNone: 'Toutes les légendes sont vérifiées.', capNoToken: 'Le jeton de la bibliothèque n\'est pas réglé sur cette TV.',
+      capTitleF: 'Titre', capArtist: 'Artiste ou auteur', capYear: 'Année', capPlace: 'Lieu (photo)', capTags: 'Tags, une ligne par sorte : artiste, type, periode, style, sujet, saison, moment',
+      capOk: 'Valider', capSaved: 'Validée', st_a_verifier: 'à vérifier', st_auto: 'auto', st_verifie: 'vérifiée', st_manuelle: 'à la main', st_nom: 'nom de fichier', hiddenOnTv: 'Masquée sur l\'accueil (réglages de la TV)', collKey: 'Touche de la télécommande pour les collections', collKeyLede: 'Avec la bibliothèque : ouvre les collections sur l\'accueil. Pas la même touche que le fond suivant.', libMatch: 'Avec plusieurs', libMatchAny: 'L\'une ou l\'autre', libMatchCross: 'Croisées',
       libMatchLede: 'Croisées : une de chaque sorte cochée, par exemple Van Gogh et Nuit. Dans une même sorte (deux artistes), l\'un ou l\'autre.',
       bgLibrary: 'Bibliothèque', libTitle: 'Bibliothèque sur ton serveur', libUrlLede: 'L\'adresse https de son manifest.json', libSave: 'Enregistrer l\'adresse',
       libSync: 'Relire la bibliothèque', libAlbumsTitle: 'Collections', libAlbumsLede: 'Faites à partir des tags des images (au moins trois images). Coche une collection pour rester dessus, plusieurs pour les mélanger. Aucune cochée : tous les fonds.',
@@ -1631,6 +1653,7 @@ footer a { color: var(--muted); }
     st.className = 'note';
     if (!cfg.libraryUrl) { st.textContent = t.libNone; return; }
     if (!lib) { st.textContent = '…'; return loadLibrary(); }
+    capState();
     var parts = [];
     if (lib.pictures) parts.push(lib.pictures + t.libPictures + lib.collections.length + t.libAlbumsN + ' (' + lib.inUse + t.libInUse + ')');
     parts.push(t.libCache + mb(lib.cacheBytes) + (lib.capBytes !== null ? t.libOf + mb(lib.capBytes) : '') + ' (' + lib.cached + ')');
@@ -1678,6 +1701,106 @@ footer a { color: var(--muted); }
       ul.appendChild(li);
     });
   }
+  /* ---------- the library's captions to check (perso.11) ---------- */
+
+  var caps = null, capsAll = false;
+  function capState() {
+    var st = $('cap-state');
+    if (!cfg.libraryTokenSet) { st.textContent = t.capNoToken; $('cap-load').hidden = true; return; }
+    $('cap-load').hidden = false;
+    st.textContent = lib ? lib.toVerify + t.capToCheck + ' · ' + lib.auto + t.capAuto : '';
+  }
+  function tagsText(tags) {
+    return Object.keys(tags || {}).map(function (c) { return c + ' : ' + tags[c].join(', '); }).join('\n');
+  }
+  function tagsParse(text) {
+    var out = {};
+    text.split(/\n+/).forEach(function (l) {
+      var m = /^\s*([^:]+?)\s*:\s*(.*)$/.exec(l);
+      if (!m) return;
+      var vals = m[2].split(',').map(function (x) { return x.replace(/^\s+|\s+$/g, ''); }).filter(function (x) { return x; });
+      if (vals.length) out[m[1].toLowerCase()] = vals;
+    });
+    return out;
+  }
+  function renderCaps() {
+    var box = $('cap-list');
+    box.innerHTML = '';
+    if (!caps) return;
+    var list = caps.filter(function (c) { return capsAll || c.status === 'a-verifier' || c.status === 'auto' || c.status === 'nom-de-fichier'; });
+    if (!list.length) { box.textContent = t.capNone; }
+    list.forEach(function (c) {
+      var row = document.createElement('div'), img = document.createElement('img'), f = document.createElement('div');
+      row.className = 'cap';
+      img.src = '/lib/thumb/' + c.id + '.jpg';
+      img.alt = '';
+      img.loading = 'lazy';
+      f.className = 'f';
+      var badge = document.createElement('span'), nm = document.createElement('span');
+      var key = c.status === 'nom-de-fichier' ? 'st_nom' : 'st_' + String(c.status).replace('-', '_');
+      badge.className = 'badge ' + c.status;
+      badge.textContent = t[key] || c.status;
+      nm.className = 'nm';
+      nm.textContent = c.name;
+      f.appendChild(badge);
+      f.appendChild(nm);
+      var champs = {};
+      [['titre', t.capTitleF], ['artiste', t.capArtist], ['annee', t.capYear], ['lieu', t.capPlace]].forEach(function (x) {
+        var i = document.createElement('input');
+        i.type = 'text';
+        i.value = c[x[0]] || '';
+        i.placeholder = x[1];
+        i.setAttribute('aria-label', x[1]);
+        i.maxLength = x[0] === 'titre' ? 90 : x[0] === 'annee' ? 16 : 60;
+        champs[x[0]] = i;
+        f.appendChild(i);
+      });
+      var ta = document.createElement('textarea');
+      ta.value = tagsText(c.tags);
+      ta.placeholder = t.capTags;
+      ta.setAttribute('aria-label', t.capTags);
+      f.appendChild(ta);
+      var act = document.createElement('div'), btn = document.createElement('button'), msg = document.createElement('span');
+      act.className = 'actions';
+      btn.type = 'button';
+      btn.className = 'btn primary';
+      btn.textContent = t.capOk;
+      msg.className = 'note';
+      btn.onclick = function () {
+        var body = { name: c.name, titre: champs.titre.value, artiste: champs.artiste.value, annee: champs.annee.value, lieu: champs.lieu.value, tags: tagsParse(ta.value) };
+        btn.disabled = true;
+        api('POST', '/api/library/caption', body, function (r, raw) {
+          btn.disabled = false;
+          if (!r) { msg.textContent = ' ' + t.notSaved + ((raw && raw.error) || t.offline); msg.className = 'note err-note'; return; }
+          c.status = 'verifie';
+          c.tags = r.tags;
+          ta.value = tagsText(r.tags); // as the server kept them (the vocabulary's names)
+          badge.className = 'badge verifie';
+          badge.textContent = t.st_verifie;
+          msg.textContent = ' ' + t.capSaved;
+          msg.className = 'note';
+        });
+      };
+      act.appendChild(btn);
+      act.appendChild(msg);
+      f.appendChild(act);
+      row.appendChild(img);
+      row.appendChild(f);
+      box.appendChild(row);
+    });
+  }
+  $('cap-load').onclick = function () {
+    status(t.saving);
+    api('GET', '/api/library/captions', null, function (r, raw) {
+      if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
+      status('');
+      caps = r.items || [];
+      $('cap-all').hidden = false;
+      renderCaps();
+    });
+  };
+  $('cap-all').onclick = function () { capsAll = !capsAll; renderCaps(); };
+
   function loadLibrary() {
     api('GET', '/api/library', null, function (r) {
       lib = r && r.library;
