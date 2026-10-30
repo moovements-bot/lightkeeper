@@ -77,14 +77,18 @@ function checkManifest(m) {
     seen[it.id] = true;
     var one = { id: it.id, bytes: it.bytes, sha256: it.sha256, caption: cap, tags: tags };
     if (STATUSES.indexOf(it.captionStatus) !== -1) one.status = it.captionStatus;
+    // The review of the pictures (perso.13): hidden from the TV, a hard format, the uncropped preview.
+    if (it.hidden === true) one.hidden = true;
+    if (it.format === 'difficile') one.format = 'difficile';
+    if (typeof it.apercu === 'string' && /^apercus\/[0-9a-f]{16}\.jpg$/.test(it.apercu)) one.apercu = it.apercu.slice(8, 24);
     items.push(one);
   }
   for (var i = 0; i < m.collections.length; i++) {
     var col = m.collections[i];
     if (!col || !TAG.test(col.id) || known[col.id] || col.id.split(':')[0] !== col.cat || !str(col.name, 40)) return 'collection ' + i;
-    var count = items.filter(function (x) { return x.tags.indexOf(col.id) !== -1; }).length;
+    var dentro = items.filter(function (x) { return !x.hidden && x.tags.indexOf(col.id) !== -1; }), count = dentro.length;
     if (!count) continue;
-    var cover = ID.test(col.cover) && seen[col.cover] ? col.cover : items.filter(function (x) { return x.tags.indexOf(col.id) !== -1; })[0].id;
+    var cover = ID.test(col.cover) && seen[col.cover] ? col.cover : dentro[0].id;
     known[col.id] = true;
     cols.push({ id: col.id, cat: col.cat, catName: catNames[col.cat] || col.cat, name: str(col.name, 40), count: count, cover: cover });
   }
@@ -189,13 +193,14 @@ function get(address, headers, max, cb, method, payload) {
 Library.prototype.api = function (what, body, cb) {
   var token = this.o.config().libraryToken;
   if (!this.url() || !token) return cb(new Error('no library token'));
-  if (what !== 'legendes' && what !== 'legende') return cb(new Error('not allowed'));
+  var post = { legende: true, image: true, restaurer: true }, lire = { legendes: true, images: true };
+  if (!post[what] && !lire[what]) return cb(new Error('not allowed'));
   get(this.fileUrl('api/' + what), { 'X-TV-Fonds-Token': token }, MAX_API, function (err, status, b) {
     if (err) return cb(err);
     var r = null;
     try { r = JSON.parse(String(b || '')); } catch (e) {}
     cb(null, status, r);
-  }, what === 'legende' ? 'POST' : 'GET', what === 'legende' ? JSON.stringify(body) : null);
+  }, post[what] ? 'POST' : 'GET', post[what] ? JSON.stringify(body) : null);
 };
 
 // Beside the manifest: the address of one of the files it names.
@@ -247,16 +252,17 @@ Library.prototype.select = function (chosen, how) {
   var have = {};
   m.collections.forEach(function (c) { have[c.id] = c.cat; });
   chosen = (chosen || []).filter(function (c) { return has(have, c); });
-  if (!chosen.length) return m.items.slice();
+  var visibili = m.items.filter(function (it) { return !it.hidden; }); // hidden in the review: never shown
+  if (!chosen.length) return visibili;
   var groups = {};
   chosen.forEach(function (c) { (groups[have[c]] = groups[have[c]] || []).push(c); });
   var inAny = function (it, list) { return list.some(function (c) { return it.tags.indexOf(c) !== -1; }); };
   if (how === 'cross') {
-    var crossed = m.items.filter(function (it) { return Object.keys(groups).every(function (g) { return inAny(it, groups[g]); }); });
+    var crossed = visibili.filter(function (it) { return Object.keys(groups).every(function (g) { return inAny(it, groups[g]); }); });
     if (crossed.length) return crossed;
   }
-  var any = m.items.filter(function (it) { return inAny(it, chosen); });
-  return any.length ? any : m.items.slice();
+  var any = visibili.filter(function (it) { return inAny(it, chosen); });
+  return any.length ? any : visibili;
 };
 
 Library.prototype.list = function () {
@@ -439,6 +445,18 @@ Library.prototype.ensure = function (id, cb) {
   });
 };
 
+// The uncropped preview of a picture, for the review on the settings page. cb(err, file).
+Library.prototype.ensureApercu = function (key, cb) {
+  var self = this, file = path.join(this.thumbDir, 'ap-' + key + '.jpg'), m = this.current();
+  if (fs.existsSync(file)) return cb(null, file);
+  if (!m || !m.items.some(function (i) { return i.apercu === key; })) return cb(new Error('not in the library'));
+  get(this.fileUrl('apercus/' + key + '.jpg'), {}, MAX_THUMB, function (err, status, body) {
+    if (err || status !== 200) return cb(err || new Error('HTTP ' + status));
+    try { self.mkdirs(); fs.writeFileSync(file + '.tmp', body, { mode: 420 }); fs.renameSync(file + '.tmp', file); } catch (e) { return cb(e); }
+    cb(null, file);
+  });
+};
+
 // The small copy, for the settings page. cb(err, file).
 Library.prototype.ensureThumb = function (id, cb) {
   var self = this, file = path.join(this.thumbDir, id + '.jpg');
@@ -471,8 +489,9 @@ Library.prototype.cleanup = function () {
   [this.cacheDir, this.thumbDir].forEach(function (d) {
     try {
       fs.readdirSync(d).forEach(function (f) {
-        var m = /^([0-9a-f]{16})\.jpg(\.tmp)?$/.exec(f);
-        if (m && (m[2] || !self.item(m[1]))) { try { fs.unlinkSync(path.join(d, f)); } catch (e) {} }
+        var m = /^([0-9a-f]{16})\.jpg(\.tmp)?$/.exec(f), a = /^ap-([0-9a-f]{16})\.jpg$/.exec(f);
+        var gone = m ? (m[2] || !self.item(m[1])) : a ? !self.current().items.some(function (i) { return i.apercu === a[1]; }) : false;
+        if (gone) { try { fs.unlinkSync(path.join(d, f)); } catch (e) {} }
       });
     } catch (e) {}
   });
@@ -486,6 +505,8 @@ Library.prototype.state = function () {
     url: !!this.url(), categories: m ? m.categories : [], collections: m ? m.collections : [], pictures: m ? m.items.length : 0, inUse: this.list().length,
     toVerify: m ? m.items.filter(function (i) { return i.status === 'a-verifier' || i.status === 'nom-de-fichier'; }).length : 0,
     auto: m ? m.items.filter(function (i) { return i.status === 'auto'; }).length : 0, token: !!this.o.config().libraryToken,
+    hidden: m ? m.items.filter(function (i) { return i.hidden; }).length : 0,
+    difficult: m ? m.items.filter(function (i) { return i.format === 'difficile' && !i.hidden; }).length : 0,
     cached: entries.length, cacheBytes: size, capBytes: this.free === null ? null : Math.max(0, size + this.free - this.o.minFree - MARGIN),
     lastOk: this.status.lastOk || 0, lastTry: this.status.lastTry || 0, error: this.status.error || ''
   };

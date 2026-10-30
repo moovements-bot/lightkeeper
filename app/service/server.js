@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.11';
+var VERSION = '1.0.9-perso.13';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -1182,10 +1182,10 @@ function handle(req, res) {
     return sendFile(res, minePath(mp[1], thumb), mp[2] && !thumb ? 'no-store' : 'max-age=31536000');
   }
   // A picture of the library, fetched into the cache if it is not there yet; its small copy, for the page.
-  var lp = /^\/lib\/(thumb\/)?([0-9a-f]{16})\.jpg$/.exec(p);
+  var lp = /^\/lib\/(thumb\/|apercu\/)?([0-9a-f]{16})\.jpg$/.exec(p);
   if (m === 'GET' && lp) {
     if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
-    return lib[lp[1] ? 'ensureThumb' : 'ensure'](lp[2], function (err, file) {
+    return lib[lp[1] === 'thumb/' ? 'ensureThumb' : lp[1] === 'apercu/' ? 'ensureApercu' : 'ensure'](lp[2], function (err, file) {
       if (err) return send(res, err.message === 'not in the library' ? 404 : 503, { ok: false, error: err.message });
       sendFile(res, file, 'max-age=31536000');
     });
@@ -1480,6 +1480,26 @@ function handle(req, res) {
       lib.api('legende', body, function (err, status, r) {
         if (err || !r) return send(res, 502, { ok: false, error: err ? err.message : 'HTTP ' + status });
         if (status === 200 && r.ok) setTimeout(function () { lib.sync(); }, 20000);
+        send(res, status === 200 ? 200 : 400, r);
+      });
+    });
+  }
+  // The review of the pictures (perso.13), behind the PIN: the list (and the bin), one picture kept, hidden,
+  // shown, cropped or put in the bin, one taken back; relayed to the server with the token, as the captions.
+  if (p === '/api/library/images' && m === 'GET') {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return lib.api('images', null, function (err, status, r) {
+      if (err || status !== 200 || !r) return send(res, 502, { ok: false, error: err ? err.message : 'HTTP ' + status });
+      send(res, 200, r);
+    });
+  }
+  if ((p === '/api/library/image' || p === '/api/library/restore') && m === 'POST') {
+    if (!lib) return send(res, 503, { ok: false, error: 'not ready' });
+    return readJson(req, res, function (body) {
+      if (!body || typeof body.name !== 'string' || body.name.length > 200) return send(res, 400, { ok: false, error: 'a picture expected' });
+      lib.api(p === '/api/library/image' ? 'image' : 'restaurer', body, function (err, status, r) {
+        if (err || !r) return send(res, 502, { ok: false, error: err ? err.message : 'HTTP ' + status });
+        if (status === 200 && r.ok) setTimeout(function () { lib.sync(); }, 15000);
         send(res, status === 200 ? 200 : 400, r);
       });
     });

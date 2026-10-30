@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9-perso.13 (30 October 2026)
+
+- **Review of the pictures, on the settings page** (Background → Library → *Review of the pictures*): the final 16:9 versions as the TV shows them, the Home over them if wanted (clock, caption, tiles), filters (all, hard format, hidden, bin), and for each: *Keep*, *Hide from the TV* (and back), *Crop* (across left / centre / right, down top / middle / bottom, zoom, previewed as the server makes it), *Delete* (to the server's bin, restorable). Relayed to the library's server with its token, as the captions.
+- A picture hidden in the review is kept in the library but never shown, nor counted in a collection. The TV's settings, Background → Library: how many pictures are hidden, and in a hard format.
+- (perso.12 was not used: the change of the artists was the server's alone.)
+
 ## 1.0.9-perso.11 (30 October 2026)
 
 - **Captions to check, on the settings page**: under the library, *Captions to check* lists the pictures with their caption (to check, automatic, checked), each with its title, artist or author, year, place and tags to correct, and *Validate*. The TV relays to the library's server (`/api/library/caption(s)`, behind the PIN), with a token kept in the config (`libraryToken`) and never shown; the server writes only its `legendes.json`, checked field by field, with the tags of its vocabulary, and marks the caption checked.

@@ -266,6 +266,28 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cap .badge.verifie { border-color: #8fd18f; color: #8fd18f; }
 .cap .nm { margin-left: 8px; font-size: 13px; color: var(--muted); word-break: break-all; }
 .cap .actions { margin-top: 8px; }
+/* The review of the pictures (perso.13): the final 16:9 version, the Home over it if wanted, what to do with it. */
+.revgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); grid-gap: 16px; margin-top: 12px; }
+.rev { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.rev .vue { position: relative; width: 100%; padding-top: 56.25%; background: #000 center / cover no-repeat; }
+.rev .ov { position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; color: #f4f1ec; font-size: 11px;
+  background: radial-gradient(60% 55% at 0 0, rgba(18,13,8,.7), rgba(18,13,8,0)), linear-gradient(to top, rgba(18,13,8,.85), rgba(18,13,8,0) 45%); }
+.rev .ov .h { position: absolute; left: 6%; top: 6%; font-size: 26px; font-weight: 200; }
+.rev .ov .l { position: absolute; right: 6%; top: 7%; max-width: 50%; text-align: right; }
+.rev .ov .t { position: absolute; left: 6%; bottom: 9%; letter-spacing: .3em; opacity: .9; }
+.rev .info { padding: 8px 10px; font-size: 14px; }
+.rev .info .nm { display: block; color: var(--muted); font-size: 12px; word-break: break-all; }
+.rev .badge { display: inline-block; margin: 4px 4px 0 0; padding: 1px 7px; border-radius: 10px; font-size: 12px; border: 1px solid var(--line-strong); }
+.rev .badge.diff { border-color: #ffb070; color: #ffb070; }
+.rev .badge.cache { border-color: #9aa4ff; color: #9aa4ff; }
+.rev .boutons { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; padding: 0 10px 10px; }
+.rev .boutons .btn { margin: 6px 6px 0 0; padding: 0 12px; height: 36px; font-size: 14px; }
+.rev .crop { padding: 0 10px 10px; }
+.rev .crop .vue { border-radius: 8px; }
+.rev .crop .ligne { display: flex; -webkit-align-items: center; align-items: center; margin-top: 8px; font-size: 14px; }
+.rev .crop .ligne span { min-width: 64px; color: var(--muted); }
+.rev .crop .ligne .btn { margin-right: 6px; padding: 0 10px; height: 34px; font-size: 14px; }
+.rev .crop .ligne .btn.on { background: var(--ink); color: var(--ground); }
 .chips { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 10px; }
 .chips label { position: relative; cursor: pointer; margin: 0 6px 6px 0; }
 .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -459,6 +481,22 @@ footer a { color: var(--muted); }
           <p class="note" id="cap-state" aria-live="polite"></p>
           <div class="actions"><button class="btn" type="button" id="cap-load" data-t="capLoad">Show the captions</button><button class="btn" type="button" id="cap-all" data-t="capAll" hidden>Also the checked ones</button></div>
           <div class="caps" id="cap-list"></div>
+          <h3 class="sub-h" data-t="revTitle">Review of the pictures</h3>
+          <p class="note" id="rev-state" aria-live="polite"></p>
+          <div class="actions"><button class="btn" type="button" id="rev-load" data-t="revLoad">Show the pictures</button></div>
+          <div id="rev-tools" hidden>
+            <div class="seg wide" role="radiogroup" aria-label="Filtre">
+              <label><input type="radio" name="revFiltre" value="tout"><span data-t="revAll">All</span></label>
+              <label><input type="radio" name="revFiltre" value="difficile"><span data-t="revHard">Hard format</span></label>
+              <label><input type="radio" name="revFiltre" value="masquees"><span data-t="revHidden">Hidden</span></label>
+              <label><input type="radio" name="revFiltre" value="corbeille"><span data-t="revBin">Bin</span></label>
+            </div>
+            <div class="row">
+              <label for="rev-ov"><span data-t="revOverlay">The Home over the pictures</span><span class="sub" data-t="revOverlayLede">Where the clock, the caption and the tiles go.</span></label>
+              <input type="checkbox" class="switch" id="rev-ov" role="switch">
+            </div>
+          </div>
+          <div class="revgrid" id="rev-list"></div>
           <div class="row">
             <span class="label" id="l-libord" data-t="libOrder">Order</span>
             <div class="seg" role="radiogroup" aria-labelledby="l-libord">
@@ -709,7 +747,13 @@ footer a { color: var(--muted); }
       idleTitle: 'Painting alone after', idleLede: 'Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.',
       idleNever: 'Never', idleMin: ' min', idleLg: 'LG\'s own screen saver keeps its timer: if it starts first, it covers the painting.',
       infosTitle: 'Captions of your paintings', infoArtist: 'Artist', infoTitle: 'Title', infoYear: 'Year',
-      controlTile: 'Controls', albumsTile: 'Collections', capTitle: 'Captions to check', capLoad: 'Show the captions', capAll: 'Also the checked ones',
+      controlTile: 'Controls', albumsTile: 'Collections', revTitle: 'Review of the pictures', revLoad: 'Show the pictures', revAll: 'All', revHard: 'Hard format',
+      revHidden: 'Hidden', revBin: 'Bin', revOverlay: 'The Home over the pictures', revOverlayLede: 'Where the clock, the caption and the tiles go.',
+      revKeep: 'Keep', revHide: 'Hide from the TV', revShow: 'Show on the TV', revCrop: 'Crop', revDelete: 'Delete', revRestore: 'Restore',
+      revDeleteAsk: 'Put this picture in the bin? It can be restored.', revKept: 'kept', revIsHidden: 'hidden', revIsHard: 'hard format',
+      revApply: 'Apply', revCancel: 'Cancel', revX: 'Across', revY: 'Down', revZoom: 'Zoom', revLeft: 'Left', revCentre: 'Centre', revRight: 'Right',
+      revTop: 'Top', revMiddle: 'Middle', revBottom: 'Bottom', revRedoing: 'The server makes the picture again…', revNone: 'No pictures here.',
+      revCount: ' pictures · ', revHardN: ' hard format · ', revHiddenN: ' hidden · ', revBinN: ' in the bin', capTitle: 'Captions to check', capLoad: 'Show the captions', capAll: 'Also the checked ones',
       capToCheck: ' to check', capAuto: ' automatic', capNone: 'All the captions are checked.', capNoToken: 'The library\'s token is not set on this TV.',
       capTitleF: 'Title', capArtist: 'Artist or author', capYear: 'Year', capPlace: 'Place (photo)', capTags: 'Tags, one line per kind: artiste, type, periode, style, sujet, saison, moment',
       capOk: 'Validate', capSaved: 'Validated', st_a_verifier: 'to check', st_auto: 'automatic', st_verifie: 'checked', st_manuelle: 'by hand', st_nom: 'from the file name', hiddenOnTv: 'Hidden on the Home (TV settings)', collKey: 'Remote key for the collections', collKeyLede: 'With the library: opens the collections on the Home. Not the same key as the next background.', libMatch: 'With several', libMatchAny: 'Any of them', libMatchCross: 'Crossed',
@@ -739,7 +783,13 @@ footer a { color: var(--muted); }
       idleTitle: 'Tableau seul après', idleLede: 'Sans touche sur l\'accueil : l\'heure, la météo et les tuiles disparaissent, et le tableau bouge très lentement. Une touche suffit pour revenir.',
       idleNever: 'Jamais', idleMin: ' min', idleLg: 'L\'économiseur d\'écran de LG garde sa propre minuterie : s\'il démarre avant, il recouvre le tableau.',
       infosTitle: 'Légendes de tes tableaux', infoArtist: 'Artiste', infoTitle: 'Titre', infoYear: 'Année',
-      controlTile: 'Contrôle', albumsTile: 'Collections', capTitle: 'Légendes à vérifier', capLoad: 'Afficher les légendes', capAll: 'Voir aussi les vérifiées',
+      controlTile: 'Contrôle', albumsTile: 'Collections', revTitle: 'Revue des images', revLoad: 'Afficher les images', revAll: 'Toutes', revHard: 'Format difficile',
+      revHidden: 'Masquées', revBin: 'Corbeille', revOverlay: 'L\'accueil par-dessus', revOverlayLede: 'Où vont l\'horloge, la légende et les tuiles.',
+      revKeep: 'Garder', revHide: 'Masquer de la TV', revShow: 'Remettre sur la TV', revCrop: 'Recadrer', revDelete: 'Supprimer', revRestore: 'Restaurer',
+      revDeleteAsk: 'Mettre cette image à la corbeille ? Elle pourra être restaurée.', revKept: 'gardée', revIsHidden: 'masquée', revIsHard: 'format difficile',
+      revApply: 'Appliquer', revCancel: 'Annuler', revX: 'Largeur', revY: 'Hauteur', revZoom: 'Zoom', revLeft: 'Gauche', revCentre: 'Centre', revRight: 'Droite',
+      revTop: 'Haut', revMiddle: 'Milieu', revBottom: 'Bas', revRedoing: 'Le serveur refait l\'image…', revNone: 'Aucune image ici.',
+      revCount: ' images · ', revHardN: ' format difficile · ', revHiddenN: ' masquées · ', revBinN: ' à la corbeille', capTitle: 'Légendes à vérifier', capLoad: 'Afficher les légendes', capAll: 'Voir aussi les vérifiées',
       capToCheck: ' à vérifier', capAuto: ' automatiques', capNone: 'Toutes les légendes sont vérifiées.', capNoToken: 'Le jeton de la bibliothèque n\'est pas réglé sur cette TV.',
       capTitleF: 'Titre', capArtist: 'Artiste ou auteur', capYear: 'Année', capPlace: 'Lieu (photo)', capTags: 'Tags, une ligne par sorte : artiste, type, periode, style, sujet, saison, moment',
       capOk: 'Valider', capSaved: 'Validée', st_a_verifier: 'à vérifier', st_auto: 'auto', st_verifie: 'vérifiée', st_manuelle: 'à la main', st_nom: 'nom de fichier', hiddenOnTv: 'Masquée sur l\'accueil (réglages de la TV)', collKey: 'Touche de la télécommande pour les collections', collKeyLede: 'Avec la bibliothèque : ouvre les collections sur l\'accueil. Pas la même touche que le fond suivant.', libMatch: 'Avec plusieurs', libMatchAny: 'L\'une ou l\'autre', libMatchCross: 'Croisées',
@@ -1654,6 +1704,7 @@ footer a { color: var(--muted); }
     if (!cfg.libraryUrl) { st.textContent = t.libNone; return; }
     if (!lib) { st.textContent = '…'; return loadLibrary(); }
     capState();
+    revState();
     var parts = [];
     if (lib.pictures) parts.push(lib.pictures + t.libPictures + lib.collections.length + t.libAlbumsN + ' (' + lib.inUse + t.libInUse + ')');
     parts.push(t.libCache + mb(lib.cacheBytes) + (lib.capBytes !== null ? t.libOf + mb(lib.capBytes) : '') + ' (' + lib.cached + ')');
@@ -1800,6 +1851,157 @@ footer a { color: var(--muted); }
     });
   };
   $('cap-all').onclick = function () { capsAll = !capsAll; renderCaps(); };
+
+  /* ---------- the review of the pictures (perso.13) ---------- */
+
+  var rev = null, revFiltre = 'tout';
+  var POSX = { gauche: 0, centre: 50, droite: 100 }, POSY = { haut: 0, milieu: 50, bas: 100 };
+  function revState() {
+    if (!cfg.libraryTokenSet) { $('rev-load').hidden = true; return; }
+    $('rev-state').textContent = rev ? rev.items.length + t.revCount + rev.items.filter(function (i) { return i.format; }).length + t.revHardN +
+      rev.items.filter(function (i) { return i.hidden; }).length + t.revHiddenN + rev.corbeille.length + t.revBinN : '';
+  }
+  function chargeRev(quand) {
+    setTimeout(function () {
+      api('GET', '/api/library/images', null, function (r, raw) {
+        if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
+        rev = r;
+        $('rev-tools').hidden = false;
+        revState();
+        renderRev();
+      });
+    }, quand || 0);
+  }
+  // The preview of a crop, as the server makes it: the picture without its edges, covering a 16:9 box, enlarged
+  // by the zoom, placed across and down.
+  function vueCrop(el, src, rec) {
+    var img = new Image();
+    img.onload = function () {
+      var r = img.naturalWidth / img.naturalHeight, z = rec.zoom || 1;
+      el.style.backgroundImage = 'url(' + src + ')';
+      el.style.backgroundSize = r > 16 / 9 ? 'auto ' + (100 * z) + '%' : (100 * z) + '% auto';
+      el.style.backgroundPosition = POSX[rec.x] + '% ' + POSY[rec.y] + '%';
+    };
+    img.src = src;
+  }
+  function revAgis(i, corpo, dopo) {
+    status(t.saving);
+    corpo.name = i.name;
+    api('POST', i.corbeille ? '/api/library/restore' : '/api/library/image', corpo, function (r, raw) {
+      if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
+      status(corpo.action === 'recadrer' ? t.revRedoing : t.saved);
+      if (dopo) dopo();
+      chargeRev(corpo.action === 'recadrer' ? 6000 : 2500);
+    });
+  }
+  function renderRev() {
+    var box = $('rev-list');
+    box.innerHTML = '';
+    if (!rev) return;
+    var ov = $('rev-ov').checked, list;
+    if (revFiltre === 'corbeille') list = rev.corbeille.map(function (c) { return { name: c.name, corbeille: true, raison: c.raison }; });
+    else list = rev.items.filter(function (i) { return revFiltre === 'tout' || (revFiltre === 'difficile' ? i.format : i.hidden); });
+    if (!list.length) { box.textContent = t.revNone; return; }
+    list.forEach(function (i) {
+      var card = document.createElement('div'), vue = document.createElement('div'), info = document.createElement('div'), bt = document.createElement('div');
+      card.className = 'rev';
+      vue.className = 'vue';
+      if (!i.corbeille) vue.style.backgroundImage = 'url(/lib/thumb/' + i.id + '.jpg)';
+      if (ov && !i.corbeille) {
+        var o = document.createElement('div');
+        o.className = 'ov';
+        o.innerHTML = '<span class="h">12:00</span><span class="l"></span><span class="t">■ ■ ■ ■ ■ ■</span>';
+        o.querySelector('.l').textContent = i.titre || '';
+        vue.appendChild(o);
+      }
+      info.className = 'info';
+      info.textContent = i.corbeille ? i.name : (i.titre || i.name);
+      var nm = document.createElement('span');
+      nm.className = 'nm';
+      nm.textContent = i.corbeille ? i.raison : i.name;
+      info.appendChild(nm);
+      [[i.format, 'diff', t.revIsHard], [i.hidden, 'cache', t.revIsHidden], [i.revue === 'ok', '', t.revKept]].forEach(function (b) {
+        if (!b[0]) return;
+        var s = document.createElement('span');
+        s.className = 'badge ' + b[1];
+        s.textContent = b[2];
+        info.appendChild(s);
+      });
+      bt.className = 'boutons';
+      var bouton = function (txt, fai) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = txt; b.onclick = fai; bt.appendChild(b); };
+      if (i.corbeille) bouton(t.revRestore, function () { revAgis(i, {}); });
+      else {
+        if (i.revue !== 'ok') bouton(t.revKeep, function () { revAgis(i, { action: 'garder' }); });
+        bouton(i.hidden ? t.revShow : t.revHide, function () { revAgis(i, { action: i.hidden ? 'afficher' : 'masquer' }); });
+        bouton(t.revCrop, function () { ouvreCrop(card, i); });
+        bouton(t.revDelete, function () { if (confirm(t.revDeleteAsk)) revAgis(i, { action: 'supprimer' }); });
+      }
+      card.appendChild(vue);
+      card.appendChild(info);
+      card.appendChild(bt);
+      box.appendChild(card);
+    });
+  }
+  function ouvreCrop(card, i) {
+    var vecchio = card.querySelector('.crop');
+    if (vecchio) return card.removeChild(vecchio);
+    var rec = { x: i.recadrage.x, y: i.recadrage.y, zoom: i.recadrage.zoom || 1 };
+    var src = i.apercu ? '/lib/apercu/' + i.apercu.slice(8, 24) + '.jpg' : '/lib/thumb/' + i.id + '.jpg';
+    var c = document.createElement('div'), vue = document.createElement('div');
+    c.className = 'crop';
+    vue.className = 'vue';
+    c.appendChild(vue);
+    var righe = [];
+    var ridisegna = function () {
+      vueCrop(vue, src, rec);
+      righe.forEach(function (f) { f(); });
+    };
+    var ligne = function (nome, scelte) {
+      var l = document.createElement('div'), n = document.createElement('span');
+      l.className = 'ligne';
+      n.textContent = nome;
+      l.appendChild(n);
+      scelte.forEach(function (sc) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn';
+        b.textContent = sc[0];
+        b.onclick = function () { sc[1](); ridisegna(); };
+        if (sc[2]) righe.push(function () { b.className = 'btn' + (sc[2]() ? ' on' : ''); });
+        l.appendChild(b);
+      });
+      c.appendChild(l);
+    };
+    ligne(t.revX, [[t.revLeft, function () { rec.x = 'gauche'; }, function () { return rec.x === 'gauche'; }],
+      [t.revCentre, function () { rec.x = 'centre'; }, function () { return rec.x === 'centre'; }],
+      [t.revRight, function () { rec.x = 'droite'; }, function () { return rec.x === 'droite'; }]]);
+    ligne(t.revY, [[t.revTop, function () { rec.y = 'haut'; }, function () { return rec.y === 'haut'; }],
+      [t.revMiddle, function () { rec.y = 'milieu'; }, function () { return rec.y === 'milieu'; }],
+      [t.revBottom, function () { rec.y = 'bas'; }, function () { return rec.y === 'bas'; }]]);
+    var zl = document.createElement('b');
+    ligne(t.revZoom, [['−', function () { rec.zoom = Math.max(1, Math.round((rec.zoom - 0.1) * 10) / 10); }],
+      ['+', function () { rec.zoom = Math.min(2.5, Math.round((rec.zoom + 0.1) * 10) / 10); }]]);
+    c.lastChild.appendChild(zl);
+    righe.push(function () { zl.textContent = ' × ' + rec.zoom.toFixed(1); });
+    var act = document.createElement('div');
+    act.className = 'ligne';
+    var ap = document.createElement('button'), an = document.createElement('button');
+    ap.type = an.type = 'button';
+    ap.className = 'btn primary';
+    an.className = 'btn';
+    ap.textContent = t.revApply;
+    an.textContent = t.revCancel;
+    ap.onclick = function () { revAgis(i, { action: 'recadrer', recadrage: rec }, function () { card.removeChild(c); }); };
+    an.onclick = function () { card.removeChild(c); };
+    act.appendChild(ap);
+    act.appendChild(an);
+    c.appendChild(act);
+    card.appendChild(c);
+    ridisegna();
+  }
+  $('rev-load').onclick = function () { chargeRev(0); };
+  $('rev-ov').onchange = renderRev;
+  radios('revFiltre', 'tout', function (v) { revFiltre = v; renderRev(); });
 
   function loadLibrary() {
     api('GET', '/api/library', null, function (r) {
