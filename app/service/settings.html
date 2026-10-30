@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#120e0a">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#000000">
 <title>Lightkeeper</title>
 <style>
 /* For phones, computers and the TV's own browser (Chromium 53 on webOS 4): ES5, no flex gap, no inset. */
@@ -18,42 +18,156 @@
 @font-face { font-family: 'LK Mono'; src: url(/clock/mono.woff2) format('woff2'); font-weight: 200; }
 @font-face { font-family: 'LK Rounded'; src: url(/clock/rounded.woff2) format('woff2'); font-weight: 300; }
 @font-face { font-family: 'LK Digital'; src: url(/clock/digital.woff2) format('woff2'); font-weight: 300; }
+/*
+ * perso.17: laid out as the TV's own settings panel, in the manner of iOS Settings: tabs along the top, grouped
+ * lists (one line, one setting), sub-pages with a back button; dark unless the system asks for light. The
+ * names below are iOS's; the older ones (--ground, --ink…) follow them for the parts drawn as before.
+ */
 :root {
-  --ground: #120e0a;
-  --raised: #1b1611;
-  --ink: #f4f1ec;
-  --muted: #a9a29a;
-  --line: rgba(244, 241, 236, .13);
-  --line-strong: rgba(244, 241, 236, .3);
-  --wash: rgba(244, 241, 236, .07);
-  --warn: #f0a593;
+  --bg: #000; --group: #1c1c1e; --group2: #2c2c2e; --sep: rgba(84, 84, 88, .65); --label: #fff;
+  --label2: rgba(235, 235, 245, .6); --label3: rgba(235, 235, 245, .3); --tint: #0a84ff; --fill: rgba(118, 118, 128, .24);
+  --red: #ff453a; --green: #30d158; --orange: #ff9f0a; --bar: rgba(18, 18, 20, .88); --knob: #fff; --segon: #636366;
+  --ground: var(--bg); --raised: var(--group); --ink: var(--label); --muted: var(--label2); --line: var(--sep);
+  --line-strong: var(--label3); --wash: var(--fill); --warn: var(--red);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f2f2f7; --group: #fff; --group2: #fff; --sep: rgba(60, 60, 67, .29); --label: #000; --label2: rgba(60, 60, 67, .6);
+    --label3: rgba(60, 60, 67, .3); --tint: #007aff; --fill: rgba(118, 118, 128, .12); --red: #ff3b30; --green: #34c759;
+    --orange: #ff9500; --bar: rgba(242, 242, 247, .9); --segon: #fff;
+  }
+  html { color-scheme: light; }
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html { background: var(--ground); color-scheme: dark; }
+html { background: var(--bg); color-scheme: dark; }
 body {
-  font: 400 17px/1.5 Jost, -apple-system, 'Segoe UI', sans-serif; color: var(--ink);
-  background: var(--ground); -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+  font: 400 17px/1.35 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: var(--label);
+  background: var(--bg); -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
 }
-::selection { background: rgba(244, 241, 236, .28); color: var(--ink); }
 [hidden] { display: none !important; }
-a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-button, input, select { font: inherit; color: inherit; }
-:focus { outline: 2px solid var(--ink); outline-offset: 3px; }
-/* Older engines know no :focus-visible and keep the ring for every focus, which the remote needs. */
+a { color: var(--tint); text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus { outline: 2px solid var(--tint); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }
 
-.top { max-width: 1240px; margin: 0 auto; padding: 28px 24px 0; display: flex; align-items: baseline; justify-content: space-between; }
-.top h1 { font-size: 30px; font-weight: 300; letter-spacing: .02em; }
-.top h1 span { color: var(--muted); font-weight: 300; margin-left: 10px; }
-#status { color: var(--ink); transition: opacity .25s; }
-#status.err { color: var(--warn); }
+/* The tabs, always at the top; on a phone they scroll sideways. */
+.tabbar {
+  position: -webkit-sticky; position: sticky; top: 0; z-index: 10; display: flex; overflow-x: auto; white-space: nowrap;
+  padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--bar); border-bottom: 1px solid var(--sep);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.tabbar::-webkit-scrollbar { display: none; }
+.tabbar .in { display: flex; margin: 0 auto; }
+.tabbar button { -webkit-flex: 0 0 auto; flex: 0 0 auto; height: 34px; padding: 0 14px; margin-right: 4px; border: 0; border-radius: 9px; background: transparent;
+  color: var(--label2); font-size: 15px; font-weight: 600; cursor: pointer; }
+.tabbar button[aria-selected=true] { background: var(--fill); color: var(--label); }
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 16px 90px; padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
+#tab-galerie .wrap { max-width: 1100px; }
+h1.lt { font-size: 34px; font-weight: 700; letter-spacing: .005em; margin: 18px 4px 4px; line-height: 1.2; }
+.back { display: inline-flex; align-items: center; margin: 14px 0 0 -6px; padding: 4px 6px; border: 0; background: transparent; color: var(--tint); font-size: 17px; cursor: pointer; }
+.back::before { content: ""; width: 10px; height: 10px; margin-right: 6px; border-left: 2.5px solid currentColor; border-bottom: 2.5px solid currentColor; -webkit-transform: rotate(45deg); transform: rotate(45deg); }
 
-.layout { max-width: 1240px; margin: 0 auto; padding: 24px 24px 0; }
-/* The preview: the Home itself at 1920 × 1080, scaled to fit. */
-.preview-col { position: -webkit-sticky; position: sticky; top: 0; z-index: 2; background: var(--ground); padding: 8px 0 14px; }
-.preview { position: relative; width: 100%; padding-top: 56.25%; overflow: hidden; border-radius: 10px; background: #000; box-shadow: 0 18px 50px rgba(0, 0, 0, .55); }
-.caption { display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px; color: var(--muted); min-height: 21px; }
-.caption #status { margin-left: 16px; text-align: right; }
+/* Grouped lists: a heading, rounded groups of lines, a note under them. */
+.gh { margin: 28px 16px 7px; font-size: 13px; font-weight: 400; text-transform: uppercase; letter-spacing: .02em; color: var(--label2); }
+.group { background: var(--group); border-radius: 10px; overflow: hidden; }
+.gh + .group, h1.lt + .group { margin-top: 0; }
+h1.lt + .group { margin-top: 14px; }
+.gf { margin: 7px 16px 0; font-size: 13px; color: var(--label2); }
+.gf.err, .note.err, .err-note { color: var(--red); }
+.note { margin-top: 8px; font-size: 13px; color: var(--label2); }
+.cell { position: relative; display: flex; -webkit-align-items: center; align-items: center; width: 100%; min-height: 44px; padding: 8px 16px;
+  border: 0; background: transparent; color: var(--label); font-size: 17px; text-align: left; }
+.cell + .cell::before, .cell + .wide-cell::before, .wide-cell + .cell::before, .wide-cell + .wide-cell::before {
+  content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); -webkit-transform: scaleY(.5); transform: scaleY(.5); }
+.cell .lbl, .cell > label { -webkit-flex: 1 1 auto; flex: 1 1 auto; min-width: 0; margin-right: 12px; }
+.cell .sub, .row .sub { display: block; margin-top: 1px; font-size: 13px; color: var(--label2); }
+.cell .val { margin-left: auto; color: var(--label2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+button.cell { cursor: pointer; }
+.cell.nav { -webkit-justify-content: space-between; justify-content: space-between; }
+button.cell:active, label.cell:active { background: var(--fill); }
+.cell.nav::after { content: ""; -webkit-flex-shrink: 0; flex-shrink: 0; width: 8px; height: 8px; margin-left: 10px; border-top: 2px solid var(--label3); border-right: 2px solid var(--label3);
+  -webkit-transform: rotate(45deg); transform: rotate(45deg); }
+.cell.act { color: var(--tint); }
+.cell.danger { color: var(--red); }
+.cell .cover { width: 30px; height: 30px; margin-right: 12px; border-radius: 6px; object-fit: cover; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.wide-cell { position: relative; padding: 12px 16px; }
+/* A choice among a few: one line each, a tick on the one chosen. */
+.opt { cursor: pointer; }
+.opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.opt .lbl::after { content: ""; float: right; width: 6px; height: 12px; margin: 2px 4px 0 0; border-right: 2.5px solid transparent; border-bottom: 2.5px solid transparent;
+  -webkit-transform: rotate(45deg); transform: rotate(45deg); }
+.opt input:checked + .lbl::after { border-color: var(--tint); }
+.opt input:focus-visible + .lbl { text-decoration: underline; }
+/* A tick box (the collections). */
+.tick { -webkit-appearance: none; appearance: none; -webkit-flex-shrink: 0; flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--label3); cursor: pointer; position: relative; }
+.tick:checked { background: var(--tint); border-color: var(--tint); }
+.tick:checked::after { content: ""; position: absolute; left: 7px; top: 3px; width: 5px; height: 10px; border-right: 2px solid #fff; border-bottom: 2px solid #fff; -webkit-transform: rotate(45deg); transform: rotate(45deg); }
+/* Settings drawn as before keep their rows; in a group they become lines. */
+.row { display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+.row > label, .row > .label { -webkit-flex: 1 1 0%; flex: 1 1 0%; min-width: 0; margin-right: 12px; }
+.cell select, .row select {
+  max-width: 62%; height: 34px; padding: 0 22px 0 6px; border: 0; border-radius: 8px; background: transparent; color: var(--label2); font-size: 17px; text-align: right;
+  -webkit-appearance: none; appearance: none; cursor: pointer; text-align-last: right; direction: ltr;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16'%3E%3Cpath d='M2 6l3-3 3 3M2 10l3 3 3-3' fill='none' stroke='%238e8e93' stroke-width='1.6'/%3E%3C/svg%3E") right 2px center / 10px 16px no-repeat;
+}
+select option, select optgroup { background: var(--group); color: var(--label); }
+input[type=text], input[type=search], input[type=password], input[type=url], textarea {
+  min-width: 0; height: 36px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--fill); color: var(--label); font-size: 17px; -webkit-appearance: none; appearance: none;
+}
+textarea { height: auto; padding: 8px 10px; line-height: 1.35; resize: vertical; }
+::-webkit-input-placeholder { color: var(--label3); }
+::placeholder { color: var(--label3); }
+/* A field in a line: its name on the left, the text on the right, no box. */
+.field input, .field textarea { -webkit-flex: 1 1 auto; flex: 1 1 auto; background: transparent; padding: 0; text-align: right; border-radius: 0; }
+.field textarea { text-align: left; font-size: 15px; min-height: 84px; }
+.field.col { -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: stretch; align-items: stretch; }
+.field.col .lbl { margin-bottom: 4px; font-size: 13px; color: var(--label2); }
+.field.col textarea { padding: 0; }
+.btn {
+  display: inline-block; height: 36px; padding: 0 16px; border: 0; border-radius: 18px; background: var(--fill); color: var(--tint); font-size: 15px; font-weight: 600;
+  line-height: 36px; white-space: nowrap; cursor: pointer;
+}
+.btn.primary { background: var(--tint); color: #fff; }
+.btn.danger { color: var(--red); }
+.btn.danger.primary { background: var(--red); color: #fff; }
+.btn[disabled] { opacity: .4; cursor: default; }
+.btn + .btn { margin-left: 8px; }
+.actions { margin-top: 12px; }
+/* Segmented control. */
+.seg { display: inline-flex; -webkit-flex-shrink: 0; flex-shrink: 0; padding: 2px; border-radius: 9px; background: var(--fill); }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span { display: block; height: 28px; line-height: 28px; padding: 0 12px; border-radius: 7px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.seg input:checked + span { background: var(--segon); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.seg input:focus-visible + span { outline: 2px solid var(--tint); }
+.seg.wide { -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+/* iOS switch. */
+.switch { -webkit-appearance: none; appearance: none; position: relative; -webkit-flex-shrink: 0; flex-shrink: 0; width: 51px; height: 31px; border-radius: 16px;
+  background: var(--fill); cursor: pointer; transition: background-color .2s; }
+.switch::before { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: var(--knob);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .3); transition: -webkit-transform .2s, transform .2s; }
+.switch:checked { background: var(--green); }
+.switch:checked::before { -webkit-transform: translateX(20px); transform: translateX(20px); }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--fill); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -12px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+input[type=range]::-moz-range-track { height: 4px; background: var(--fill); }
+input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #fff; }
+.range .ends { display: flex; justify-content: space-between; color: var(--label2); font-size: 13px; }
+/* What was saved, or went wrong: a moment at the foot of the screen. */
+#status { position: fixed; z-index: 30; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); max-width: 90%; padding: 9px 16px; border-radius: 20px;
+  background: rgba(44, 44, 46, .94); color: #fff; font-size: 14px; -webkit-transform: translateX(-50%); transform: translateX(-50%); transition: opacity .25s;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .35); pointer-events: none; }
+#status:empty { opacity: 0 !important; }
+#status.err { background: rgba(255, 69, 58, .95); }
+/* The Home as it looks, at the top of Accueil only, folded or not. */
+details.apercu { margin-top: 14px; }
+details.apercu summary { list-style: none; cursor: pointer; padding: 0 16px 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .02em; color: var(--label2); }
+details.apercu summary::-webkit-details-marker { display: none; }
+details.apercu summary::after { content: " \25BE"; }
+details.apercu:not([open]) summary::after { content: " \25B8"; }
+.preview { position: relative; width: 100%; padding-top: 56.25%; overflow: hidden; border-radius: 10px; background: #000; }
+
 .screen {
   position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; overflow: hidden;
   -webkit-transform-origin: 0 0; transform-origin: 0 0;
@@ -117,73 +231,6 @@ button, input, select { font: inherit; color: inherit; }
 .screen nav.icons.bare span.gear { -webkit-align-self: center; align-self: center; }
 .screen nav svg { display: block; width: 46px; height: 46px; margin-bottom: 2px; }
 .screen nav.icons svg { width: 52px; height: 52px; margin-bottom: 4px; }
-
-main section { padding: 34px 0 36px; border-top: 1px solid var(--line); }
-main section:first-child { border-top: 0; padding-top: 18px; }
-h2 { font-size: 24px; font-weight: 400; letter-spacing: .005em; line-height: 1.25; }
-.lede { margin-top: 6px; color: var(--muted); font-size: 16px; max-width: 34em; }
-.note { margin-top: 10px; color: var(--muted); font-size: 15px; }
-.note.err { color: var(--warn); }
-
-.row { display: flex; align-items: center; justify-content: space-between; min-height: 56px; margin-top: 18px; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
-.row > label, .row > .label { -webkit-flex: 1 1 0%; flex: 1 1 0%; min-width: 0; margin-right: 20px; padding: 6px 0; }
-.row .sub { display: block; color: var(--muted); font-size: 15px; }
-
-.btn {
-  display: inline-block; height: 48px; padding: 0 22px; border-radius: 24px; cursor: pointer;
-  border: 1px solid var(--line-strong); background: transparent; line-height: 46px; white-space: nowrap;
-  transition: background-color .18s, border-color .18s;
-}
-.btn:hover { background: var(--wash); border-color: rgba(244, 241, 236, .5); }
-.btn.primary { background: var(--ink); color: var(--ground); border-color: var(--ink); }
-.btn.primary:hover { background: #fff; }
-.btn.danger { border-color: rgba(240, 165, 147, .55); color: var(--warn); }
-.btn.danger.primary { background: var(--warn); color: var(--ground); }
-.btn[disabled] { opacity: .45; cursor: default; }
-.btn + .btn { margin-left: 10px; }
-.actions { margin-top: 18px; }
-
-input[type=text], input[type=search], input[type=password], input[type=url], select {
-  height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line-strong);
-  background: var(--wash); transition: border-color .18s, box-shadow .18s; min-width: 0;
-}
-input[type=text]:focus, input[type=search]:focus, input[type=password]:focus, input[type=url]:focus, select:focus {
-  border-color: var(--ink); box-shadow: 0 0 0 3px rgba(244, 241, 236, .16);
-}
-::-webkit-input-placeholder { color: #8f887f; }
-select { padding-right: 38px; -webkit-appearance: none; appearance: none; cursor: pointer;
-  background: var(--wash) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23f4f1ec' stroke-width='1.4'/%3E%3C/svg%3E") right 14px center / 12px 8px no-repeat; }
-select option, select optgroup { background: var(--raised); color: var(--ink); }
-
-/* Two or three choices side by side: radios, so arrows and screen readers work as usual. */
-.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 24px; padding: 3px; }
-.seg label { position: relative; cursor: pointer; }
-.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.seg span { display: block; height: 40px; line-height: 40px; padding: 0 18px; border-radius: 20px; white-space: nowrap; transition: background-color .18s, color .18s; }
-.seg label:hover span { background: var(--wash); }
-.seg input:checked + span { background: var(--ink); color: var(--ground); }
-.seg input:focus + span { outline: 2px solid var(--ink); outline-offset: 2px; }
-.seg input:focus:not(:focus-visible) + span { outline: none; }
-
-/* Three long choices: on a phone, one under the other. */
-.seg.wide { -webkit-flex-wrap: wrap; flex-wrap: wrap; }
-.switch { -webkit-appearance: none; appearance: none; position: relative; width: 56px; height: 32px; border-radius: 16px;
-  background: rgba(244, 241, 236, .2); cursor: pointer; transition: background-color .2s; -webkit-flex-shrink: 0; flex-shrink: 0; }
-.switch::before { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%;
-  background: var(--ink); transition: -webkit-transform .2s, transform .2s, background-color .2s; }
-.switch:checked { background: var(--ink); }
-.switch:checked::before { -webkit-transform: translateX(24px); transform: translateX(24px); background: var(--ground); }
-
-input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 36px; background: transparent; cursor: pointer; }
-input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--line-strong); }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -11px; border-radius: 50%; background: var(--ink); box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
-input[type=range]::-moz-range-track { height: 2px; background: var(--line-strong); }
-input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: var(--ink); }
-.range { margin-top: 22px; }
-.range label { display: block; }
-.range .sub { display: block; margin-top: 2px; }
-.range .ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; }
-
 /* The tiles, in the order they appear. */
 .tiles { list-style: none; margin-top: 20px; border-top: 1px solid var(--line); }
 .tiles li { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); background: var(--ground); }
@@ -246,49 +293,6 @@ li .sub.url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tagged .head { display: flex; align-items: center; }
 .tagged img { display: block; width: 96px; height: 54px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
 .tagged .nm { font-size: 15px; color: var(--muted); }
-/* The library's albums: cover, name, how many, and a switch. */
-.libalbums { list-style: none; margin-top: 12px; border-top: 1px solid var(--line); }
-.libalbums li { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
-.libalbums img { display: block; width: 96px; height: 54px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
-.libalbums label { -webkit-flex: 1; flex: 1; min-width: 0; }
-.libalbums .sub { display: block; font-size: 14px; color: var(--muted); }
-#lib-url { width: 100%; margin-top: 10px; }
-.err-note { color: #ff8f80; }
-/* The library's captions to check (perso.11): the picture, its caption to correct, Validate. */
-.caps { margin-top: 12px; border-top: 1px solid var(--line); }
-.cap { display: flex; -webkit-align-items: flex-start; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.cap img { display: block; width: 128px; height: 72px; margin-right: 14px; border-radius: 6px; background: #000; -webkit-flex-shrink: 0; flex-shrink: 0; }
-.cap .f { -webkit-flex: 1; flex: 1; min-width: 0; }
-.cap .f input, .cap .f textarea { display: block; width: 100%; margin-top: 6px; }
-.cap .f textarea { min-height: 96px; font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-strong); background: transparent; color: inherit; }
-.cap .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 13px; border: 1px solid var(--line-strong); }
-.cap .badge.a-verifier { border-color: #ffb070; color: #ffb070; }
-.cap .badge.verifie { border-color: #8fd18f; color: #8fd18f; }
-.cap .nm { margin-left: 8px; font-size: 13px; color: var(--muted); word-break: break-all; }
-.cap .actions { margin-top: 8px; }
-/* The review of the pictures (perso.13): the final 16:9 version, the Home over it if wanted, what to do with it. */
-.revgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); grid-gap: 16px; margin-top: 12px; }
-.rev { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-.rev .vue { position: relative; width: 100%; padding-top: 56.25%; background: #000 center / cover no-repeat; }
-.rev .ov { position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; color: #f4f1ec; font-size: 11px;
-  background: radial-gradient(60% 55% at 0 0, rgba(18,13,8,.7), rgba(18,13,8,0)), linear-gradient(to top, rgba(18,13,8,.85), rgba(18,13,8,0) 45%); }
-.rev .ov .h { position: absolute; left: 6%; top: 6%; font-size: 26px; font-weight: 200; }
-.rev .ov .l { position: absolute; right: 6%; top: 7%; max-width: 50%; text-align: right; }
-.rev .ov .t { position: absolute; left: 6%; bottom: 9%; letter-spacing: .3em; opacity: .9; }
-.rev .info { padding: 8px 10px; font-size: 14px; }
-.rev .info .nm { display: block; color: var(--muted); font-size: 12px; word-break: break-all; }
-.rev .info input.musee { display: block; width: 100%; margin-top: 6px; font-size: 14px; }
-.rev .badge { display: inline-block; margin: 4px 4px 0 0; padding: 1px 7px; border-radius: 10px; font-size: 12px; border: 1px solid var(--line-strong); }
-.rev .badge.diff { border-color: #ffb070; color: #ffb070; }
-.rev .badge.cache { border-color: #9aa4ff; color: #9aa4ff; }
-.rev .boutons { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; padding: 0 10px 10px; }
-.rev .boutons .btn { margin: 6px 6px 0 0; padding: 0 12px; height: 36px; font-size: 14px; }
-.rev .crop { padding: 0 10px 10px; }
-.rev .crop .vue { border-radius: 8px; }
-.rev .crop .ligne { display: flex; -webkit-align-items: center; align-items: center; margin-top: 8px; font-size: 14px; }
-.rev .crop .ligne span { min-width: 64px; color: var(--muted); }
-.rev .crop .ligne .btn { margin-right: 6px; padding: 0 10px; height: 34px; font-size: 14px; }
-.rev .crop .ligne .btn.on { background: var(--ink); color: var(--ground); }
 /* The crop editor (perso.15): the whole original, a red 16:9 frame to move and resize, the rest darkened. */
 .ed { padding: 10px; }
 .ed .cadre-ed { position: relative; padding: 18px; touch-action: none; -webkit-user-select: none; user-select: none; }
@@ -359,321 +363,442 @@ button.ic:focus { outline: none; box-shadow: 0 0 0 2px var(--ink); }
 .pick:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(244, 241, 236, .3); }
 .pick.on { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; }
 .pick.auto .art { font-size: 15px; letter-spacing: .02em; }
-footer { max-width: 1240px; margin: 0 auto; padding: 30px 24px 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
-footer a { color: var(--muted); }
-
 /* The PIN, before anything else. */
 .lock { max-width: 420px; margin: 12vh auto 0; padding: 0 24px; }
 .lock h2 { font-size: 28px; font-weight: 300; }
 .lock form { display: flex; margin-top: 22px; }
 .lock input { -webkit-flex: 1; flex: 1; margin-right: 10px; letter-spacing: .3em; font-size: 22px; }
 .gone { max-width: 560px; margin: 14vh auto 0; padding: 0 24px; font-size: 22px; font-weight: 300; }
+/* perso.17: the tiles as lines of a group. */
+.tiles { margin: 0; border: 0; }
+.tiles li { position: relative; padding: 6px 8px 6px 4px; border: 0; background: var(--group); }
+.tiles li + li::before { content: ""; position: absolute; top: 0; left: 58px; right: 0; height: 1px; background: var(--sep); -webkit-transform: scaleY(.5); transform: scaleY(.5); }
+.tiles .ic { width: 34px; height: 34px; border-radius: 8px; margin-right: 12px; }
+.tiles .ic img { width: 34px; height: 34px; }
+.tiles .name input { height: 34px; box-shadow: none; background: transparent; padding: 0; font-size: 17px; }
+.tiles .name input:hover { box-shadow: none; }
+.tiles .name input:focus { box-shadow: inset 0 -2px 0 var(--tint); }
+.tiles .dev-sel { text-align: left; text-align-last: left; color: var(--tint); font-size: 14px; height: 28px; padding: 0 18px 0 0; max-width: 100%; }
+.icon-btn { width: 36px; height: 36px; color: var(--label2); }
+.empty { padding: 12px 16px; border: 0; color: var(--label2); }
+.add { margin: 0; }
+.add select { width: 100%; max-width: none; text-align: left; text-align-last: left; color: var(--tint); padding-left: 0; }
+.add-web { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: 0; }
+.add-web input { -webkit-flex: 1 1 140px; flex: 1 1 140px; margin: 0 8px 8px 0; }
+.add-web .btn { margin-bottom: 8px; }
+.clockstyles { margin: 0 -8px -8px 0; }
+.clockstyles label { margin: 0 8px 8px 0; }
+.clockstyles .card { width: 104px; padding: 8px 6px 6px; border: 1px solid var(--sep); border-radius: 10px; background: var(--fill); }
+.clockstyles input:checked + .card { border-color: var(--tint); box-shadow: 0 0 0 1px var(--tint) inset; }
+.clockstyles .ora { font-size: 28px; font-family: Jost, sans-serif; font-weight: 200; }
+.clockstyles .ora.st-classic { font-family: 'LK Classic', Jost, serif; }
+.clockstyles .ora.st-mono { font-family: 'LK Mono', Jost, monospace; }
+.clockstyles .ora.st-rounded { font-family: 'LK Rounded', Jost, sans-serif; }
+.clockstyles .ora.st-digital { font-family: 'LK Digital', Jost, monospace; font-size: 22px; }
+.search { position: relative; }
+.search input, #lib-url, #city { width: 100%; }
+.results { margin: 6px 0 0; }
+.results button { color: var(--label); padding: 10px 8px; }
+.results button:hover, .results button:focus { background: var(--fill); }
+.bgs { margin: 0 -5px; }
+.bgs .tile { width: calc(33.333% - 10px); margin: 5px; }
+.bgs span { color: var(--label2); font-size: 12px; }
+.bgs button[aria-checked=true] img { outline: 3px solid var(--tint); outline-offset: 1px; }
+.bgs.pool button[aria-checked=true]::after { background: var(--tint); color: #fff; }
+.slots, .tagged { margin: 0; border: 0; }
+.slots li, .tagged li { position: relative; padding: 8px 16px; border: 0; }
+.slots li + li::before, .tagged li + li::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); -webkit-transform: scaleY(.5); transform: scaleY(.5); }
+.slots select { width: auto; }
+.chips span { height: 30px; line-height: 30px; padding: 0 12px; border: 0; border-radius: 15px; background: var(--fill); font-size: 13px; font-weight: 500; }
+.chips input:checked + span { background: var(--tint); color: #fff; }
+.infos li { padding: 10px 16px; border-top: 1px solid var(--sep); }
+.infos input { height: 34px; }
+.credit { margin: 7px 16px 0; font-size: 13px; color: var(--label2); }
+.pinrow { display: flex; -webkit-align-items: center; align-items: center; }
+.pinrow { -webkit-flex-shrink: 0; flex-shrink: 0; }
+.pinrow input { width: 84px; margin-right: 8px; letter-spacing: .15em; text-align: center; }
+.picker-box { background: var(--group); border: 0; }
+.pick { border-color: var(--sep); }
+.pick.on, .pick:focus { border-color: var(--tint); box-shadow: 0 0 0 1px var(--tint) inset; }
+.lock { max-width: 420px; margin: 16vh auto 0; padding: 0 24px; }
+.lock h2 { font-size: 28px; font-weight: 700; }
+.lock input { -webkit-flex: 1; flex: 1; margin-right: 10px; height: 44px; letter-spacing: .3em; font-size: 22px; }
+.gone { max-width: 560px; margin: 14vh auto 0; padding: 0 24px; font-size: 22px; }
+footer { margin: 30px 16px 0; color: var(--label2); font-size: 13px; text-align: center; }
+footer a { color: var(--label2); }
 
-@media (min-width: 1000px) {
-  .layout { display: flex; -webkit-align-items: flex-start; align-items: flex-start; }
-  .preview-col { width: 54%; margin-right: 64px; top: 24px; padding: 0; background: transparent; }
-  main { -webkit-flex: 1; flex: 1; min-width: 0; }
-  main section:first-child { padding-top: 0; }
+/* The Gallery (perso.17): every picture of the library, once; filters and a search; a picture's page. */
+.gtools { position: -webkit-sticky; position: sticky; top: 51px; z-index: 5; margin: 0 -16px; padding: 8px 16px; background: var(--bg); }
+.filtres { display: flex; overflow-x: auto; white-space: nowrap; margin: 0 -16px 8px; padding: 0 16px; scrollbar-width: none; }
+.filtres::-webkit-scrollbar { display: none; }
+.filtres button { -webkit-flex: 0 0 auto; flex: 0 0 auto; height: 32px; padding: 0 12px; margin-right: 6px; border: 0; border-radius: 16px; background: var(--fill);
+  color: var(--label); font-size: 14px; font-weight: 500; cursor: pointer; }
+.filtres button[aria-pressed=true] { background: var(--tint); color: #fff; }
+.filtres button small { margin-left: 5px; opacity: .7; font-size: 12px; }
+#gal-q { width: 100%; padding-left: 32px;
+  background: var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='7' cy='7' r='5' fill='none' stroke='%238e8e93' stroke-width='1.6'/%3E%3Cpath d='M11 11l3.5 3.5' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") 10px center / 15px 15px no-repeat; }
+.ggrid { display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: 4px -3px 0; }
+.gitem { position: relative; width: calc(33.333% - 6px); margin: 3px; padding: 0; border: 0; background: transparent; color: var(--label); text-align: left; cursor: pointer; }
+.gitem .th { display: block; position: relative; width: 100%; padding-top: 56.25%; border-radius: 6px; background: #111 center / cover no-repeat; }
+.gitem .tt { display: block; margin: 3px 2px 6px; font-size: 12px; color: var(--label2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gitem .mk { position: absolute; top: 5px; right: 5px; padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; color: #fff; background: rgba(0, 0, 0, .6); }
+.gitem .mk.rev { background: var(--orange); }
+.gitem.hid .th { opacity: .45; }
+.gitem.bin .th { display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
+.gitem.bin .th span { position: absolute; top: 50%; left: 6px; right: 6px; -webkit-transform: translateY(-50%); transform: translateY(-50%); font-size: 11px; text-align: center; color: var(--label2); word-break: break-all; }
+.gvuoto { padding: 30px 16px; text-align: center; color: var(--label2); }
+/* A picture's page: the TV version with the Home over it, the caption, what to do. */
+.tvp { position: relative; width: 100%; padding-top: 56.25%; margin-top: 14px; border-radius: 10px; overflow: hidden; background: #000 center / cover no-repeat; }
+.tvp .ov { position: absolute; top: 0; right: 0; bottom: 0; left: 0; color: #fff; font-family: Jost, sans-serif; pointer-events: none;
+  background: radial-gradient(55% 50% at 0 0, rgba(18,13,8,.75), rgba(18,13,8,0)), linear-gradient(to top, rgba(18,13,8,.8), rgba(18,13,8,0) 45%); }
+.tvp .ov .h { position: absolute; left: 5.8%; top: 6%; font-size: 6.5vw; font-weight: 200; line-height: 1; }
+.tvp .ov .l { position: absolute; right: 5.8%; top: 6.5%; max-width: 50%; text-align: right; font-size: 1.9vw; font-weight: 300; line-height: 1.25; text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+.tvp .ov .l b { font-weight: 500; }
+.tvp .ov .l small { display: block; font-size: .78em; opacity: .78; }
+.tvp .ov .t { position: absolute; left: 5.8%; bottom: 9.5%; right: 5.8%; font-size: 2vw; white-space: nowrap; overflow: hidden; opacity: .85; }
+.tvp .ov .t span { margin-right: 3.6%; }
+.tvp.sans .ov { display: none; }
+@media (min-width: 752px) {
+  .tvp .ov .h { font-size: 49px; } .tvp .ov .l { font-size: 14px; } .tvp .ov .t { font-size: 15px; }
 }
+.badges { margin: 10px 4px 0; }
+.badge { display: inline-block; margin: 0 4px 4px 0; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: var(--fill); color: var(--label2); }
+.badge.a-verifier, .badge.nom-de-fichier, .badge.rev { background: rgba(255, 159, 10, .2); color: var(--orange); }
+.badge.verifie, .badge.ok { background: rgba(48, 209, 88, .18); color: var(--green); }
+.badge.hid { background: rgba(10, 132, 255, .18); color: var(--tint); }
+.fichenom { margin: 6px 16px 0; font-size: 12px; color: var(--label3); word-break: break-all; }
+.ed { padding: 12px 0 0; }
+.ed .cadre-ed { padding: 18px; background: var(--group); border-radius: 10px; }
+.ed .tvprev { border-radius: 10px; }
+.ed .res { margin: 8px 4px 0; font-size: 13px; color: var(--label2); }
+.ed .ligne { margin-top: 10px; }
+
+@media (min-width: 700px) { .gitem { width: calc(25% - 6px); } }
+@media (min-width: 1000px) { .gitem { width: calc(20% - 6px); } }
 @media (max-width: 520px) {
-  .top { padding-top: 18px; }
-  .top h1 { font-size: 26px; }
-  .layout { padding-top: 10px; }
-  .preview-col { margin: 0 -24px; padding: 6px 24px 12px; box-shadow: 0 10px 20px var(--ground); }
-  .caption [data-t] { display: none; }
-  .caption #status { margin-left: 0; }
   .row > label, .row > .label { -webkit-flex-basis: 100%; flex-basis: 100%; margin-right: 0; }
-  .btn + .btn { margin-left: 6px; }
-  .seg.wide { display: -webkit-flex; display: flex; width: 100%; -webkit-flex-direction: column; flex-direction: column; border-radius: 22px; }
-  .seg.wide span { text-align: center; }
+  .row .seg { margin: 4px 0 2px; }
+  .seg.wide { display: -webkit-flex; display: flex; width: 100%; -webkit-flex-direction: column; flex-direction: column; }
+  .bgs .tile { width: calc(50% - 10px); }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
 </style>
 </head>
 <body>
 <div id="page" hidden>
-  <div class="top">
-    <h1>Lightkeeper<span data-t="title">Settings</span></h1>
-  </div>
-  <div class="layout">
-    <div class="preview-col">
-      <div class="preview" aria-hidden="true">
-        <div class="screen" id="screen">
-          <div class="veil" id="p-veil"></div>
-          <header><div class="ora" id="p-ora"></div><div class="meteo" id="p-meteo"></div></header>
-          <nav id="p-nav"></nav>
-        </div>
-      </div>
-      <p class="caption"><span data-t="caption">As it looks on the TV</span><span id="status" role="status" aria-live="polite"></span></p>
+  <nav class="tabbar" role="tablist" aria-label="Lightkeeper">
+    <div class="in">
+      <button type="button" role="tab" data-tab="fond" data-t="tabBg">Background</button>
+      <button type="button" role="tab" data-tab="galerie" data-t="tabGallery">Gallery</button>
+      <button type="button" role="tab" data-tab="accueil" data-t="tabHome">Home</button>
+      <button type="button" role="tab" data-tab="tele" data-t="tabRemote">Remote</button>
+      <button type="button" role="tab" data-tab="systeme" data-t="tabSystem">System</button>
     </div>
-    <main>
-      <section aria-labelledby="h-tiles">
-        <h2 id="h-tiles" data-t="tiles">Tiles</h2>
-        <p class="lede" data-t="tilesLede">The apps, inputs and web pages along the bottom of the Home, in this order.</p>
+  </nav>
+
+  <!-- ===================== Fond ===================== -->
+  <section class="tab" id="tab-fond" hidden>
+    <div class="wrap pane root">
+      <h1 class="lt" data-t="tabBg">Background</h1>
+      <h2 class="gh" id="l-bgmode" data-t="bgMode">Choice of background</h2>
+      <div class="group" role="radiogroup" aria-labelledby="l-bgmode">
+        <label class="cell opt"><input type="radio" name="bgMode" value="library"><span class="lbl" data-t="bgLibrary">Library</span></label>
+        <label class="cell opt"><input type="radio" name="bgMode" value="fixed"><span class="lbl" data-t="bgFixed">Fixed</span></label>
+        <label class="cell opt"><input type="radio" name="bgMode" value="random"><span class="lbl" data-t="bgRandom">Random at power on</span></label>
+        <label class="cell opt"><input type="radio" name="bgMode" value="time"><span class="lbl" data-t="bgTime">By time of day</span></label>
+      </div>
+      <p class="gf" id="mode-note" aria-live="polite"></p>
+
+      <div id="lib-box" hidden>
+        <h2 class="gh" data-t="libAlbumsTitle">Collections</h2>
+        <div class="group">
+          <button type="button" class="cell nav" data-sub="sub-coll"><span class="lbl" data-t="libAlbumsTitle">Collections</span><span class="val" id="v-coll"></span></button>
+        </div>
+        <h2 class="gh" data-t="hScroll">Rotation</h2>
+        <div class="group">
+          <div class="cell row"><span class="label" id="l-libord" data-t="libOrder">Order</span>
+            <div class="seg" role="radiogroup" aria-labelledby="l-libord">
+              <label><input type="radio" name="libOrder" value="shuffle"><span data-t="libShuffle">Shuffled</span></label>
+              <label><input type="radio" name="libOrder" value="order"><span data-t="libInOrder">In order</span></label>
+            </div>
+          </div>
+          <div class="cell"><label for="lib-rotate" data-t="libRotate">New picture</label><select id="lib-rotate"></select></div>
+          <div class="cell row"><span class="label" id="l-libmatch" data-t="libMatch">With several</span>
+            <div class="seg" role="radiogroup" aria-labelledby="l-libmatch">
+              <label><input type="radio" name="libMatch" value="any"><span data-t="libMatchAny">Any of them</span></label>
+              <label><input type="radio" name="libMatch" value="cross"><span data-t="libMatchCross">Crossed</span></label>
+            </div>
+          </div>
+        </div>
+        <p class="gf" id="lib-match-note" data-t="libMatchLede">Crossed: one of each kind ticked, for example Van Gogh and Night. Within one kind (two artists), either.</p>
+        <h2 class="gh" data-t="bgLibrary">Library</h2>
+        <div class="group">
+          <div class="cell"><span class="lbl" data-t="hPictures">Backgrounds</span><span class="val" id="v-libn"></span></div>
+          <div class="cell"><span class="lbl" data-t="hCache">Cache</span><span class="val" id="v-cache"></span></div>
+          <div class="cell"><span class="lbl" data-t="hRead">Last read</span><span class="val" id="v-read"></span></div>
+          <button type="button" class="cell nav" data-galerie="arevoir"><span class="lbl" data-t="hToReview">Pictures to review</span><span class="val" id="v-torev"></span></button>
+          <button type="button" class="cell nav" data-galerie="arevoir"><span class="lbl" data-t="capTitle">Captions to check</span><span class="val" id="v-tocheck"></span></button>
+          <button type="button" class="cell nav" data-galerie="masquees"><span class="lbl" data-t="hHiddenPics">Hidden pictures</span><span class="val" id="v-hidden"></span></button>
+          <button type="button" class="cell act" id="lib-sync" data-t="libSync">Read the library now</button>
+          <button type="button" class="cell act" id="lib-clear" data-t="libClear">Empty the cache</button>
+        </div>
+        <p class="gf" id="lib-state" aria-live="polite"></p>
+      </div>
+
+      <h2 class="gh" data-t="hCaption">Caption</h2>
+      <div class="group">
+        <div class="cell"><label for="captions"><span data-t="captionsOn">Caption on the Home</span><span class="sub" data-t="captionsLede">Artist, title and year of the painting, small, in the corner.</span></label>
+          <input type="checkbox" class="switch" id="captions" role="switch"></div>
+        <div class="cell"><label for="caption-museum"><span data-t="museumOn">Museum under the caption</span><span class="sub" data-t="museumLede">The museum that keeps the painting, and its city, on a small line under the caption.</span></label>
+          <input type="checkbox" class="switch" id="caption-museum" role="switch"></div>
+        <div class="cell"><label for="idle"><span data-t="idleTitle">Painting alone after</span><span class="sub" data-t="idleLede">Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.</span></label>
+          <select id="idle"></select></div>
+      </div>
+      <p class="gf" data-t="idleLg">LG's own screen saver keeps its timer: if it starts first, it covers the painting.</p>
+
+      <h2 class="gh" data-t="hLocal">Backgrounds on the TV</h2>
+      <div class="group">
+        <button type="button" class="cell nav" data-sub="sub-local"><span class="lbl"><span data-t="hLocalRow">The app's pictures and yours</span><span class="sub" data-t="hLocalLede">Fixed, random or by the time of day; also shown when the library cannot be reached.</span></span></button>
+      </div>
+    </div>
+
+    <div class="wrap pane sub" id="sub-coll" hidden>
+      <button type="button" class="back" data-back data-t="tabBg">Background</button>
+      <h1 class="lt" data-t="libAlbumsTitle">Collections</h1>
+      <p class="gf" data-t="libAlbumsLede">Made from the tags of the pictures. Tick one to stay on it, several to mix them. None ticked: all of them.</p>
+      <div id="lib-albums"></div>
+    </div>
+
+    <div class="wrap pane sub" id="sub-local" hidden>
+      <button type="button" class="back" data-back data-t="tabBg">Background</button>
+      <h1 class="lt" data-t="hLocal">Backgrounds on the TV</h1>
+      <p class="gf" id="random-note" aria-live="polite" hidden></p>
+      <div class="bgs" id="bgs" role="radiogroup" aria-labelledby="l-bgmode" style="margin-top:14px"></div>
+      <p class="credit" id="bg-credit"></p>
+      <div id="time-box" hidden>
+        <h2 class="gh" data-t="slotsTitle">Time slots</h2>
+        <div class="group"><ul class="slots" id="slots"></ul></div>
+        <p class="gf" data-t="slotsLede">Hours on the TV's own clock. A slot lasts until the next one starts; the night goes on past midnight.</p>
+        <div class="actions"><button class="btn" type="button" id="slots-reset" data-t="slotsReset">Default hours</button></div>
+        <h2 class="gh" data-t="tagsTitle">Pictures for each slot</h2>
+        <div class="group"><ul class="tagged" id="tagged"></ul></div>
+        <p class="gf" id="time-now" aria-live="polite"></p>
+        <p class="gf" data-t="tagsLede">Tick the slots each picture goes with.</p>
+      </div>
+      <h2 class="gh" data-t="choose">Add a picture</h2>
+      <div class="group">
+        <div class="cell row"><span class="label" id="l-size" data-t="size">Size</span>
+          <div class="seg" role="radiogroup" aria-labelledby="l-size">
+            <label><input type="radio" name="size" value="1920" checked><span>Full HD</span></label>
+            <label><input type="radio" name="size" value="3840"><span>4K</span></label>
+          </div>
+        </div>
+        <div class="cell"><input class="file" type="file" id="file" accept="image/*"><label class="act" for="file" id="choose" tabindex="0" data-t="choose" style="color:var(--tint);cursor:pointer">Add a picture</label></div>
+      </div>
+      <p class="gf" id="bg-space" aria-live="polite"></p>
+      <p class="gf" id="bg-note" data-t="sizeNote">The picture is cropped to 16:9 and resized on this device before it is sent.</p>
+      <div id="infos-box">
+        <h2 class="gh" data-t="infosTitle">Captions of your paintings</h2>
+        <div class="group"><ul class="infos" id="infos"></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Galerie ===================== -->
+  <section class="tab" id="tab-galerie" hidden>
+    <div class="wrap pane root">
+      <h1 class="lt" data-t="tabGallery">Gallery</h1>
+      <div class="gtools">
+        <div class="filtres" id="gal-filtres" role="group"></div>
+        <input type="search" id="gal-q" autocomplete="off" spellcheck="false" placeholder="Search a title or an artist" aria-label="Search">
+      </div>
+      <p class="gf" id="gal-note" aria-live="polite"></p>
+      <div class="ggrid" id="gal-grid"></div>
+    </div>
+    <div class="wrap pane sub" id="gal-fiche" hidden>
+      <button type="button" class="back" data-back data-t="tabGallery">Gallery</button>
+      <div id="gal-fiche-body"></div>
+    </div>
+  </section>
+
+  <!-- ===================== Accueil ===================== -->
+  <section class="tab" id="tab-accueil" hidden>
+    <div class="wrap pane root">
+      <h1 class="lt" data-t="tabHome">Home</h1>
+      <details class="apercu" id="apercu" open>
+        <summary data-t="caption">As it looks on the TV</summary>
+        <div class="preview" aria-hidden="true">
+          <div class="screen" id="screen">
+            <div class="veil" id="p-veil"></div>
+            <header><div class="ora" id="p-ora"></div><div class="meteo" id="p-meteo"></div></header>
+            <nav id="p-nav"></nav>
+          </div>
+        </div>
+      </details>
+
+      <h2 class="gh" data-t="tiles">Tiles</h2>
+      <div class="group">
         <ul class="tiles" id="tiles"></ul>
-        <div class="add">
-          <select id="add" aria-label="Add a tile"></select>
-        </div>
-        <div class="add-web">
-          <input type="text" id="web-name" maxlength="40" placeholder="Web page" aria-label="Name of a web page">
-          <input type="url" id="web-url" maxlength="500" placeholder="https://" aria-label="Its address">
-          <button class="btn" type="button" id="web-add" data-t="webAdd">Add page</button>
-        </div>
-        <p class="note" id="tiles-note" hidden></p>
-        <div class="row">
-          <span class="label" id="l-style" data-t="show">Show</span>
+        <div class="cell add"><select id="add" aria-label="Add a tile"></select></div>
+      </div>
+      <p class="gf" data-t="tilesLede">The apps, inputs and web pages along the bottom of the Home, in this order. Drag the dots to move one.</p>
+      <p class="gf" id="tiles-note" hidden></p>
+      <h2 class="gh" data-t="webAdd">Add page</h2>
+      <div class="group"><div class="wide-cell add-web">
+        <input type="text" id="web-name" maxlength="40" placeholder="Web page" aria-label="Name of a web page">
+        <input type="url" id="web-url" maxlength="500" placeholder="https://" aria-label="Its address">
+        <button class="btn" type="button" id="web-add" data-t="webAdd">Add page</button>
+      </div></div>
+      <h2 class="gh" data-t="show">Show</h2>
+      <div class="group">
+        <div class="cell row"><span class="label" id="l-style" data-t="rgTileStyle">Show</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-style">
             <label><input type="radio" name="tileStyle" value="text"><span data-t="names">Names</span></label>
             <label><input type="radio" name="tileStyle" value="logo"><span data-t="logos">Logos</span></label>
             <label><input type="radio" name="tileStyle" value="icon"><span data-t="icons">App icons</span></label>
           </div>
         </div>
-        <p class="note" data-t="showLede">Logos are drawn in white; an app without one shows its own icon from the TV. Inputs show the device you pick.</p>
-        <div class="row" id="labels-row">
-          <span class="label" id="l-labels" data-t="labels">Names under them</span>
+        <div class="cell row" id="labels-row"><span class="label" id="l-labels" data-t="labels">Names under them</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-labels">
             <label><input type="radio" name="labels" value="all"><span data-t="labelsAll">All</span></label>
             <label><input type="radio" name="labels" value="selected"><span data-t="labelsSel">Selected</span></label>
             <label><input type="radio" name="labels" value="none"><span data-t="labelsNone">None</span></label>
           </div>
         </div>
-        <div class="row">
-          <label for="open-apps"><span data-t="openApps">Open apps button</span><span class="sub" data-t="openAppsLede">At the end of the row: it lists the apps open on the TV and closes them.</span></label>
-          <input type="checkbox" class="switch" id="open-apps" role="switch">
-        </div>
-        <div class="row">
-          <span class="label" id="l-start" data-t="startTile">At start, select</span>
+        <div class="cell row"><span class="label" id="l-start" data-t="startTile">At start, select</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-start">
             <label><input type="radio" name="startTile" value="last"><span data-t="startLast">Last opened</span></label>
             <label><input type="radio" name="startTile" value="first"><span data-t="startFirst">First</span></label>
           </div>
         </div>
-        <div class="row">
-          <label for="hide-gear"><span data-t="hideGear">Hide the settings gear</span><span class="sub" id="hide-gear-sub"></span></label>
-          <input type="checkbox" class="switch" id="hide-gear" role="switch">
-        </div>
-      </section>
+        <div class="cell"><label for="open-apps"><span data-t="openApps">Open apps button</span><span class="sub" data-t="openAppsLede">At the end of the row: it lists the apps open on the TV and closes them.</span></label>
+          <input type="checkbox" class="switch" id="open-apps" role="switch"></div>
+        <div class="cell"><label for="hide-gear"><span data-t="hideGear">Hide the settings gear</span><span class="sub" id="hide-gear-sub"></span></label>
+          <input type="checkbox" class="switch" id="hide-gear" role="switch"></div>
+      </div>
+      <p class="gf" data-t="showLede">Logos are drawn in white; an app without one shows its own icon from the TV. Inputs show the device you pick.</p>
 
-      <section aria-labelledby="h-bg">
-        <h2 id="h-bg" data-t="background">Background</h2>
-        <div class="bgs" id="bgs" role="radiogroup" aria-labelledby="h-bg"></div>
-        <p class="credit" id="bg-credit"></p>
-        <div class="row">
-          <span class="label" id="l-bgmode" data-t="bgMode">Choice of background</span>
-          <div class="seg wide" role="radiogroup" aria-labelledby="l-bgmode">
-            <label><input type="radio" name="bgMode" value="fixed"><span data-t="bgFixed">Fixed</span></label>
-            <label><input type="radio" name="bgMode" value="random"><span data-t="bgRandom">Random at power on</span></label>
-            <label><input type="radio" name="bgMode" value="time"><span data-t="bgTime">By time of day</span></label>
-            <label><input type="radio" name="bgMode" value="library"><span data-t="bgLibrary">Library</span></label>
-          </div>
-        </div>
-        <p class="note" id="mode-note" aria-live="polite"></p>
-        <p class="note" id="random-note" aria-live="polite" hidden></p>
-        <div id="time-box" hidden>
-          <h3 class="sub-h" data-t="slotsTitle">Time slots</h3>
-          <p class="note" data-t="slotsLede">Hours on the TV's own clock. A slot lasts until the next one starts; the night goes on past midnight.</p>
-          <ul class="slots" id="slots"></ul>
-          <div class="actions"><button class="btn" type="button" id="slots-reset" data-t="slotsReset">Default hours</button></div>
-          <h3 class="sub-h" data-t="tagsTitle">Pictures for each slot</h3>
-          <p class="note" data-t="tagsLede">Tick the slots each picture goes with. With several for one slot, one is drawn each time the slot begins. A slot with none keeps the picture on the screen.</p>
-          <p class="note" id="time-now" aria-live="polite"></p>
-          <ul class="tagged" id="tagged"></ul>
-        </div>
-        <div id="lib-box" hidden>
-          <h3 class="sub-h" data-t="libTitle">Library on your server</h3>
-          <label for="lib-url" class="note" data-t="libUrlLede">The https address of its manifest.json</label>
-          <input type="url" id="lib-url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…/manifest.json">
-          <div class="actions"><button class="btn" type="button" id="lib-save" data-t="libSave">Save the address</button><button class="btn" type="button" id="lib-sync" data-t="libSync">Read the library now</button><button class="btn" type="button" id="lib-clear" data-t="libClear">Empty the cache</button></div>
-          <p class="note" id="lib-state" aria-live="polite"></p>
-          <h3 class="sub-h" data-t="libAlbumsTitle">Collections</h3>
-          <p class="note" data-t="libAlbumsLede">Made from the tags of the pictures (three pictures at least). Tick one to stay on it, several to mix them. None ticked: all of them.</p>
-          <div class="row">
-            <span class="label" id="l-libmatch" data-t="libMatch">With several</span>
-            <div class="seg" role="radiogroup" aria-labelledby="l-libmatch">
-              <label><input type="radio" name="libMatch" value="any"><span data-t="libMatchAny">Any of them</span></label>
-              <label><input type="radio" name="libMatch" value="cross"><span data-t="libMatchCross">Crossed</span></label>
-            </div>
-          </div>
-          <p class="note" id="lib-match-note" data-t="libMatchLede">Crossed: one of each kind ticked, for example Van Gogh and Night. Within one kind (two artists), either.</p>
-          <div id="lib-albums"></div>
-          <h3 class="sub-h" data-t="capTitle">Captions to check</h3>
-          <p class="note" id="cap-state" aria-live="polite"></p>
-          <div class="actions"><button class="btn" type="button" id="cap-load" data-t="capLoad">Show the captions</button><button class="btn" type="button" id="cap-all" data-t="capAll" hidden>Also the checked ones</button></div>
-          <div class="caps" id="cap-list"></div>
-          <h3 class="sub-h" data-t="revTitle">Gallery</h3>
-          <p class="note" id="rev-state" aria-live="polite"></p>
-          <div class="actions"><button class="btn" type="button" id="rev-load" data-t="revLoad">Open the gallery</button></div>
-          <div id="rev-tools" hidden>
-            <div class="seg wide" role="radiogroup" aria-label="Filtre">
-              <label><input type="radio" name="revFiltre" value="tout"><span data-t="revAll">All</span></label>
-              <label><input type="radio" name="revFiltre" value="arevoir"><span data-t="revToReview">To review</span></label>
-              <label><input type="radio" name="revFiltre" value="validees"><span data-t="revValid">Validated</span></label>
-              <label><input type="radio" name="revFiltre" value="corbeille"><span data-t="revBin">Bin</span></label>
-            </div>
-            <div class="row">
-              <label for="rev-ov"><span data-t="revOverlay">The Home over the pictures</span><span class="sub" data-t="revOverlayLede">Where the clock, the caption and the tiles go.</span></label>
-              <input type="checkbox" class="switch" id="rev-ov" role="switch">
-            </div>
-          </div>
-          <div class="revgrid" id="rev-list"></div>
-          <div class="row">
-            <span class="label" id="l-libord" data-t="libOrder">Order</span>
-            <div class="seg" role="radiogroup" aria-labelledby="l-libord">
-              <label><input type="radio" name="libOrder" value="shuffle"><span data-t="libShuffle">Shuffled</span></label>
-              <label><input type="radio" name="libOrder" value="order"><span data-t="libInOrder">In order</span></label>
-            </div>
-          </div>
-          <div class="row">
-            <label for="lib-rotate"><span data-t="libRotate">New picture</span></label>
-            <select id="lib-rotate"></select>
-          </div>
-        </div>
-        <div class="row">
-          <label for="next-key"><span data-t="nextKey">Remote key for the next background</span><span class="sub" data-t="nextKeyLede">While the Home is in front. The tile "Next background" does the same: add it under Tiles.</span></label>
-          <select id="next-key"></select>
-        </div>
-        <div class="row" id="coll-key-row" hidden>
-          <label for="coll-key"><span data-t="collKey">Remote key for the collections</span><span class="sub" data-t="collKeyLede">With the library: opens the collections on the Home. Not the same key as the next background.</span></label>
-          <select id="coll-key"></select>
-        </div>
-        <div class="row">
-          <label for="captions"><span data-t="captionsOn">Caption on the Home</span><span class="sub" data-t="captionsLede">Artist, title and year of the painting, small, in the corner.</span></label>
-          <input type="checkbox" class="switch" id="captions" role="switch">
-        </div>
-        <div class="row">
-          <label for="caption-museum"><span data-t="museumOn">Museum under the caption</span><span class="sub" data-t="museumLede">The museum that keeps the painting, and its city, on a small line under the caption.</span></label>
-          <input type="checkbox" class="switch" id="caption-museum" role="switch">
-        </div>
-        <div class="row">
-          <label for="idle"><span data-t="idleTitle">Painting alone after</span><span class="sub" data-t="idleLede">Without a key on the Home: the time, the weather and the tiles go, and the painting moves very slowly. Any key brings the Home back.</span></label>
-          <select id="idle"></select>
-        </div>
-        <p class="note" data-t="idleLg">LG's own screen saver keeps its timer: if it starts first, it covers the painting.</p>
-        <details class="captions" id="infos-box">
-          <summary data-t="infosTitle">Captions of your paintings</summary>
-          <ul class="infos" id="infos"></ul>
-        </details>
-        <div class="row">
-          <span class="label" id="l-size" data-t="size">Size</span>
-          <div class="seg" role="radiogroup" aria-labelledby="l-size">
-            <label><input type="radio" name="size" value="1920" checked><span>Full HD · 1920</span></label>
-            <label><input type="radio" name="size" value="3840"><span>4K · 3840</span></label>
-          </div>
-        </div>
-        <div class="actions">
-          <input class="file" type="file" id="file" accept="image/*">
-          <label class="btn primary" for="file" id="choose" tabindex="0" data-t="choose">Add a picture</label>
-        </div>
-        <p class="note" id="bg-space" aria-live="polite"></p>
-        <p class="note" id="bg-note" data-t="sizeNote">The picture is cropped to 16:9 and resized on this device before it is sent.</p>
-        <div class="range">
-          <label for="veil" data-t="veil">Shade</label>
-          <span class="sub note" data-t="veilLede">How dark the picture is behind the time and the tiles.</span>
-          <input type="range" id="veil" min="0" max="100" step="5">
-          <div class="ends"><span data-t="light">Light</span><span data-t="dark">Dark</span></div>
-        </div>
-      </section>
-
-      <section aria-labelledby="h-time">
-        <h2 id="h-time" data-t="clockWeather">Clock and weather</h2>
-        <div class="row">
-          <span class="label" id="l-clock" data-t="clock">Clock</span>
+      <h2 class="gh" data-t="clock">Clock</h2>
+      <div class="group">
+        <div class="cell row"><span class="label" id="l-clock" data-t="rgClockFormat">Format</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-clock">
-            <label><input type="radio" name="clock" value="24"><span data-t="c24">24-hour</span></label>
-            <label><input type="radio" name="clock" value="12"><span data-t="c12">12-hour</span></label>
+            <label><input type="radio" name="clock" value="24"><span>24 h</span></label>
+            <label><input type="radio" name="clock" value="12"><span>12 h</span></label>
           </div>
         </div>
-        <span class="label" id="l-clockstyle" data-t="clockStyle">Style</span>
-        <div class="clockstyles" role="radiogroup" aria-labelledby="l-clockstyle" id="clockstyles"></div>
-        <div class="row">
-          <span class="label" id="l-clocksize" data-t="clockSize">Size</span>
+        <div class="cell row"><span class="label" id="l-clocksize" data-t="clockSize">Size</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-clocksize">
             <label><input type="radio" name="clockSize" value="small"><span data-t="sizeSmall">Small</span></label>
             <label><input type="radio" name="clockSize" value="medium"><span data-t="sizeMedium">Medium</span></label>
             <label><input type="radio" name="clockSize" value="large"><span data-t="sizeLarge">Large</span></label>
           </div>
         </div>
-        <div class="search">
-          <label for="city" class="label" data-t="weatherFor">Weather for</label>
-          <input type="search" id="city" autocomplete="off" spellcheck="false" placeholder="Search for a city">
+        <div class="wide-cell"><span class="sub" id="l-clockstyle" data-t="clockStyle" style="display:block;margin-bottom:8px">Style</span>
+          <div class="clockstyles" role="radiogroup" aria-labelledby="l-clockstyle" id="clockstyles"></div></div>
+      </div>
+
+      <h2 class="gh" data-t="rgWeather">Weather</h2>
+      <div class="group">
+        <div class="wide-cell search">
+          <input type="search" id="city" autocomplete="off" spellcheck="false" placeholder="Search for a city" aria-label="Weather for">
           <ul class="results" id="results"></ul>
           <p class="note" id="city-note" hidden></p>
         </div>
-        <div class="row">
-          <span class="label" id="l-units" data-t="units">Units</span>
+        <div class="cell row"><span class="label" id="l-units" data-t="units">Units</span>
           <div class="seg" role="radiogroup" aria-labelledby="l-units">
             <label><input type="radio" name="units" value="c"><span>°C</span></label>
             <label><input type="radio" name="units" value="f"><span>°F</span></label>
           </div>
         </div>
-        <div class="actions"><button class="btn" type="button" id="no-weather" data-t="noWeather">No weather</button></div>
-        <p class="note"><span data-t="weatherBy">Weather by</span> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
-      </section>
+        <button type="button" class="cell act" id="no-weather" data-t="noWeather">No weather</button>
+      </div>
+      <p class="gf"><span data-t="weatherBy">Weather by</span> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
 
-      <section aria-labelledby="h-remote">
-        <h2 id="h-remote" data-t="remote">Remote and power</h2>
-        <div class="row">
-          <label for="key"><span data-t="key">Key that opens Lightkeeper</span><span class="sub" data-t="keyLede">Through GlassHouse. With Home, Back from the last app also comes here.</span></label>
-          <select id="key"></select>
-        </div>
-        <p class="note" id="key-note" aria-live="polite"></p>
-        <div class="row">
-          <label for="power"><span data-t="power">Open at power on</span><span class="sub" data-t="powerLede">When the TV comes on over an input or LG's Home.</span></label>
-          <input type="checkbox" class="switch" id="power" role="switch">
-        </div>
-        <div class="row">
-          <div class="label"><span data-t="saver">Screen saver</span><span class="sub" id="saver-state"></span></div>
-          <button class="btn" type="button" id="saver" data-t="saverPause">Pause for an hour</button>
-        </div>
-        <p class="note" data-t="saverLede">LG's screen saver keeps still pictures from marking an OLED screen. Pause it while you try things out; it comes back by itself.</p>
-      </section>
+      <h2 class="gh" data-t="veil">Shade</h2>
+      <div class="group"><div class="wide-cell range">
+        <input type="range" id="veil" min="0" max="100" step="5" aria-label="Shade">
+        <div class="ends"><span data-t="light">Light</span><span data-t="dark">Dark</span></div>
+      </div></div>
+      <p class="gf" data-t="veilLede">How dark the picture is behind the time and the tiles.</p>
+    </div>
+  </section>
 
-      <section aria-labelledby="h-more">
-        <h2 id="h-more" data-t="more">PIN</h2>
-        <div class="row">
-          <div class="label"><span data-t="pin">PIN for this page</span><span class="sub" id="pin-state"></span></div>
-          <div class="pinrow">
-            <input type="password" id="pin-new" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password" aria-label="New PIN">
-            <button class="btn" type="button" id="pin-set" data-t="pinSet">Set</button>
-          </div>
-        </div>
-        <div class="actions" id="pin-clear-row" hidden><button class="btn" type="button" id="pin-clear" data-t="pinClear">Remove the PIN</button></div>
-        <p class="note" id="pin-note" hidden></p>
-      </section>
+  <!-- ===================== Télécommande ===================== -->
+  <section class="tab" id="tab-tele" hidden>
+    <div class="wrap pane root">
+      <h1 class="lt" data-t="tabRemote">Remote</h1>
+      <h2 class="gh" data-t="hKeys">Keys</h2>
+      <div class="group">
+        <div class="cell"><label for="key"><span data-t="key">Key that opens Lightkeeper</span><span class="sub" data-t="keyLede">Through GlassHouse. With Home, Back from the last app also comes here.</span></label><select id="key"></select></div>
+        <div class="cell"><label for="next-key"><span data-t="nextKey">Remote key for the next background</span><span class="sub" data-t="nextKeyLede">While the Home is in front.</span></label><select id="next-key"></select></div>
+        <div class="cell" id="coll-key-row" hidden><label for="coll-key"><span data-t="collKey">Remote key for the collections</span><span class="sub" data-t="collKeyLede">Opens the collections on the Home.</span></label><select id="coll-key"></select></div>
+      </div>
+      <p class="gf" id="key-note" aria-live="polite"></p>
+      <h2 class="gh" data-t="hPower">Power</h2>
+      <div class="group">
+        <div class="cell"><label for="power"><span data-t="power">Open at power on</span><span class="sub" data-t="powerLede">When the TV comes on over an input or LG's Home.</span></label>
+          <input type="checkbox" class="switch" id="power" role="switch"></div>
+        <div class="cell"><div class="label lbl"><span data-t="saver">Screen saver</span><span class="sub" id="saver-state"></span></div>
+          <button class="btn" type="button" id="saver" data-t="saverPause">Pause for an hour</button></div>
+      </div>
+      <p class="gf" data-t="saverLede">LG's screen saver keeps still pictures from marking an OLED screen. Pause it while you try things out; it comes back by itself.</p>
+    </div>
+  </section>
 
-      <section aria-labelledby="h-port">
-        <h2 id="h-port" data-t="portTitle">Address</h2>
-        <div class="row">
-          <div class="label"><span data-t="port">Port of this page</span><span class="sub" id="port-state"></span></div>
-          <div class="pinrow">
-            <input type="text" id="port-new" inputmode="numeric" pattern="[0-9]*" maxlength="5" aria-label="Port">
-            <button class="btn" type="button" id="port-set" data-t="portSet">Change</button>
-          </div>
-        </div>
-        <p class="note" id="port-note" hidden></p>
-      </section>
+  <!-- ===================== Système ===================== -->
+  <section class="tab" id="tab-systeme" hidden>
+    <div class="wrap pane root">
+      <h1 class="lt" data-t="tabSystem">System</h1>
+      <h2 class="gh" data-t="updTitle">Updates</h2>
+      <div class="group">
+        <div class="cell" id="upd-row"><div class="label lbl"><span id="upd-version">Lightkeeper</span><span class="sub" id="upd-state"></span></div>
+          <button class="btn" type="button" id="upd-go" data-t="updGo" hidden>Update</button></div>
+      </div>
+      <p class="gf" id="upd-perso" data-t="updOff" hidden>This is a personal version, so the project's updates are turned off.</p>
+      <p class="gf" id="upd-note" hidden></p>
 
-      <section aria-labelledby="h-update">
-        <h2 id="h-update" data-t="updTitle">Updates</h2>
-        <p class="lede" id="upd-perso" data-t="updOff" hidden>This is a personal version, so the project's updates are turned off: one would put the official version over it.</p>
-        <div class="row" id="upd-row">
-          <div class="label"><span id="upd-version">Lightkeeper</span><span class="sub" id="upd-state"></span></div>
-          <button class="btn" type="button" id="upd-go" data-t="updGo" hidden>Update</button>
-        </div>
-        <p class="note" id="upd-note" hidden></p>
-      </section>
+      <h2 class="gh" data-t="portTitle">Address</h2>
+      <div class="group">
+        <div class="cell"><span class="lbl" data-t="rgPage">Settings page</span><span class="val" id="v-page"></span></div>
+        <div class="cell"><div class="label lbl"><span data-t="port">Port of this page</span><span class="sub" id="port-state"></span></div>
+          <div class="pinrow"><input type="text" id="port-new" inputmode="numeric" pattern="[0-9]*" maxlength="5" aria-label="Port"><button class="btn" type="button" id="port-set" data-t="portSet">Change</button></div></div>
+      </div>
+      <p class="gf" id="port-note" hidden></p>
 
-      <section aria-labelledby="h-remove">
-        <h2 id="h-remove" data-t="removeTitle">Remove Lightkeeper</h2>
-        <p class="lede" data-t="removeLede">Gives the Home key back to LG, stops opening at power on, and deletes these settings and the app.</p>
-        <div class="actions"><button class="btn danger" type="button" id="remove" data-t="removeTitle">Remove Lightkeeper</button></div>
-        <div class="confirm" id="confirm" hidden>
-          <button class="btn danger primary" type="button" id="remove-yes" data-t="removeYes">Remove for good</button><button class="btn" type="button" id="remove-no" data-t="cancel">Cancel</button>
-        </div>
-      </section>
-    </main>
-  </div>
-  <footer><span id="version"></span> · <span data-t="licence">MIT licence, use at your own risk</span> · <a href="https://github.com/chiotas/lightkeeper" target="_blank" rel="noopener">github.com/chiotas/lightkeeper</a></footer>
+      <h2 class="gh" data-t="more">PIN</h2>
+      <div class="group">
+        <div class="cell"><div class="label lbl"><span data-t="pin">PIN for this page</span><span class="sub" id="pin-state"></span></div>
+          <div class="pinrow"><input type="password" id="pin-new" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password" aria-label="New PIN"><button class="btn" type="button" id="pin-set" data-t="pinSet">Set</button></div></div>
+        <button type="button" class="cell danger" id="pin-clear" data-t="pinClear" hidden>Remove the PIN</button>
+      </div>
+      <div id="pin-clear-row" hidden></div>
+      <p class="gf" id="pin-note" hidden></p>
+
+      <h2 class="gh" data-t="bgLibrary">Library</h2>
+      <div class="group">
+        <div class="wide-cell"><label for="lib-url" class="sub" data-t="libUrlLede" style="display:block;margin-bottom:6px">The https address of its manifest.json</label>
+          <input type="url" id="lib-url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…/manifest.json"></div>
+        <button type="button" class="cell act" id="lib-save" data-t="libSave">Save the address</button>
+      </div>
+      <p class="gf" id="lib-url-note" aria-live="polite"></p>
+
+      <h2 class="gh" data-t="tabHome">Home</h2>
+      <div class="group">
+        <button type="button" class="cell act" id="home-reload" data-t="rgReload">Restart the Home</button>
+      </div>
+      <p class="gf" data-t="reloadLede">The Home on the TV loads again, as with its own settings.</p>
+
+      <h2 class="gh" data-t="removeTitle">Remove Lightkeeper</h2>
+      <div class="group">
+        <button type="button" class="cell danger" id="remove" data-t="removeTitle">Remove Lightkeeper</button>
+        <div class="cell" id="confirm" hidden><button class="btn danger primary" type="button" id="remove-yes" data-t="removeYes">Remove for good</button><button class="btn" type="button" id="remove-no" data-t="cancel">Cancel</button></div>
+      </div>
+      <p class="gf" data-t="removeLede">Gives the Home key back to LG, stops opening at power on, and deletes these settings and the app.</p>
+      <footer><span id="version"></span> · <span data-t="licence">MIT licence, use at your own risk</span> · <a href="https://github.com/chiotas/lightkeeper" target="_blank" rel="noopener">github.com/chiotas/lightkeeper</a></footer>
+    </div>
+  </section>
+  <p id="status" role="status" aria-live="polite"></p>
 </div>
 
 <div class="picker" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="picker-title">
@@ -837,6 +962,68 @@ footer a { color: var(--muted); }
       updOff: 'Version perso : les mises à jour du projet sont désactivées, car une mise à jour officielle écraserait cette version.', updOffState: 'Mises à jour désactivées dans cette version.'
     }
   };
+  // perso.17: the headings of the tabs and lists, and the whole page in French (same words as the TV's panel).
+  var T17en = {
+    tabBg: 'Background', tabGallery: 'Gallery', tabHome: 'Home', tabRemote: 'Remote', tabSystem: 'System', hScroll: 'Rotation', hPictures: 'Backgrounds',
+    hCache: 'Cache', hRead: 'Last read', hToReview: 'Pictures to review', hHiddenPics: 'Hidden pictures', hCaption: 'Caption', hLocal: 'Backgrounds on the TV',
+    hLocalRow: 'The app\'s pictures and yours', hLocalLede: 'Fixed, random or by the time of day; also shown when the library cannot be reached.',
+    hKeys: 'Keys', hPower: 'Power', hPicture: 'Picture', rgTileStyle: 'Show', rgClockFormat: 'Format', rgWeather: 'Weather', rgPage: 'Settings page',
+    rgReload: 'Restart the Home', reloadLede: 'The Home on the TV loads again, as with its own settings.', reloaded: 'The Home starts again',
+    libTicked: ' ticked', allAlbums: 'All backgrounds', galLoading: 'Reading the pictures…', galSearch: 'Search a title or an artist', revKeepLede: 'nothing to change',
+    caption: 'Preview'
+  };
+  var T17fr = {
+    tabBg: 'Fond', tabGallery: 'Galerie', tabHome: 'Accueil', tabRemote: 'Télécommande', tabSystem: 'Système', hScroll: 'Défilement', hPictures: 'Fonds',
+    hCache: 'Cache', hRead: 'Dernière synchro', hToReview: 'Images à revoir', hHiddenPics: 'Images masquées', hCaption: 'Légende', hLocal: 'Fonds sur la TV',
+    hLocalRow: 'Les images de l\'app et les tiennes', hLocalLede: 'Fixe, aléatoire ou selon l\'heure ; aussi montrées quand la bibliothèque ne répond pas.',
+    hKeys: 'Touches', hPower: 'Allumage', hPicture: 'Image', rgTileStyle: 'Affichage', rgClockFormat: 'Format', rgWeather: 'Météo', rgPage: 'Page de réglages',
+    rgReload: 'Redémarrer l\'accueil', reloadLede: 'L\'accueil de la TV se recharge, comme depuis ses propres réglages.', reloaded: 'L\'accueil redémarre',
+    libTicked: ' cochées', allAlbums: 'Tous les fonds', galLoading: 'Lecture des images…', galSearch: 'Rechercher un titre, un artiste', revKeepLede: 'rien à changer',
+    caption: 'Aperçu', libSync: 'Synchroniser maintenant', libRotate: 'Nouveau fond', libMatch: 'Avec plusieurs collections',
+    libAlbumsLede: 'Faites à partir des tags des images. Coche une collection pour rester dessus, plusieurs pour les mélanger. Aucune cochée : tous les fonds.',
+    nextKey: 'Fond suivant', nextKeyLede: 'Quand l\'accueil est à l\'écran. La tuile « Fond suivant » fait pareil.', collKey: 'Collections', collKeyLede: 'Ouvre les collections sur l\'accueil (pas la même touche que le fond suivant).',
+    captionsOn: 'Légende', museumOn: 'Musée sous la légende', revKeep: 'OK', revDelete: 'Retirer (corbeille)',
+    title: 'Réglages', saving: 'Enregistrement…', saved: 'Enregistré', offline: 'La TV ne répond pas', notSaved: 'Non enregistré : ',
+    tiles: 'Tuiles', tilesLede: 'Les apps, entrées et pages web en bas de l\'accueil, dans cet ordre. Glisse les points pour en déplacer une.',
+    webName: 'Page web', webAdd: 'Ajouter une page web', webNoName: 'Donne un nom à la page.', webBadUrl: 'Une adresse commence par http:// ou https://, puis le site, sans espaces.',
+    onWeb: 'Ouvre ', add: 'Ajouter une tuile…', apps: 'Apps', inputs: 'Entrées', up: 'Monter', down: 'Descendre', drop: 'Retirer', nameOnTv: 'Nom sur la TV',
+    onTv: 'Sur la TV : ', empty: 'Pas encore de tuiles. Ajoute les apps et entrées que tu utilises le plus.', full: 'Cinquante tuiles au plus.', drag: 'Glisser pour déplacer',
+    labels: 'Noms sous les logos', labelsAll: 'Tous', labelsSel: 'Sélection', labelsNone: 'Aucun', show: 'Affichage', names: 'Noms', logos: 'Logos', icons: 'Icônes',
+    background: 'Fond', device: 'Appareil', dev_console: 'Console', dev_hdmi: 'HDMI', dev_player: 'Lecteur', dev_tv: 'TV', devAuto: 'Automatique : ',
+    showLede: 'Les logos sont dessinés en blanc ; une app sans logo montre sa propre icône. Les entrées montrent l\'appareil choisi.',
+    randomBg: 'Aléatoire à chaque allumage', randomBgLede: 'Une des images cochées, jamais deux fois de suite la même.', randomNow: 'Cette fois : ',
+    randomFew: 'Coche au moins deux images : en attendant, l\'accueil montre ', removeOne: 'Retirer ', removeAsk: 'Retirer ',
+    spaceMine: 'Tes images : ', spaceNone: 'Pas encore d\'image à toi', spaceFree: ' libres sur la TV', noSpace: 'Non enregistré : la TV aurait moins de ',
+    noSpaceEnd: ' libres. Retire d\'abord une image.', yoursBy: 'envoyée depuis cette page', rights: 'tous droits réservés', pd: 'domaine public',
+    cc0: 'domaine public (CC0)', own: 'faite pour Lightkeeper', night: 'Nuit en mer', nightShort: 'Nuit', dawn: 'Aube en mer', dawnShort: 'Aube',
+    choose: 'Ajouter une image', size: 'Taille', sizeNote: 'L\'image est recadrée en 16:9 et redimensionnée sur cet appareil avant l\'envoi.',
+    sending: 'Envoi de l\'image… ', notImage: 'Ce navigateur ne sait pas ouvrir ce fichier comme une image.', veil: 'Assombrissement',
+    veilLede: 'À quel point l\'image est assombrie derrière l\'heure et les tuiles.', light: 'Clair', dark: 'Sombre', clock: 'Horloge',
+    weatherFor: 'Météo pour', search: 'Chercher une ville', searching: 'Recherche…', noCity: 'Aucune ville de ce nom.', searchFail: 'La recherche n\'a pas répondu. Réessaie.',
+    units: 'Unités', noWeather: 'Pas de météo', weatherBy: 'Météo par', key: 'Touche qui ouvre Lightkeeper',
+    keyLede: 'Par GlassHouse. Avec Accueil, Retour depuis la dernière app revient aussi ici.', keyHome: 'Accueil', active: 'Active.',
+    pending: 'Active d\'ici une minute, une fois GlassHouse redémarré.', noglasshouse: 'GlassHouse n\'est pas installé : la touche ne peut pas changer.',
+    failed: 'La TV n\'a pas pris le changement. Réessaie.', startTile: 'Au démarrage, sélectionner', startLast: 'Dernière ouverte', startFirst: 'Première',
+    hideGear: 'Masquer la roue des réglages', hideGearLede: 'Les réglages restent à ', hideGearEnd: ', depuis un téléphone ou un ordinateur.',
+    openApps: 'Bouton des apps ouvertes', openAppsLede: 'En bout de rangée : il liste les apps ouvertes sur la TV et les ferme.',
+    power: 'Ouvrir à l\'allumage', powerLede: 'Quand la TV s\'allume sur une entrée ou sur l\'accueil LG.', more: 'Code PIN',
+    saver: 'Économiseur d\'écran', saverPause: 'Pause d\'une heure', saverResume: 'Reprendre', saverOn: 'Actif, comme LG l\'a réglé.', saverUntil: 'En pause jusqu\'à ',
+    saverLede: 'L\'économiseur de LG évite qu\'une image fixe marque l\'écran OLED. Mets-le en pause pendant tes essais ; il revient tout seul.',
+    pin: 'Code PIN de cette page', pinOn: 'Demandé avant tout changement ici.', pinOff: 'Tout le réseau peut changer ces réglages.', pinSet: 'Définir',
+    pinClear: 'Retirer le PIN', pinBad: 'Un PIN fait 4 à 8 chiffres.', pinDone: 'PIN défini. Garde-le en lieu sûr.', pinCleared: 'PIN retiré.',
+    portTitle: 'Adresse', port: 'Port de cette page', portSet: 'Changer', portLede: 'L\'accueil et cette page l\'utilisent. À changer si un autre programme de la TV en a besoin.',
+    portTaken: ' est pris par un autre programme de la TV, cette page est donc sur ', portBad: 'Un port est un nombre de 1024 à 65535.', portMoving: 'Passage à la nouvelle adresse…',
+    iconFor: 'Icône de ', iconAuto: 'Automatique', iconAutoLede: 'choisie par Lightkeeper', iconGeneric: 'Génériques', iconServices: 'Services',
+    iconSearch: 'Chercher une icône', iconNone: 'Aucune icône de ce nom.', close: 'Fermer', iconChange: 'Changer l\'icône de ',
+    clockStyle: 'Style', clockSize: 'Taille', sizeSmall: 'Petite', sizeMedium: 'Moyenne', sizeLarge: 'Grande', clock_thin: 'Fine', clock_classic: 'Classique',
+    clock_bold: 'Grasse', clock_mono: 'Mono', clock_rounded: 'Arrondie', clock_digital: 'Digitale',
+    updTitle: 'Version', updGo: 'Mettre à jour', updChecking: 'Recherche d\'une nouvelle version…', updLatest: 'C\'est la dernière version.',
+    removeTitle: 'Supprimer Lightkeeper', removeLede: 'Rend la touche Accueil à LG, n\'ouvre plus à l\'allumage, et efface ces réglages et l\'app.',
+    removeYes: 'Supprimer pour de bon', cancel: 'Annuler', removed: 'Lightkeeper a été retiré de la TV. Tu peux fermer cette page.',
+    licence: 'Licence MIT, à tes risques', lockTitle: 'Code PIN', unlock: 'Déverrouiller', wrong: 'Mauvais PIN.', locked: 'Trop d\'essais. Attends une minute.'
+  };
+  Object.keys(T17en).forEach(function (k) { T.en[k] = T17en[k]; });
+  Object.keys(T17fr).forEach(function (k) { T.fr[k] = T17fr[k]; });
   var ICON = {
     up: '<path d="M5 12.5l5-5 5 5"/>',
     down: '<path d="M5 7.5l5 5 5-5"/>',
@@ -860,6 +1047,7 @@ footer a { color: var(--muted); }
     var els = document.querySelectorAll('[data-t]');
     for (var i = 0; i < els.length; i++) if (t[els[i].getAttribute('data-t')]) els[i].textContent = t[els[i].getAttribute('data-t')];
     $('city').placeholder = t.search;
+    $('gal-q').placeholder = t.galSearch;
     document.title = 'Lightkeeper · ' + t.title;
   }
 
@@ -910,6 +1098,7 @@ footer a { color: var(--muted); }
 
   function scale() {
     var box = document.querySelector('.preview');
+    if (!box.clientWidth) return; // folded, or another tab: done when it shows
     var s = box.clientWidth / 1920;
     $('screen').style.webkitTransform = $('screen').style.transform = 'scale(' + s + ')';
   }
@@ -1062,9 +1251,9 @@ footer a { color: var(--muted); }
       var list = $('tiles'), giro = null, y = e.clientY;
       li.className = 'moving';
       try { h.setPointerCapture(e.pointerId); } catch (err) {}
-      // Near the edges the page scrolls; on a phone the top edge is under the preview.
+      // Near the edges the page scrolls; the top edge is under the tabs.
       var bordi = function () {
-        var alto = document.querySelector('.preview-col').getBoundingClientRect().bottom;
+        var alto = document.querySelector('.tabbar').getBoundingClientRect().bottom;
         var su = Math.max(60, alto + 40);
         if (y < su) window.scrollBy(0, -14);
         else if (y > window.innerHeight - 60) window.scrollBy(0, 14);
@@ -1731,48 +1920,61 @@ footer a { color: var(--muted); }
       sel.appendChild(o);
     });
     sel.value = String(cfg.libraryRotate || 'power');
-    var st = $('lib-state'), box = $('lib-albums');
+    var st = $('lib-state'), box = $('lib-albums'), chosen = cfg.libraryCollections || [];
     box.innerHTML = '';
-    st.className = 'note';
+    st.className = 'gf';
+    st.textContent = '';
+    $('v-coll').textContent = chosen.length ? chosen.length + t.libTicked : t.allAlbums;
+    ['v-libn', 'v-cache', 'v-read', 'v-torev', 'v-tocheck', 'v-hidden'].forEach(function (id) { $(id).textContent = ''; });
     if (!cfg.libraryUrl) { st.textContent = t.libNone; return; }
     if (!lib) { st.textContent = '…'; return loadLibrary(); }
-    capState();
-    revState();
-    var parts = [];
-    if (lib.pictures) parts.push(lib.pictures + t.libPictures + lib.collections.length + t.libAlbumsN + ' (' + lib.inUse + t.libInUse + ')');
-    parts.push(t.libCache + mb(lib.cacheBytes) + (lib.capBytes !== null ? t.libOf + mb(lib.capBytes) : '') + ' · ' + lib.cached + t.libCached);
-    parts.push(lib.lastOk ? t.libLast + hhmm(lib.lastOk) : t.libNever);
-    st.textContent = (lib.error ? t.libErr + lib.error + '.' + t.libErrKeep + ' ' : '') + parts.join(' · ');
-    if (lib.error) st.className = 'note err-note';
+    $('v-libn').textContent = lib.pictures + ' · ' + lib.collections.length + t.libAlbumsN;
+    $('v-cache').textContent = mb(lib.cacheBytes) + (lib.capBytes !== null ? t.libOf + mb(lib.capBytes) : '') + ' · ' + lib.cached + t.libCached;
+    $('v-read').textContent = lib.lastOk ? hhmm(lib.lastOk) : t.libNever;
+    $('v-torev').textContent = lib.toReview || 0;
+    $('v-tocheck').textContent = lib.toVerify || 0;
+    $('v-hidden').textContent = lib.hidden || 0;
+    if (lib.error) { st.textContent = t.libErr + lib.error + '.' + t.libErrKeep; st.className = 'gf err'; }
     radios('libMatch', cfg.libraryMatch || 'any', function (v) { save({ libraryMatch: v }, function () { loadLibrary(); }); });
-    var chosen = cfg.libraryCollections || [], cat = null, ul = null;
+    // The collections, by category: a small cover each, the name, how many, a tick. None ticked: all of them.
+    var tout = document.createElement('div'), cat = null, grp = null;
+    tout.className = 'group';
+    tout.style.marginTop = '14px';
+    var all = document.createElement('label');
+    all.className = 'cell';
+    all.innerHTML = '<span class="lbl"></span><input type="checkbox" class="tick">';
+    all.firstChild.textContent = t.allAlbums;
+    all.lastChild.checked = !chosen.length;
+    all.lastChild.onchange = function () { cfg.libraryCollections = []; save({ libraryCollections: [] }, function () { loadLibrary(); }); };
+    tout.appendChild(all);
+    box.appendChild(tout);
     lib.collections.forEach(function (a) {
       if (a.catName !== cat) {
         cat = a.catName;
-        var h = document.createElement('h4');
-        h.className = 'sub-h';
+        var h = document.createElement('h2');
+        h.className = 'gh';
         h.textContent = cat;
         box.appendChild(h);
-        ul = document.createElement('ul');
-        ul.className = 'libalbums';
-        box.appendChild(ul);
+        grp = document.createElement('div');
+        grp.className = 'group';
+        box.appendChild(grp);
       }
-      var li = document.createElement('li'), img = document.createElement('img'), label = document.createElement('label'), sw = document.createElement('input');
+      var li = document.createElement('label'), img = document.createElement('img'), name = document.createElement('span'), sw = document.createElement('input');
+      li.className = 'cell';
+      img.className = 'cover';
       img.src = '/lib/thumb/' + a.cover + '.jpg';
       img.alt = '';
-      img.width = 96;
-      img.height = 54;
       img.loading = 'lazy';
-      label.htmlFor = sw.id = 'col-' + a.id.replace(':', '-');
-      label.textContent = a.name;
+      name.className = 'lbl';
+      name.textContent = a.name;
       var n = document.createElement('span');
       n.className = 'sub';
       n.textContent = a.count + t.libCount;
-      label.appendChild(n);
+      name.appendChild(n);
       sw.type = 'checkbox';
-      sw.className = 'switch';
-      sw.setAttribute('role', 'switch');
+      sw.className = 'tick';
       sw.checked = chosen.indexOf(a.id) !== -1;
+      sw.setAttribute('aria-label', a.name);
       sw.onchange = function () {
         var next = (cfg.libraryCollections || []).filter(function (x) { return x !== a.id; });
         if (sw.checked) next.push(a.id);
@@ -1780,20 +1982,13 @@ footer a { color: var(--muted); }
         save({ libraryCollections: next }, function () { loadLibrary(); });
       };
       li.appendChild(img);
-      li.appendChild(label);
+      li.appendChild(name);
       li.appendChild(sw);
-      ul.appendChild(li);
+      grp.appendChild(li);
     });
   }
-  /* ---------- the library's captions to check (perso.11) ---------- */
+  /* ---------- the Gallery (perso.17): the pictures, their captions and their review, in one place ---------- */
 
-  var caps = null, capsAll = false;
-  function capState() {
-    var st = $('cap-state');
-    if (!cfg.libraryTokenSet) { st.textContent = t.capNoToken; $('cap-load').hidden = true; return; }
-    $('cap-load').hidden = false;
-    st.textContent = lib ? lib.toVerify + t.capToCheck + ' · ' + lib.auto + t.capAuto : '';
-  }
   function tagsText(tags) {
     return Object.keys(tags || {}).map(function (c) { return c + ' : ' + tags[c].join(', '); }).join('\n');
   }
@@ -1807,123 +2002,241 @@ footer a { color: var(--muted); }
     });
     return out;
   }
-  function renderCaps() {
-    var box = $('cap-list');
-    box.innerHTML = '';
-    if (!caps) return;
-    var list = caps.filter(function (c) { return capsAll || c.status === 'a-verifier' || c.status === 'auto' || c.status === 'nom-de-fichier'; });
-    if (!list.length) { box.textContent = t.capNone; }
-    list.forEach(function (c) {
-      var row = document.createElement('div'), img = document.createElement('img'), f = document.createElement('div');
-      row.className = 'cap';
-      img.src = '/lib/thumb/' + c.id + '.jpg';
-      img.alt = '';
-      img.loading = 'lazy';
-      f.className = 'f';
-      var badge = document.createElement('span'), nm = document.createElement('span');
-      var key = c.status === 'nom-de-fichier' ? 'st_nom' : 'st_' + String(c.status).replace('-', '_');
-      badge.className = 'badge ' + c.status;
-      badge.textContent = t[key] || c.status;
-      nm.className = 'nm';
-      nm.textContent = c.name;
-      f.appendChild(badge);
-      f.appendChild(nm);
-      var champs = {};
-      [['titre', t.capTitleF], ['artiste', t.capArtist], ['annee', t.capYear], ['lieu', t.capPlace], ['musee', t.capMuseum]].forEach(function (x) {
-        var i = document.createElement('input');
-        i.type = 'text';
-        i.value = c[x[0]] || '';
-        i.placeholder = x[1];
-        i.setAttribute('aria-label', x[1]);
-        i.maxLength = x[0] === 'titre' ? 90 : x[0] === 'annee' ? 16 : x[0] === 'musee' ? 80 : 60;
-        champs[x[0]] = i;
-        f.appendChild(i);
-      });
-      var ta = document.createElement('textarea');
-      ta.value = tagsText(c.tags);
-      ta.placeholder = t.capTags;
-      ta.setAttribute('aria-label', t.capTags);
-      f.appendChild(ta);
-      var act = document.createElement('div'), btn = document.createElement('button'), msg = document.createElement('span');
-      act.className = 'actions';
-      btn.type = 'button';
-      btn.className = 'btn primary';
-      btn.textContent = t.capOk;
-      msg.className = 'note';
-      btn.onclick = function () {
-        var body = { name: c.name, titre: champs.titre.value, artiste: champs.artiste.value, annee: champs.annee.value, lieu: champs.lieu.value, musee: champs.musee.value, tags: tagsParse(ta.value) };
-        btn.disabled = true;
-        api('POST', '/api/library/caption', body, function (r, raw) {
-          btn.disabled = false;
-          if (!r) { msg.textContent = ' ' + t.notSaved + ((raw && raw.error) || t.offline); msg.className = 'note err-note'; return; }
-          c.status = 'verifie';
-          c.tags = r.tags;
-          ta.value = tagsText(r.tags); // as the server kept them (the vocabulary's names)
-          badge.className = 'badge verifie';
-          badge.textContent = t.st_verifie;
-          attendsTv(r.t, null, msg);
-        });
-      };
-      act.appendChild(btn);
-      act.appendChild(msg);
-      f.appendChild(act);
-      row.appendChild(img);
-      row.appendChild(f);
-      box.appendChild(row);
-    });
+  var gal = null, galFiltre = 'tout', galNom = null, galBin = false, galLoading = false;
+  var FILTRI = [['tout', 'revAll'], ['arevoir', 'revToReview'], ['validees', 'revValid'], ['masquees', 'revHidden'], ['corbeille', 'revBin']];
+  // To review: the picture (edges taken off, a hard format) or its caption (to check, from the file name).
+  function daRivedere(i) { return !!(i.aRevoir || i.status === 'a-verifier' || i.status === 'nom-de-fichier'); }
+  function nelFiltro(i, f) {
+    if (f === 'corbeille') return !!i.corbeille;
+    if (i.corbeille) return false;
+    return f === 'tout' || (f === 'arevoir' ? daRivedere(i) : f === 'masquees' ? i.hidden : !daRivedere(i) && !i.hidden);
   }
-  $('cap-load').onclick = function () {
-    status(t.saving);
-    api('GET', '/api/library/captions', null, function (r, raw) {
-      if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
-      status('');
-      caps = r.items || [];
-      $('cap-all').hidden = false;
-      renderCaps();
-    });
-  };
-  $('cap-all').onclick = function () { capsAll = !capsAll; renderCaps(); };
-
-  /* ---------- the review of the pictures (perso.13) ---------- */
-
-  var rev = null, revFiltre = 'tout';
-  var POSX = { gauche: 0, centre: 50, droite: 100 }, POSY = { haut: 0, milieu: 50, bas: 100 };
-  function revState() {
-    if (!cfg.libraryTokenSet) { $('rev-load').hidden = true; return; }
-    $('rev-state').textContent = rev ? rev.items.length + t.revCount + rev.items.filter(function (i) { return i.aRevoir; }).length + t.revToReviewN +
-      rev.items.filter(function (i) { return i.format; }).length + t.revHardN +
-      rev.items.filter(function (i) { return i.hidden; }).length + t.revHiddenN + rev.corbeille.length + t.revBinN : '';
+  function piano(s) {
+    s = String(s || '').toLowerCase();
+    return s.normalize ? s.normalize('NFD').replace(/[̀-ͯ]/g, '') : s;
   }
-  function chargeRev(quand) {
-    setTimeout(function () {
-      api('GET', '/api/library/images', null, function (r, raw) {
-        if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
-        rev = r;
-        $('rev-tools').hidden = false;
-        revState();
-        renderRev();
-      });
-    }, quand || 0);
-  }
-  // The preview of a crop, as the server makes it: the picture without its edges, covering a 16:9 box, enlarged
-  // by the zoom, placed across and down.
-  function vueCrop(el, src, rec) {
-    var img = new Image();
-    img.onload = function () {
-      var r = img.naturalWidth / img.naturalHeight, z = rec.zoom || 1;
-      el.style.backgroundImage = 'url(' + src + ')';
-      el.style.backgroundSize = r > 16 / 9 ? 'auto ' + (100 * z) + '%' : (100 * z) + '% auto';
-      el.style.backgroundPosition = POSX[rec.x] + '% ' + POSY[rec.y] + '%';
+  // The pictures (review) and their captions, read together and joined by file name.
+  function galerie(force, dopo) {
+    var note = $('gal-note');
+    if (!cfg.libraryUrl) { note.textContent = t.libNone; return; }
+    if (!cfg.libraryTokenSet) { note.textContent = t.capNoToken; return; }
+    if (gal && !force) { renderGal(); return dopo && dopo(); }
+    if (galLoading) return;
+    galLoading = true;
+    if (!gal) note.textContent = t.galLoading;
+    // The TV reads its library first (a quick question when nothing changed), so that pictures just added have their thumbnails.
+    var imgs = null, caps = null, n = 3;
+    var fine = function () {
+      if (--n) return;
+      galLoading = false;
+      if (!imgs) { note.textContent = t.notSaved + t.offline; note.className = 'gf err'; return; }
+      note.className = 'gf';
+      note.textContent = '';
+      var per = {};
+      ((caps && caps.items) || []).forEach(function (c) { per[c.name] = c; });
+      gal = imgs.items.map(function (i) {
+        var c = per[i.name] || {}, o = {};
+        Object.keys(i).forEach(function (k) { o[k] = i[k]; });
+        ['titre', 'artiste', 'annee', 'lieu', 'musee', 'tags', 'status', 'verifie'].forEach(function (k) { if (c[k] !== undefined) o[k] = c[k]; });
+        return o;
+      }).concat(imgs.corbeille.map(function (c) { return { name: c.name, corbeille: true, raison: c.raison, titre: c.name }; }));
+      renderGal();
+      if (galNom && !$('gal-fiche').hidden) renderFiche();
+      if (dopo) dopo();
     };
-    img.src = src;
+    api('GET', '/api/library/images', null, function (r) { imgs = r; fine(); });
+    api('GET', '/api/library/captions', null, function (r) { caps = r; fine(); });
+    api('POST', '/api/library/sync', {}, function (r) { if (r && r.library) lib = r.library; fine(); });
   }
+  function renderGal() {
+    var bar = $('gal-filtres'), grid = $('gal-grid'), q = piano($('gal-q').value).replace(/^\s+|\s+$/g, '');
+    bar.innerHTML = '';
+    FILTRI.forEach(function (f) {
+      var b = document.createElement('button'), n = (gal || []).filter(function (i) { return nelFiltro(i, f[0]); }).length;
+      b.type = 'button';
+      b.setAttribute('aria-pressed', galFiltre === f[0] ? 'true' : 'false');
+      b.textContent = t[f[1]];
+      var s = document.createElement('small');
+      s.textContent = n;
+      b.appendChild(s);
+      b.onclick = function () { galFiltre = f[0]; renderGal(); };
+      bar.appendChild(b);
+    });
+    grid.innerHTML = '';
+    if (!gal) return;
+    var list = gal.filter(function (i) {
+      return nelFiltro(i, galFiltre) && (!q || piano(i.titre + ' ' + (i.artiste || '') + ' ' + i.name).indexOf(q) !== -1);
+    });
+    if (!list.length) {
+      var v = document.createElement('p');
+      v.className = 'gvuoto';
+      v.textContent = t.revNone;
+      grid.appendChild(v);
+    }
+    list.forEach(function (i) {
+      var b = document.createElement('button'), th = document.createElement('span'), tt = document.createElement('span');
+      b.type = 'button';
+      b.className = 'gitem' + (i.hidden ? ' hid' : '') + (i.corbeille ? ' bin' : '');
+      th.className = 'th';
+      if (i.corbeille) { var nm = document.createElement('span'); nm.textContent = i.name; th.appendChild(nm); }
+      else th.style.backgroundImage = 'url(/lib/thumb/' + i.id + '.jpg)';
+      if (!i.corbeille && (daRivedere(i) || i.hidden)) {
+        var mk = document.createElement('span');
+        mk.className = 'mk' + (daRivedere(i) ? ' rev' : '');
+        mk.textContent = daRivedere(i) ? t.revIsToReview : t.revIsHidden;
+        th.appendChild(mk);
+      }
+      tt.className = 'tt';
+      tt.textContent = i.corbeille ? i.raison || '' : i.titre || i.name;
+      b.appendChild(th);
+      b.appendChild(tt);
+      b.setAttribute('aria-label', i.titre || i.name);
+      b.onclick = function () { galNom = i.name; galBin = !!i.corbeille; renderFiche(); apriSub('gal-fiche'); };
+      grid.appendChild(b);
+    });
+  }
+  $('gal-q').oninput = renderGal;
+  function voceGal() {
+    for (var k = 0; gal && k < gal.length; k++) if (gal[k].name === galNom && !!gal[k].corbeille === galBin) return gal[k];
+    return null;
+  }
+  // The caption as the Home writes it: "Artist — Title, year", the museum under it.
+  function legendaHtml(i) {
+    var d = document.createElement('div');
+    if (i.artiste) d.appendChild(document.createTextNode(i.artiste + (i.titre ? ' — ' : '')));
+    if (i.titre) { var b = document.createElement('b'); b.textContent = i.titre; d.appendChild(b); }
+    if (i.annee) d.appendChild(document.createTextNode(', ' + i.annee));
+    if (i.musee && cfg.captionMuseum !== false) { var s = document.createElement('small'); s.textContent = i.musee; d.appendChild(s); }
+    return d;
+  }
+  function riga(cls, html) { var d = document.createElement('div'); d.className = cls; if (html) d.innerHTML = html; return d; }
+  function renderFiche() {
+    var box = $('gal-fiche-body'), i = voceGal();
+    box.innerHTML = '';
+    if (!i) return chiudiSub();
+    var h = document.createElement('h1');
+    h.className = 'lt';
+    h.textContent = i.corbeille ? i.name : i.titre || i.name;
+    box.appendChild(h);
+    if (i.corbeille) {
+      box.appendChild(riga('gf')).textContent = i.raison || '';
+      var g0 = riga('group');
+      g0.style.marginTop = '14px';
+      var rs = document.createElement('button');
+      rs.type = 'button';
+      rs.className = 'cell act';
+      rs.textContent = t.revRestore;
+      rs.onclick = function () { revAgis(i, {}, function () { galNom = null; }); chiudiSub(); };
+      g0.appendChild(rs);
+      box.appendChild(g0);
+      return;
+    }
+    // The TV version, with the Home over it (where the clock, the caption and the tiles go), or alone.
+    var tvp = riga('tvp'), ov = riga('ov');
+    tvp.style.backgroundImage = 'url(/lib/thumb/' + i.id + '.jpg)';
+    var ora = riga('h'); ora.innerHTML = clockText();
+    var leg = legendaHtml(i); leg.className = 'l';
+    var tl = riga('t');
+    (cfg.tiles || []).filter(function (x) { return !x.hidden; }).slice(0, 8).forEach(function (x) { var s = document.createElement('span'); s.textContent = x.title; tl.appendChild(s); });
+    ov.appendChild(ora); ov.appendChild(leg); ov.appendChild(tl);
+    tvp.appendChild(ov);
+    var reperes = true;
+    try { reperes = localStorage.getItem('galReperes') !== '0'; } catch (e) {}
+    if (!reperes) tvp.className = 'tvp sans';
+    box.appendChild(tvp);
+    var gr = riga('group');
+    gr.style.marginTop = '10px';
+    var lr = document.createElement('label'), cb = document.createElement('input');
+    lr.className = 'cell';
+    lr.innerHTML = '<span class="lbl"></span>';
+    lr.firstChild.textContent = t.edGuides;
+    cb.type = 'checkbox';
+    cb.className = 'switch';
+    cb.checked = reperes;
+    cb.onchange = function () { tvp.className = 'tvp' + (cb.checked ? '' : ' sans'); try { localStorage.setItem('galReperes', cb.checked ? '1' : '0'); } catch (e) {} };
+    lr.appendChild(cb);
+    gr.appendChild(lr);
+    box.appendChild(gr);
+    var bd = riga('badges');
+    [[daRivedere(i), 'rev', t.revIsToReview], [i.hidden, 'hid', t.revIsHidden], [i.format, 'rev', t.revIsHard], [i.revue === 'ok', 'ok', t.revKept],
+      [i.status, i.status, t[i.status === 'nom-de-fichier' ? 'st_nom' : 'st_' + String(i.status).replace('-', '_')] || i.status]].forEach(function (x) {
+      if (!x[0]) return;
+      var s = document.createElement('span');
+      s.className = 'badge ' + x[1];
+      s.textContent = x[2];
+      bd.appendChild(s);
+    });
+    box.appendChild(bd);
+    // The caption, every field, and Validate.
+    var hh = document.createElement('h2');
+    hh.className = 'gh';
+    hh.textContent = t.hCaption;
+    box.appendChild(hh);
+    var gc = riga('group'), champs = {};
+    [['titre', t.capTitleF, 90], ['artiste', t.capArtist, 60], ['annee', t.capYear, 16], ['musee', t.capMuseum, 80], ['lieu', t.capPlace, 60]].forEach(function (x) {
+      var c = document.createElement('label'), inp = document.createElement('input');
+      c.className = 'cell field';
+      c.innerHTML = '<span class="lbl"></span>';
+      c.firstChild.textContent = x[1];
+      c.firstChild.style.flex = '0 0 auto';
+      inp.type = 'text';
+      inp.maxLength = x[2];
+      inp.value = i[x[0]] || '';
+      champs[x[0]] = inp;
+      c.appendChild(inp);
+      gc.appendChild(c);
+    });
+    var ct = document.createElement('label'), ta = document.createElement('textarea');
+    ct.className = 'cell field col';
+    ct.innerHTML = '<span class="lbl"></span>';
+    ct.firstChild.textContent = t.capTags;
+    ta.value = tagsText(i.tags);
+    ta.rows = 4;
+    ct.appendChild(ta);
+    gc.appendChild(ct);
+    var ok = document.createElement('button');
+    ok.type = 'button';
+    ok.className = 'cell act';
+    ok.textContent = t.capOk;
+    var msg = riga('gf');
+    ok.onclick = function () {
+      var body = { name: i.name, titre: champs.titre.value, artiste: champs.artiste.value, annee: champs.annee.value, lieu: champs.lieu.value, musee: champs.musee.value, tags: tagsParse(ta.value) };
+      ok.disabled = true;
+      api('POST', '/api/library/caption', body, function (r, raw) {
+        ok.disabled = false;
+        if (!r) { msg.textContent = t.notSaved + ((raw && raw.error) || t.offline); msg.className = 'gf err'; return; }
+        ta.value = tagsText(r.tags);
+        attendsTv(r.t, function () { galerie(true); }, msg);
+      });
+    };
+    gc.appendChild(ok);
+    box.appendChild(gc);
+    box.appendChild(msg);
+    if (i.verifie) box.appendChild(riga('gf')).textContent = i.verifie;
+    // What to do with the picture.
+    var hi = document.createElement('h2');
+    hi.className = 'gh';
+    hi.textContent = t.hPicture;
+    box.appendChild(hi);
+    var ga = riga('group'), crop = document.createElement('div');
+    var azione = function (txt, cls, fai) { var b = document.createElement('button'); b.type = 'button'; b.className = 'cell ' + cls; b.textContent = txt; b.onclick = fai; ga.appendChild(b); };
+    if (daRivedere(i) || i.revue !== 'ok') azione(t.revKeep + ' — ' + t.revKeepLede, 'act', function () { revAgis(i, { action: 'garder' }); });
+    if (i.original && i.orig && i.cadre) azione(t.revCrop, 'act nav', function () { ouvreCrop(crop, i); if (crop.firstChild && crop.scrollIntoView) crop.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    azione(i.hidden ? t.revShow : t.revHide, 'act', function () { revAgis(i, { action: i.hidden ? 'afficher' : 'masquer' }); });
+    azione(t.revDelete, 'danger', function () { if (confirm(t.revDeleteAsk)) { revAgis(i, { action: 'supprimer' }); chiudiSub(); } });
+    box.appendChild(ga);
+    box.appendChild(crop);
+    box.appendChild(riga('fichenom')).textContent = i.name;
+  }
+
+  var POSX = { gauche: 0, centre: 50, droite: 100 }, POSY = { haut: 0, milieu: 50, bas: 100 };
   function revAgis(i, corpo, dopo) {
     status(t.saving);
     corpo.name = i.name;
     api('POST', i.corbeille ? '/api/library/restore' : '/api/library/image', corpo, function (r, raw) {
       if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
       if (dopo) dopo();
-      attendsTv(r.t, function () { chargeRev(0); });
+      attendsTv(r.t, function () { galerie(true); });
     });
   }
   /*
@@ -1947,73 +2260,6 @@ footer a { color: var(--muted); }
         attente = setTimeout(chiedi, 2500);
       });
     })();
-  }
-  function renderRev() {
-    var box = $('rev-list');
-    box.innerHTML = '';
-    if (!rev) return;
-    var ov = $('rev-ov').checked, list;
-    if (revFiltre === 'corbeille') list = rev.corbeille.map(function (c) { return { name: c.name, corbeille: true, raison: c.raison }; });
-    else list = rev.items.filter(function (i) { return revFiltre === 'tout' || (revFiltre === 'arevoir' ? i.aRevoir : i.revue === 'ok'); });
-    if (!list.length) { box.textContent = t.revNone; return; }
-    list.forEach(function (i) {
-      var card = document.createElement('div'), vue = document.createElement('div'), info = document.createElement('div'), bt = document.createElement('div');
-      card.className = 'rev';
-      vue.className = 'vue';
-      if (!i.corbeille) vue.style.backgroundImage = 'url(/lib/thumb/' + i.id + '.jpg)';
-      if (ov && !i.corbeille) {
-        var o = document.createElement('div');
-        o.className = 'ov';
-        o.innerHTML = '<span class="h">12:00</span><span class="l"></span><span class="t">■ ■ ■ ■ ■ ■</span>';
-        o.querySelector('.l').textContent = i.titre || '';
-        vue.appendChild(o);
-      }
-      info.className = 'info';
-      info.textContent = i.corbeille ? i.name : (i.titre || i.name);
-      var nm = document.createElement('span');
-      nm.className = 'nm';
-      nm.textContent = i.corbeille ? i.raison : i.name;
-      info.appendChild(nm);
-      // The museum under the caption (perso.16): changed here, saved when the field is left.
-      if (!i.corbeille) {
-        var mu = document.createElement('input');
-        mu.type = 'text';
-        mu.className = 'musee';
-        mu.value = i.musee || '';
-        mu.placeholder = t.capMuseum;
-        mu.setAttribute('aria-label', t.capMuseum);
-        mu.maxLength = 80;
-        mu.onchange = function () {
-          status(t.saving);
-          api('POST', '/api/library/caption', { name: i.name, musee: mu.value }, function (r, raw) {
-            if (!r) return status(t.notSaved + ((raw && raw.error) || t.offline), true);
-            i.musee = mu.value;
-            attendsTv(r.t);
-          });
-        };
-        info.appendChild(mu);
-      }
-      [[i.aRevoir, 'diff', t.revIsToReview], [i.format, 'diff', t.revIsHard], [i.hidden, 'cache', t.revIsHidden], [i.revue === 'ok', '', t.revKept]].forEach(function (b) {
-        if (!b[0]) return;
-        var s = document.createElement('span');
-        s.className = 'badge ' + b[1];
-        s.textContent = b[2];
-        info.appendChild(s);
-      });
-      bt.className = 'boutons';
-      var bouton = function (txt, fai) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = txt; b.onclick = fai; bt.appendChild(b); };
-      if (i.corbeille) bouton(t.revRestore, function () { revAgis(i, {}); });
-      else {
-        if (i.revue !== 'ok') bouton(t.revKeep, function () { revAgis(i, { action: 'garder' }); });
-        bouton(i.hidden ? t.revShow : t.revHide, function () { revAgis(i, { action: i.hidden ? 'afficher' : 'masquer' }); });
-        bouton(t.revCrop, function () { ouvreCrop(card, i); });
-        bouton(t.revDelete, function () { if (confirm(t.revDeleteAsk)) revAgis(i, { action: 'supprimer' }); });
-      }
-      card.appendChild(vue);
-      card.appendChild(info);
-      card.appendChild(bt);
-      box.appendChild(card);
-    });
   }
   /*
    * The crop editor: the whole original, a red frame locked to 16:9 over the current crop, the rest darkened.
@@ -2130,9 +2376,6 @@ footer a { color: var(--muted); }
     ed._etat = st; // for the checks
     dessine();
   }
-  $('rev-load').onclick = function () { chargeRev(0); };
-  $('rev-ov').onchange = renderRev;
-  radios('revFiltre', 'tout', function (v) { revFiltre = v; renderRev(); });
 
   function loadLibrary() {
     api('GET', '/api/library', null, function (r) {
@@ -2143,8 +2386,9 @@ footer a { color: var(--muted); }
   $('lib-rotate').onchange = function () { var v = this.value; save({ libraryRotate: /^\d+$/.test(v) ? +v : v }); };
   $('lib-save').onclick = function () {
     var u = $('lib-url').value.replace(/^\s+|\s+$/g, '');
-    if (u && !/^https:\/\/[^\s\/]+\/\S*manifest\.json$/.test(u)) { $('lib-state').textContent = t.libBadUrl; $('lib-state').className = 'note err-note'; return; }
-    save({ libraryUrl: u }, function (ok) { if (ok) { lib = null; renderLibrary(); } });
+    if (u && !/^https:\/\/[^\s\/]+\/\S*manifest\.json$/.test(u)) { $('lib-url-note').textContent = t.libBadUrl; $('lib-url-note').className = 'gf err'; return; }
+    $('lib-url-note').textContent = '';
+    save({ libraryUrl: u }, function (ok) { if (ok) { lib = null; gal = null; renderLibrary(); } });
   };
   // All the pictures go but the one on the screen and those kept for when the server is away; they come back when needed.
   $('lib-clear').onclick = function () {
@@ -2355,7 +2599,7 @@ footer a { color: var(--muted); }
 
   function renderPin() {
     $('pin-state').textContent = cfg.pinSet ? t.pinOn : t.pinOff;
-    $('pin-clear-row').hidden = !cfg.pinSet;
+    $('pin-clear').hidden = !cfg.pinSet;
   }
 
   $('pin-set').onclick = function () {
@@ -2506,6 +2750,47 @@ footer a { color: var(--muted); }
     });
   };
 
+  /* ---------- tabs and sub-pages (perso.17), as the TV's settings panel ---------- */
+
+  var ONGLETS = ['fond', 'galerie', 'accueil', 'tele', 'systeme'], onglet = 'fond', scrollRoot = 0;
+  function mostra(nome) {
+    if (ONGLETS.indexOf(nome) === -1) nome = 'fond';
+    onglet = nome;
+    ONGLETS.forEach(function (o) { $('tab-' + o).hidden = o !== nome; });
+    var bs = document.querySelectorAll('.tabbar button');
+    for (var k = 0; k < bs.length; k++) bs[k].setAttribute('aria-selected', bs[k].getAttribute('data-tab') === nome ? 'true' : 'false');
+    chiudiSub(true);
+    try { history.replaceState(null, '', '#' + nome); } catch (e) {}
+    window.scrollTo(0, 0);
+    if (nome === 'accueil') scale();
+    if (nome === 'galerie' && cfg) galerie(false);
+  }
+  function apriSub(id) {
+    scrollRoot = window.pageYOffset || 0;
+    var panes = $('tab-' + onglet).querySelectorAll('.pane');
+    for (var k = 0; k < panes.length; k++) panes[k].hidden = panes[k].id !== id;
+    window.scrollTo(0, 0);
+  }
+  function chiudiSub(quiet) {
+    var panes = $('tab-' + onglet).querySelectorAll('.pane');
+    for (var k = 0; k < panes.length; k++) panes[k].hidden = !/\broot\b/.test(panes[k].className);
+    if (!quiet) window.scrollTo(0, scrollRoot);
+  }
+  document.addEventListener('click', function (e) {
+    for (var el = e.target; el && el !== document; el = el.parentNode) {
+      if (!el.getAttribute) continue;
+      if (el.getAttribute('data-tab')) return mostra(el.getAttribute('data-tab'));
+      if (el.getAttribute('data-sub')) return apriSub(el.getAttribute('data-sub'));
+      if (el.hasAttribute('data-back')) return chiudiSub();
+      if (el.getAttribute('data-galerie')) { galFiltre = el.getAttribute('data-galerie'); return mostra('galerie'); }
+    }
+  });
+  $('apercu').addEventListener('toggle', scale);
+  window.addEventListener('hashchange', function () { var h = (location.hash || '').slice(1); if (h !== onglet && cfg) mostra(h); });
+  $('home-reload').onclick = function () {
+    api('POST', '/api/home-reload', {}, function (r) { status(r ? t.reloaded : t.notSaved + t.offline, !r); });
+  };
+
   $('remove').onclick = function () { $('confirm').hidden = false; $('remove-no').focus(); };
   $('remove-no').onclick = function () { $('confirm').hidden = true; $('remove').focus(); };
   $('remove-yes').onclick = function () {
@@ -2547,6 +2832,8 @@ footer a { color: var(--muted); }
     renderSaver();
     $('city').value = cfg.weather ? cfg.weather.name : '';
     $('version').textContent = 'Lightkeeper ' + cfg.version;
+    $('v-page').textContent = (cfg.address || location.hostname) + ':' + (cfg.port || location.port || 80);
+    if (document.activeElement !== $('lib-url')) $('lib-url').value = cfg.libraryUrl || '';
     renderPin();
     renderPort();
     checkForUpdate();
@@ -2577,7 +2864,7 @@ footer a { color: var(--muted); }
       $('lock').hidden = true;
       $('page').hidden = false;
       render();
-      scale();
+      mostra((location.hash || '').slice(1) || onglet);
     });
   }
 

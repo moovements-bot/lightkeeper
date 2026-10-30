@@ -28,7 +28,7 @@ var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 var BIB = require('./bibliotheque.js');
 
-var VERSION = '1.0.9-perso.16';
+var VERSION = '1.0.9-perso.17';
 var APP_ID = 'io.github.chiotas.lightkeeper';
 var HERE = __dirname;
 var APP_DIR = path.dirname(HERE);
@@ -267,6 +267,7 @@ function publicConfig() {
   c.portTaken = portTaken;
   c.saverPausedUntil = saverUntil > Date.now() ? saverUntil : 0;
   c.started = STARTED;
+  c.homeReload = homeReload;
   c.backgroundNow = sessionBackground();
   // Every picture there is, in the order the Home and the page draw from, for the time of day.
   c.backgroundIds = PRESETS.concat(mineIds());
@@ -277,6 +278,7 @@ function publicConfig() {
 }
 
 var lib = null; // the library of backgrounds, once the server starts
+var homeReload = 0; // when the settings page last asked the Home to load again (perso.17); the Home reads it with the config
 
 /*
  * A background for each time the TV comes on, at random among those ticked: kept until
@@ -1520,6 +1522,14 @@ function handle(req, res) {
         if (status === 200 && r.ok) lib.refresh(r.t);
         send(res, status === 200 ? 200 : 400, r);
       });
+    });
+  }
+  // "Restart the Home" from the settings page, as the TV panel's own button: the Home sees it at its next reading.
+  if (m === 'POST' && p === '/api/home-reload') {
+    return readJson(req, res, function () {
+      homeReload = Date.now();
+      log('the Home is asked to load again');
+      send(res, 200, { ok: true });
     });
   }
   if (m === 'POST' && p === '/api/screensaver') {
